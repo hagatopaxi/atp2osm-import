@@ -18,7 +18,7 @@ services:
     environment:
       PGPASSWORD: ${OSM_DB_PASSWORD}
     volumes:
-      - ./pbf:/data
+      - ./data:/data
     network_mode: host
 
 volumes:
