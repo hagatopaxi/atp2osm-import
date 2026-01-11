@@ -77,12 +77,20 @@ def setup_atp_fr_db(parquet_path: str):
             properties->>'$.website' as website,
             properties->>'$.phone' as phone,
             properties->>'$.email' as email,
-            geom
+            ST_AsGeoJSON(geom)
         FROM '{parquet_path}'
         WHERE properties->>'$.addr:country' = 'FR';
         CREATE INDEX atp_fr_brand_wikidata_idx ON atp_fr (brand_wikidata);
     """)
     duckdb.sql("COPY atp_fr TO './data/atp/atp_fr.parquet' (FORMAT parquet);")
+
+
+def setup_osm_db():
+    # Check if the extension pg_trgm is installed on the osm database
+    cursor = osmdb.cursor()
+    cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm;")
+    cursor.close()
+
 
 def get_osm_pois(atp_poi: AtpPoi):
     try:
@@ -111,39 +119,39 @@ def get_osm_pois(atp_poi: AtpPoi):
         WHERE
             -- Filter by proximity (within 500 meters)
             ST_DWithin(
-                geom::geography,
-                ST_GeomFromText(%s, 4326)::geography,
+                geom,
+                ST_GeomFromGeoJSON(%s),
                 500
             )
             AND (
                 -- Match by brand:wikidata
-                tags->'brand:wikidata' = %s
+                tags->>'brand:wikidata' = %s
                 -- Or match by brand name
-                OR LOWER(tags->'brand') = LOWER(%s)
-                -- Or match by similar name
-                OR similarity(LOWER(name), LOWER(%s)) > 0.6
+                OR LOWER(tags->>'brand') = LOWER(%s)
                 -- Or match by exact name
-                OR LOWER(name) = LOWER(%s)
+                OR LOWER(tags->>'name') = LOWER(%s)
+                -- Or match by similar name
+                OR similarity(LOWER(tags->>'name'), LOWER(%s)) > 0.6
                 -- Or match by address
-                OR (tags->'addr:postcode' = %s AND LOWER(tags->'addr:city') = LOWER(%s))
+                OR (tags->>'addr:postcode' = %s AND LOWER(tags->>'addr:city') = LOWER(%s))
                 -- Or match by exact website (less http[s]://)
-                OR LOWER(REGEXP_REPLACE(tags->'website', '^https?://', '')) = LOWER(REGEXP_REPLACE(%s, '^https?://', ''))
+                OR LOWER(REGEXP_REPLACE(tags->>'website', '^https?://', '')) = LOWER(REGEXP_REPLACE(%s, '^https?://', ''))
                 -- Or match by exact phone number (without +33 prefix, replaced by 0, if anywhere)
-                OR tags->REGEXP_REPLACE(REGEXP_REPLACE('phone', '^+33', '0'), ' ', '') = REGEXP_REPLACE(%s, '^+33', '0')
+                OR REGEXP_REPLACE(REGEXP_REPLACE(tags->>'phone', '^\+33', '0'), ' ', '') = REGEXP_REPLACE(%s, '^\+33', '0')
                 -- Or match the exact email address
-                OR LOWER(tags->'email') = LOWER(%s)
+                OR LOWER(tags->>'email') = LOWER(%s)
             )
         LIMIT 2; -- only 2, it's to verify there is only one match.
         """
 
         # Convert DuckDB geometry to WKT format for PostGIS
         # Assuming geom is in WKT format or needs conversion
-        wkt_geom = f"POINT({atp_poi.geom})" if isinstance(atp_poi.geom, str) else str(atp_poi.geom)
+        # wkt_geom = f"POINT({atp_poi.geom})" if isinstance(atp_poi.geom, str) else str(atp_poi.geom)
 
         # Save the query to a file for debugging
         with open(f"./data/debug/{atp_poi.brand_wikidata}.sql", "w") as f:
-            logger.info(cursor.morgify(query, (
-                wkt_geom,  # For ST_Distance
+            f.write(cursor.mogrify(query, (
+                atp_poi.geom,  # For ST_Distance
                 atp_poi.brand_wikidata,  # For brand:wikidata exact match
                 atp_poi.brand,  # For brand name match
                 atp_poi.name,  # For name exact match
@@ -153,23 +161,11 @@ def get_osm_pois(atp_poi: AtpPoi):
                 atp_poi.website,  # For website match
                 atp_poi.phone,  # For phone match
                 atp_poi.email,  # For email match
-            )))
-            f.write(cursor.morgify(query, (
-                wkt_geom,  # For ST_Distance
-                atp_poi.brand_wikidata,  # For brand:wikidata exact match
-                atp_poi.brand,  # For brand name match
-                atp_poi.name,  # For name exact match
-                atp_poi.name,  # For name exact match
-                atp_poi.postcode,  # For postcode match
-                atp_poi.city,  # For city match
-                atp_poi.website,  # For website match
-                atp_poi.phone,  # For phone match
-                atp_poi.email,  # For email match
-            )))
+            )).decode('utf-8'))
 
         # Execute query with parameters
         cursor.execute(query, (
-            wkt_geom,  # For ST_Distance
+            atp_poi.geom,  # For ST_Distance
             atp_poi.brand_wikidata,  # For brand:wikidata exact match
             atp_poi.brand,  # For brand name match
             atp_poi.name,  # For name exact match
@@ -185,15 +181,17 @@ def get_osm_pois(atp_poi: AtpPoi):
 
         if len(osm_pois) == 0:
             # The POI does not exist in OSM. TODO: create a quest in StreetComplete
-            logger.info("POI's doesn't exist in OSM")
+            logger.debug("POI's doesn't exist in OSM")
             return
 
         if len(osm_pois) > 1:
             # There is more than 1 result, the POI is skipped
-            logger.info("There is more than one result in OSM")
+            logger.debug("There is more than one result in OSM")
             return
 
         osm_poi = osm_pois[0]
+        logger.info("POI exists in OSM")
+        logger.info(osm_poi)
         # Complete the OSM poi with the ATP data
         # osm_poi = complete_osm_poi(osm_poi, atp_poi)
         # upload in OSM with a changeset, see https://wiki.openstreetmap.org/wiki/API_v0.6#JSON_Format
@@ -235,6 +233,7 @@ def main():
 
     # 2. Get every ATP POI's which is located in the France area territory
     setup_atp_fr_db(latest_parquet_path)
+    setup_osm_db()
     brands = duckdb.sql("""
         SELECT brand_wikidata, count(*)
         FROM atp_fr
