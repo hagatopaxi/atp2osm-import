@@ -8,7 +8,7 @@ import sys
 import os
 import psycopg2
 
-from utils import limit_offset
+from utils import limit_offset, delete_file_if_exists, timer
 from AtpPoi import AtpPoi
 from OsmPoi import OsmPoi
 
@@ -41,29 +41,44 @@ class Config:
     def postcode():
         return Config.args.postcode
 
+    @staticmethod
+    def force_atp_setup():
+        return Config.args.force_atp_setup
+
+    @staticmethod
+    def force_osm_setup():
+        return Config.args.force_osm_setup
+
 
 def download_latest_atp_data():
-    url = "https://data.alltheplaces.xyz/runs/latest.json"
-    response = requests.get(url)
-    if response.status_code != 200:
-        logger.error(f"  Failed to download {url}")
-        sys.exit(1)
+    if Config.force_atp_setup():
+        logger.info("Forcing download of latest ATP data")
+        delete_file_if_exists("./data/atp/latest.parquet")
+        delete_file_if_exists("./data/atp/atp_fr.parquet")
 
-    data = response.json()
-    parquet_url = data.get("parquet_url")
-    download_path = "./data/atp/" + data.get("run_id") + '.parquet'
-    # If the download_path directory doesn't exist, create it
-    os.makedirs(os.path.dirname(download_path), exist_ok=True)
+    download_path = "./data/atp/latest.parquet"
 
     # If the download_path file is already there, skip the download
     if os.path.exists(download_path):
         logger.info(f"{download_path} already exists, skipping download")
-        return download_path
+        return
+
+    url = "https://data.alltheplaces.xyz/runs/latest.json"
+    response = requests.get(url)
+    if response.status_code != 200:
+        logger.error(f"Failed to download {url}")
+        sys.exit(1)
+
+    data = response.json()
+    parquet_url = data.get("parquet_url")
+    # If the download_path directory doesn't exist, create it
+    os.makedirs(os.path.dirname(download_path), exist_ok=True)
 
     if not parquet_url:
         logger.error("'parquet_url' key not found in JSON response")
         sys.exit(1)
 
+    logger.info("Downloading latest ATP data")
     parquet_response = requests.get(parquet_url)
     if parquet_response.status_code != 200:
         logger.error(f"Failed to download {parquet_url}")
@@ -73,10 +88,12 @@ def download_latest_atp_data():
         file.write(parquet_response.content)
 
     logger.info(f"Downloaded {download_path}")
-    return download_path
 
 
-def setup_atp_fr_db(parquet_path: str):
+@timer
+def setup_atp_fr_db():
+    download_latest_atp_data()
+
     duckdb.sql("INSTALL spatial; LOAD spatial;")
 
     if os.path.exists('./data/atp/atp_fr.parquet'):
@@ -86,8 +103,7 @@ def setup_atp_fr_db(parquet_path: str):
         return
     
     logger.info("Creating new atp_fr table and saving to parquet")
-    duckdb.read_parquet(parquet_path)
-    duckdb.sql(f"""
+    duckdb.sql("""
         CREATE TABLE atp_fr AS
         SELECT
             properties->>'$.addr:country' as country,
@@ -101,13 +117,14 @@ def setup_atp_fr_db(parquet_path: str):
             properties->>'$.phone' as phone,
             properties->>'$.email' as email,
             ST_AsGeoJSON(geom)
-        FROM '{parquet_path}'
+        FROM read_parquet('./data/atp/latest.parquet')
         WHERE properties->>'$.addr:country' = 'FR';
         CREATE INDEX atp_fr_brand_wikidata_idx ON atp_fr (brand_wikidata);
     """)
     duckdb.sql("COPY atp_fr TO './data/atp/atp_fr.parquet' (FORMAT parquet);")
 
 
+@timer
 def setup_osm_db():
     # Check if the extension pg_trgm is installed on the osm database
     cursor = osmdb.cursor()
@@ -118,16 +135,19 @@ def setup_osm_db():
     cursor.execute("SELECT * FROM spatial_ref_sys WHERE srid=9794;")
     spatial_refs = cursor.fetchall() 
     if len(spatial_refs) == 0:
+        logger.info("Insert EPSG/9794 projection into OSM database")
         cursor.execute("""
             INSERT INTO spatial_ref_sys (srid, auth_name, auth_srid, srtext, proj4text) 
             VALUES(9794, 'EPSG', 9794, 'PROJCS["RGF93_v2b_Lambert-93",GEOGCS["RGF93_v2b",DATUM["Reseau_Geodesique_Francais_1993_v2b",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Lambert_Conformal_Conic"],PARAMETER["False_Easting",700000.0],PARAMETER["False_Northing",6600000.0],PARAMETER["Central_Meridian",3.0],PARAMETER["Standard_Parallel_1",49.0],PARAMETER["Standard_Parallel_2",44.0],PARAMETER["Latitude_Of_Origin",46.5],UNIT["Meter",1.0]]', '+proj=lcc +lat_0=46.5 +lon_0=3 +lat_1=49 +lat_2=44 +x_0=700000 +y_0=6600000 +ellps=GRS80 +units=m +no_defs +type=crs');
         """)
 
-    # Create indexes on the tags columns CREATE INDEX idxgin ON jsonb_example USING GIN (data);
-    cursor.execute("""
-        DROP MATERIALIZED VIEW IF EXISTS mv_places CASCADE;   -- (recréation éventuelle)
+    if Config.force_osm_setup():
+        logger.info("Force OSM setup")
+        cursor.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places CASCADE;")
 
-        CREATE MATERIALIZED VIEW mv_places AS
+    logger.info("Create Materialized View mv_places and associated indexes")
+    cursor.execute("""
+        CREATE MATERIALIZED VIEW IF NOT EXISTS mv_places AS
         SELECT
             node_id                  AS osm_id,
             'point'                  AS node_type,
@@ -163,39 +183,40 @@ def setup_osm_db():
         FROM polygons;
 
         -- 3.1  Index spatial (GIST) – indispensable pour ST_DWithin
-        CREATE INDEX mv_places_geom_9794_idx
+        CREATE INDEX IF NOT EXISTS mv_places_geom_9794_idx
             ON mv_places USING GIST (geom_9794);
 
         -- 3.2  Index sur la clé brand:wikidata (exact match)
-        CREATE INDEX mv_places_brand_wikidata_idx
+        CREATE INDEX IF NOT EXISTS mv_places_brand_wikidata_idx
             ON mv_places ((brand_wikidata));
 
         -- 3.3  Index fonctionnel insensible à la casse sur brand
-        CREATE INDEX mv_places_brand_lower_idx
+        CREATE INDEX IF NOT EXISTS mv_places_brand_lower_idx
             ON mv_places (LOWER(brand));
 
         -- 3.4  Index fonctionnel insensible à la casse sur name
-        CREATE INDEX mv_places_name_lower_idx
+        CREATE INDEX IF NOT EXISTS mv_places_name_lower_idx
             ON mv_places (LOWER(name));
 
         -- 3.5  Index trigramme pour la similarité sur le nom
-        CREATE INDEX mv_places_name_trgm_idx
+        CREATE INDEX IF NOT EXISTS mv_places_name_trgm_idx
             ON mv_places USING GIN (LOWER(name) gin_trgm_ops);
 
         -- 3.6  Normalisation du site web (supprime http/https) – insensible à la casse
-        CREATE INDEX mv_places_website_norm_idx
+        CREATE INDEX IF NOT EXISTS mv_places_website_norm_idx
             ON mv_places (LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')));
 
         -- 3.7  Normalisation du téléphone (supprime le préfixe +33 et les espaces)
-        CREATE INDEX mv_places_phone_norm_idx
+        CREATE INDEX IF NOT EXISTS mv_places_phone_norm_idx
             ON mv_places (REGEXP_REPLACE(REGEXP_REPLACE(phone, '^\+33', '0'), '\s+', '', 'g'));
 
         -- 3.8  Index fonctionnel insensible à la casse sur l'email
-        CREATE INDEX mv_places_email_lower_idx
+        CREATE INDEX IF NOT EXISTS mv_places_email_lower_idx
             ON mv_places (LOWER(email));
     """)
 
     cursor.close()
+    logger.info("OSM DB completely setup")
 
 
 def get_osm_poi(atp_poi: AtpPoi, i: int):
@@ -311,7 +332,15 @@ def apply_changes(atp_poi: AtpPoi, osm_poi: OsmPoi):
     logger.info(f"{osm_poi}")
 
 
-def compute_changes(brands):
+@timer
+def compute_changes():
+    brands = duckdb.sql("""
+        SELECT brand_wikidata, count(*)
+        FROM atp_fr
+        WHERE brand_wikidata IS NOT NULL
+        GROUP BY brand_wikidata
+    """).fetchall()
+
     for brand in brands:
         brand_wikidata = brand[0]
         brand_count = brand[1]
@@ -326,14 +355,18 @@ def compute_changes(brands):
         for skip in range(0, brand_count, 100):
             logger.info(f"Processing {brand_wikidata} {skip} to {min(skip + limit, brand_count)}")
 
-            where_clause = f" AND postcode = {Config.postcode()}" if Config.postcode() is not None else ""
+            query_params = [brand_wikidata,]
+            where_clause = ""
+            if Config.postcode() is not None:
+                query_params.append(Config.postcode())
+                where_clause = " AND postcode = ?"
 
-            atp_pois = duckdb.sql(f"""
+            atp_pois = duckdb.execute(f"""
                 SELECT *
                 FROM atp_fr
-                WHERE brand_wikidata = '{brand_wikidata}' {where_clause}
-                LIMIT {limit} OFFSET {skip}
-            """).fetchall()
+                WHERE brand_wikidata = ? {where_clause}
+                LIMIT ? OFFSET ?
+            """, query_params + [limit, skip]).fetchall()
             
             # Iterate on each value to get the OSM POIs
             for atp_poi in atp_pois:
@@ -341,45 +374,28 @@ def compute_changes(brands):
                 i+=1
 
 
+@timer
 def main():
     parser = argparse.ArgumentParser(prog="atp2osm-import" ,description="Display CLI arguments")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode")
     parser.add_argument("-b", "--brand-wikidata", action="store", help="Brand wikidata filter")
     parser.add_argument("-p", "--postcode", action="store", help="Postcode filter")
+    parser.add_argument("--force-atp-setup", action="store_true", help="Force download and setup the latest ATP data")
+    parser.add_argument("--force-osm-setup", action="store_true", help="Force setup the OSM database")
 
     args = parser.parse_args()
     Config.setup(args)
 
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG if Config.debug() else logging.INFO)
 
-    # 1. Download the ATP data
-    latest_parquet_path = download_latest_atp_data()
+    # 1. Setup ATP_FR table (download and extract)
+    setup_atp_fr_db()
 
-    # 2. Get every ATP POI's which is located in the France area territory
-    setup_atp_fr_db(latest_parquet_path)
+    # 2. Setup OSM database (create a view and necessary indexes)
     setup_osm_db()
-    brands = duckdb.sql("""
-        SELECT brand_wikidata, count(*)
-        FROM atp_fr
-        WHERE brand_wikidata IS NOT NULL
-        GROUP BY brand_wikidata
-    """).fetchall()
-    brands_count = duckdb.sql("""
-        SELECT count(DISTINCT brand_wikidata)
-        FROM atp_fr
-        WHERE brand_wikidata IS NOT NULL
-    """) # 421
 
-    # 3. Based on this data, loop on every brand and items to find a associated OSM POI's
-    compute_changes(brands)
-
-    # 4. If the OSM POI is not found skip for now
-
-    # 5. If the OSM POI is found, complete the data (phone, website, opening_hours, email_address) with the ATP POI value
-
-    # 6. Save the changes in a .osc file
-
-    # 7. Publish the file to OSM
+    # 3. For each brands, check if there is an existing POI in OSM, then apply the changes
+    compute_changes()
 
 
 if __name__ == "__main__":
