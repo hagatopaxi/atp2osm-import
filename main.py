@@ -20,6 +20,23 @@ osmdb = psycopg2.connect(
     port=os.getenv('OSM_DB_PORT')
 )
 
+
+class Config:
+    args = None
+
+    @staticmethod
+    def setup(_args):
+        Config.args = _args
+    
+    @staticmethod
+    def debug():
+        return Config.args.debug
+    
+    @staticmethod
+    def brand():
+        return Config.args.brand
+
+
 def download_latest_atp_data():
     url = "https://data.alltheplaces.xyz/runs/latest.json"
     response = requests.get(url)
@@ -35,22 +52,22 @@ def download_latest_atp_data():
 
     # If the download_path file is already there, skip the download
     if os.path.exists(download_path):
-        logger.info(f"  {download_path} already exists, skipping download")
+        logger.info(f"{download_path} already exists, skipping download")
         return download_path
 
     if not parquet_url:
-        logger.error("  'parquet_url' key not found in JSON response")
+        logger.error("'parquet_url' key not found in JSON response")
         sys.exit(1)
 
     parquet_response = requests.get(parquet_url)
     if parquet_response.status_code != 200:
-        logger.error(f"  Failed to download {parquet_url}")
+        logger.error(f"Failed to download {parquet_url}")
         sys.exit(1)
 
     with open(download_path, 'wb') as file:
         file.write(parquet_response.content)
 
-    logger.info(f"  Downloaded {download_path}")
+    logger.info(f"Downloaded {download_path}")
     return download_path
 
 def setup_atp_fr_db(parquet_path: str):
@@ -89,10 +106,21 @@ def setup_osm_db():
     # Check if the extension pg_trgm is installed on the osm database
     cursor = osmdb.cursor()
     cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm;")
+    
+    # Insert the EPSG/9793 official projection of France
+    # See https://spatialreference.org/ref/epsg/9794/ and https://fr.wikipedia.org/wiki/Projection_conique_conforme_de_Lambert#Projections_officielles_en_France_m%C3%A9tropolitaine
+    cursor.execute("SELECT * FROM spatial_ref_sys WHERE srid=9794;")
+    spatial_refs = cursor.fetchall() 
+    if len(spatial_refs) == 0:
+        cursor.execute("""
+            INSERT INTO spatial_ref_sys (srid, auth_name, auth_srid, srtext, proj4text) 
+            VALUES(9794, 'EPSG', 9794, 'PROJCS["RGF93_v2b_Lambert-93",GEOGCS["RGF93_v2b",DATUM["Reseau_Geodesique_Francais_1993_v2b",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Lambert_Conformal_Conic"],PARAMETER["False_Easting",700000.0],PARAMETER["False_Northing",6600000.0],PARAMETER["Central_Meridian",3.0],PARAMETER["Standard_Parallel_1",49.0],PARAMETER["Standard_Parallel_2",44.0],PARAMETER["Latitude_Of_Origin",46.5],UNIT["Meter",1.0]]', '+proj=lcc +lat_0=46.5 +lon_0=3 +lat_1=49 +lat_2=44 +x_0=700000 +y_0=6600000 +ellps=GRS80 +units=m +no_defs +type=crs');
+        """)
+
     cursor.close()
 
 
-def get_osm_pois(atp_poi: AtpPoi):
+def get_osm_poi(atp_poi: AtpPoi):
     try:
         # Create a cursor for each POI request
         cursor = osmdb.cursor()
@@ -119,8 +147,8 @@ def get_osm_pois(atp_poi: AtpPoi):
         WHERE
             -- Filter by proximity (within 500 meters)
             ST_DWithin(
-                geom,
-                ST_GeomFromGeoJSON(%s),
+                ST_Transform(geom, 9794),
+                ST_Transform(ST_GeomFromGeoJSON(%s), 9794),
                 500
             )
             AND (
@@ -132,8 +160,6 @@ def get_osm_pois(atp_poi: AtpPoi):
                 OR LOWER(tags->>'name') = LOWER(%s)
                 -- Or match by similar name
                 OR similarity(LOWER(tags->>'name'), LOWER(%s)) > 0.6
-                -- Or match by address
-                OR (tags->>'addr:postcode' = %s AND LOWER(tags->>'addr:city') = LOWER(%s))
                 -- Or match by exact website (less http[s]://)
                 OR LOWER(REGEXP_REPLACE(tags->>'website', '^https?://', '')) = LOWER(REGEXP_REPLACE(%s, '^https?://', ''))
                 -- Or match by exact phone number (without +33 prefix, replaced by 0, if anywhere)
@@ -142,6 +168,8 @@ def get_osm_pois(atp_poi: AtpPoi):
                 OR LOWER(tags->>'email') = LOWER(%s)
             )
         LIMIT 2; -- only 2, it's to verify there is only one match.
+        -- %s
+        -- %s
         """
 
         # Convert DuckDB geometry to WKT format for PostGIS
@@ -149,19 +177,23 @@ def get_osm_pois(atp_poi: AtpPoi):
         # wkt_geom = f"POINT({atp_poi.geom})" if isinstance(atp_poi.geom, str) else str(atp_poi.geom)
 
         # Save the query to a file for debugging
-        with open(f"./data/debug/{atp_poi.brand_wikidata}.sql", "w") as f:
-            f.write(cursor.mogrify(query, (
-                atp_poi.geom,  # For ST_Distance
-                atp_poi.brand_wikidata,  # For brand:wikidata exact match
-                atp_poi.brand,  # For brand name match
-                atp_poi.name,  # For name exact match
-                atp_poi.name,  # For name exact match
-                atp_poi.postcode,  # For postcode match
-                atp_poi.city,  # For city match
-                atp_poi.website,  # For website match
-                atp_poi.phone,  # For phone match
-                atp_poi.email,  # For email match
-            )).decode('utf-8'))
+        if Config.debug():
+            # Create the debug folder if it does not exist
+            if not os.path.exists("./data/debug"):
+                os.makedirs("./data/debug")
+            with open(f"./data/debug/{atp_poi.brand_wikidata}.sql", "w") as f:
+                f.write(cursor.mogrify(query, (
+                    atp_poi.geom,  # For ST_Distance
+                    atp_poi.brand_wikidata,  # For brand:wikidata exact match
+                    atp_poi.brand,  # For brand name match
+                    atp_poi.name,  # For name exact match
+                    atp_poi.name,  # For name exact match
+                    atp_poi.website,  # For website match
+                    atp_poi.phone,  # For phone match
+                    atp_poi.email,  # For email match
+                    atp_poi.postcode, # For debug
+                    atp_poi.city, # For debug
+                )).decode('utf-8'))
 
         # Execute query with parameters
         cursor.execute(query, (
@@ -170,11 +202,11 @@ def get_osm_pois(atp_poi: AtpPoi):
             atp_poi.brand,  # For brand name match
             atp_poi.name,  # For name exact match
             atp_poi.name,  # For name exact match
-            atp_poi.postcode,  # For postcode match
-            atp_poi.city,  # For city match
             atp_poi.website,  # For website match
             atp_poi.phone,  # For phone match
             atp_poi.email,  # For email match
+            atp_poi.postcode, # For debug
+            atp_poi.city, # For debug
         ))
 
         osm_pois = cursor.fetchall()
@@ -197,16 +229,26 @@ def get_osm_pois(atp_poi: AtpPoi):
         # upload in OSM with a changeset, see https://wiki.openstreetmap.org/wiki/API_v0.6#JSON_Format
 
         # Process the results as needed
-        return pois
+        return osm_poi
     finally:
         # Close the cursor after the query is executed
         if cursor:
             cursor.close()
 
+
+def apply_changes(atp_poi, osm_poi):
+    logger.info(atp_poi, osm_poi)
+
+
 def compute_changes(brands):
     for brand in brands:
         brand_wikidata = brand[0]
         brand_count = brand[1]
+
+        if Config.brand() is not None and Config.brand() != brand_wikidata:
+            # Filter brands
+            continue
+
         limit = 100
         logger.info(f"Processing {brand_wikidata} with {brand_count} POIs")
         for skip in range(0, brand_count, 100):
@@ -217,16 +259,24 @@ def compute_changes(brands):
                 WHERE brand_wikidata = '{brand_wikidata}'
                 LIMIT {limit} OFFSET {skip}
             """).fetchall()
-
+            
+            osm_pois = []
             # Iterate on each value to get the OSM POIs
             for atp_poi in atp_pois:
-                osm_pois = get_osm_pois(AtpPoi(atp_poi))
+                osm_poi = get_osm_poi(AtpPoi(atp_poi))
+                if osm_poi is not None:
+                    apply_changes(brand_wikidata, atp_poi, osm_poi)
+
 
 def main():
     parser = argparse.ArgumentParser(prog="atp2osm-import" ,description="Display CLI arguments")
+    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode")
+    parser.add_argument("-b", "--brand", action="store", help="Brand to process")
 
-    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     args = parser.parse_args()
+    Config.setup(args)
+
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG if Config.debug() else logging.INFO)
 
     # 1. Download the ATP data
     latest_parquet_path = download_latest_atp_data()
