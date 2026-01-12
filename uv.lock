@@ -12,7 +12,7 @@ wheels = [
 ]
 
 [[package]]
-name = "atp-osm-import-fr"
+name = "atp2osm-import"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

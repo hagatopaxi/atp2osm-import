@@ -9,9 +9,8 @@ import os
 import psycopg2
 
 from utils import limit_offset, delete_file_if_exists, timer
-from AtpPoi import AtpPoi
-from OsmPoi import OsmPoi
-from Config import Config
+from models import AtpPoi, OsmPoi, Config
+
 
 logger = logging.getLogger(__name__)
 osmdb = psycopg2.connect(
@@ -302,8 +301,7 @@ def get_osm_poi(atp_poi: AtpPoi, i: int):
 
 
 def apply_changes(atp_poi: AtpPoi, osm_poi: OsmPoi):
-    logger.info(f"{atp_poi}")
-    logger.info(f"{osm_poi}")
+    pass
 
 
 @timer
@@ -350,8 +348,8 @@ def compute_changes():
 
 @timer
 def main():
-    parser = argparse.ArgumentParser(prog="atp2osm-import" ,description="Display CLI arguments")
-    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode")
+    parser = argparse.ArgumentParser(prog="atp2osm-import" ,description="Import ATP FR data into OSM")
+    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode, that will slow down the process, better to use with filter")
     parser.add_argument("-b", "--brand-wikidata", action="store", help="Brand wikidata filter")
     parser.add_argument("-p", "--postcode", action="store", help="Postcode filter")
     parser.add_argument("--force-atp-setup", action="store_true", help="Force download and setup the latest ATP data")

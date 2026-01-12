@@ -18,6 +18,10 @@ uv sync
 
 ## Run the script
 
+Copy the `.env.sample` into `.env` and setup your own environment variables
+
 ```
-uv run main.py
+uv run --env-file .env src/main.py
 ```
+
+To see every options run `uv run --env-file .env src/main.py --help`
