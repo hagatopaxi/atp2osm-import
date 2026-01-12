@@ -123,6 +123,78 @@ def setup_osm_db():
             VALUES(9794, 'EPSG', 9794, 'PROJCS["RGF93_v2b_Lambert-93",GEOGCS["RGF93_v2b",DATUM["Reseau_Geodesique_Francais_1993_v2b",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Lambert_Conformal_Conic"],PARAMETER["False_Easting",700000.0],PARAMETER["False_Northing",6600000.0],PARAMETER["Central_Meridian",3.0],PARAMETER["Standard_Parallel_1",49.0],PARAMETER["Standard_Parallel_2",44.0],PARAMETER["Latitude_Of_Origin",46.5],UNIT["Meter",1.0]]', '+proj=lcc +lat_0=46.5 +lon_0=3 +lat_1=49 +lat_2=44 +x_0=700000 +y_0=6600000 +ellps=GRS80 +units=m +no_defs +type=crs');
         """)
 
+    # Create indexes on the tags columns CREATE INDEX idxgin ON jsonb_example USING GIN (data);
+    cursor.execute("""
+        DROP MATERIALIZED VIEW IF EXISTS mv_places CASCADE;   -- (recréation éventuelle)
+
+        CREATE MATERIALIZED VIEW mv_places AS
+        SELECT
+            node_id                  AS osm_id,
+            'point'                  AS node_type,
+            tags->>'name'            AS name,
+            tags->>'brand:wikidata'  AS brand_wikidata,
+            tags->>'brand'           AS brand,
+            tags->>'addr:city'       AS city,
+            tags->>'addr:postcode'   AS postcode,
+            tags->>'opening_hours'   AS opening_hours,
+            tags->>'website'         AS website,
+            tags->>'phone'           AS phone,
+            tags->>'email'           AS email,
+            ST_Transform(geom, 9794) AS geom_9794,
+            geom
+        FROM points
+
+        UNION ALL
+
+        SELECT
+            area_id                  AS osm_id,
+            'polygon'                AS node_type,
+            tags->>'name'            AS name,
+            tags->>'brand:wikidata'  AS brand_wikidata,
+            tags->>'brand'           AS brand,
+            tags->>'addr:city'       AS city,
+            tags->>'addr:postcode'   AS postcode,
+            tags->>'opening_hours'   AS opening_hours,
+            tags->>'website'         AS website,
+            tags->>'phone'           AS phone,
+            tags->>'email'           AS email,
+            ST_Transform(geom, 9794) AS geom_9794,
+            geom
+        FROM polygons;
+
+        -- 3.1  Index spatial (GIST) – indispensable pour ST_DWithin
+        CREATE INDEX mv_places_geom_9794_idx
+            ON mv_places USING GIST (geom_9794);
+
+        -- 3.2  Index sur la clé brand:wikidata (exact match)
+        CREATE INDEX mv_places_brand_wikidata_idx
+            ON mv_places ((brand_wikidata));
+
+        -- 3.3  Index fonctionnel insensible à la casse sur brand
+        CREATE INDEX mv_places_brand_lower_idx
+            ON mv_places (LOWER(brand));
+
+        -- 3.4  Index fonctionnel insensible à la casse sur name
+        CREATE INDEX mv_places_name_lower_idx
+            ON mv_places (LOWER(name));
+
+        -- 3.5  Index trigramme pour la similarité sur le nom
+        CREATE INDEX mv_places_name_trgm_idx
+            ON mv_places USING GIN (LOWER(name) gin_trgm_ops);
+
+        -- 3.6  Normalisation du site web (supprime http/https) – insensible à la casse
+        CREATE INDEX mv_places_website_norm_idx
+            ON mv_places (LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')));
+
+        -- 3.7  Normalisation du téléphone (supprime le préfixe +33 et les espaces)
+        CREATE INDEX mv_places_phone_norm_idx
+            ON mv_places (REGEXP_REPLACE(REGEXP_REPLACE(phone, '^\+33', '0'), '\s+', '', 'g'));
+
+        -- 3.8  Index fonctionnel insensible à la casse sur l'email
+        CREATE INDEX mv_places_email_lower_idx
+            ON mv_places (LOWER(email));
+    """)
+
     cursor.close()
 
 
@@ -137,95 +209,48 @@ def get_osm_poi(atp_poi: AtpPoi, i: int):
         # 2. Name similarity and proximity matching
         # 3. Address matching (postcode and city)
         query = """
-        (SELECT
-            node_id as osm_id,
-            'point' as node_type,
-            tags->'name' as name,
-            tags->'brand:wikidata' as brand_wikidata,
-            tags->'brand' as brand,
-            tags->'addr:city' as city,
-            tags->'addr:postcode' as postcode,
-            tags->'opening_hours' as opening_hours,
-            tags->'website' as website,
-            tags->'phone' as phone,
-            tags->'email' as email,
-            geom
-        FROM points
-        WHERE
-            -- Filter by proximity (within 500 meters)
-            ST_DWithin(
-                ST_Transform(geom, 9794),
-                ST_Transform(ST_GeomFromGeoJSON(%s), 9794),
-                500
-            )
-            AND (
-                -- Match by brand:wikidata
-                tags->>'brand:wikidata' = %s
-                -- Or match by brand name
-                OR LOWER(tags->>'brand') = LOWER(%s)
-                -- Or match by exact name
-                OR LOWER(tags->>'name') = LOWER(%s)
-                -- Or match by similar name
-                OR similarity(LOWER(tags->>'name'), LOWER(%s)) > 0.6
-                -- Or match by exact website (less http[s]://)
-                OR LOWER(REGEXP_REPLACE(tags->>'website', '^https?://', '')) = LOWER(REGEXP_REPLACE(%s, '^https?://', ''))
-                -- Or match by exact phone number (without +33 prefix, replaced by 0, if anywhere)
-                OR REGEXP_REPLACE(REGEXP_REPLACE(tags->>'phone', '^\+33', '0'), ' ', '') = REGEXP_REPLACE(%s, '^\+33', '0')
-                -- Or match the exact email address
-                OR LOWER(tags->>'email') = LOWER(%s)
-            )
-        LIMIT 2) -- only 2, it's to verify there is only one match.
-        UNION ALL
-        (SELECT
-            area_id as osm_id,
-            'polygon' as node_type,
-            tags->'name' as name,
-            tags->'brand:wikidata' as brand_wikidata,
-            tags->'brand' as brand,
-            tags->'addr:city' as city,
-            tags->'addr:postcode' as postcode,
-            tags->'opening_hours' as opening_hours,
-            tags->'website' as website,
-            tags->'phone' as phone,
-            tags->'email' as email,
-            geom
-        FROM polygons
-        WHERE
-            -- Filter by proximity (within 500 meters)
-            ST_DWithin(
-                ST_Transform(geom, 9794),
-                ST_Transform(ST_GeomFromGeoJSON(%s), 9794),
-                500
-            )
-            AND (
-                -- Match by brand:wikidata
-                tags->>'brand:wikidata' = %s
-                -- Or match by brand name
-                OR LOWER(tags->>'brand') = LOWER(%s)
-                -- Or match by exact name
-                OR LOWER(tags->>'name') = LOWER(%s)
-                -- Or match by similar name
-                OR similarity(LOWER(tags->>'name'), LOWER(%s)) > 0.6
-                -- Or match by exact website (less http[s]://)
-                OR LOWER(REGEXP_REPLACE(tags->>'website', '^https?://', '')) = LOWER(REGEXP_REPLACE(%s, '^https?://', ''))
-                -- Or match by exact phone number (without +33 prefix, replaced by 0, if anywhere)
-                OR REGEXP_REPLACE(REGEXP_REPLACE(tags->>'phone', '^\+33', '0'), ' ', '') = REGEXP_REPLACE(%s, '^\+33', '0')
-                -- Or match the exact email address
-                OR LOWER(tags->>'email') = LOWER(%s)
-            )
-        LIMIT 2); -- only 2, it's to verify there is only one match.
-        -- %s
-        -- %s
+            SELECT
+                osm_id,
+                node_type,
+                name,
+                brand_wikidata,
+                brand,
+                city,
+                postcode,
+                opening_hours,
+                website,
+                phone,
+                email,
+                geom
+            FROM mv_places
+            WHERE
+                -- Filter by proximity (within 500 meters)
+                ST_DWithin(
+                    geom_9794,
+                    ST_Transform(ST_GeomFromGeoJSON(%s), 9794),
+                    500
+                )
+                AND (
+                    -- Match by brand:wikidata
+                    brand_wikidata = %s
+                    -- Or match by brand name
+                    OR LOWER(brand) = LOWER(%s)
+                    -- Or match by exact name
+                    OR LOWER(name) = LOWER(%s)
+                    -- Or match by similar name
+                    OR similarity(LOWER(name), LOWER(%s)) > 0.6
+                    -- Or match by exact website (less http[s]://)
+                    OR LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(%s, '^https?://', '', 'i'))
+                    -- Or match by exact phone number (without +33 prefix, replaced by 0, if anywhere)
+                    OR REGEXP_REPLACE(REGEXP_REPLACE(phone, '^\+33', '0'), '\s+', '', 'g') = REGEXP_REPLACE(REGEXP_REPLACE(%s, '^\+33', '0'), '\s+', '', 'g')
+                    -- Or match the exact email address
+                    OR LOWER(email) = LOWER(%s)
+                )
+            LIMIT 2; -- only 2, it's to verify there is only one match.
+            -- %s
+            -- %s
         """
         query_params = (
-            atp_poi.geom,  # For ST_Distance
-            atp_poi.brand_wikidata,  # For brand:wikidata exact match
-            atp_poi.brand,  # For brand name match
-            atp_poi.name,  # For name exact match
-            atp_poi.name,  # For name exact match
-            atp_poi.website,  # For website match
-            atp_poi.phone,  # For phone match
-            atp_poi.email,  # For email match
             atp_poi.geom,  # For ST_Distance
             atp_poi.brand_wikidata,  # For brand:wikidata exact match
             atp_poi.brand,  # For brand name match
@@ -299,7 +324,7 @@ def compute_changes(brands):
         i = 0
         logger.info(f"Processing {brand_wikidata} with {brand_count} POIs")
         for skip in range(0, brand_count, 100):
-            logger.debug(f"Processing {brand_wikidata} {skip} to {min(skip + limit, brand_count)}")
+            logger.info(f"Processing {brand_wikidata} {skip} to {min(skip + limit, brand_count)}")
 
             where_clause = f" AND postcode = {Config.postcode()}" if Config.postcode() is not None else ""
 
