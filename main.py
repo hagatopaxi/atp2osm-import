@@ -10,6 +10,7 @@ import psycopg2
 
 from utils import limit_offset
 from AtpPoi import AtpPoi
+from OsmPoi import OsmPoi
 
 logger = logging.getLogger(__name__)
 osmdb = psycopg2.connect(
@@ -34,7 +35,11 @@ class Config:
     
     @staticmethod
     def brand():
-        return Config.args.brand
+        return Config.args.brand_wikidata
+
+    @staticmethod
+    def postcode():
+        return Config.args.postcode
 
 
 def download_latest_atp_data():
@@ -69,6 +74,7 @@ def download_latest_atp_data():
 
     logger.info(f"Downloaded {download_path}")
     return download_path
+
 
 def setup_atp_fr_db(parquet_path: str):
     duckdb.sql("INSTALL spatial; LOAD spatial;")
@@ -120,7 +126,7 @@ def setup_osm_db():
     cursor.close()
 
 
-def get_osm_poi(atp_poi: AtpPoi):
+def get_osm_poi(atp_poi: AtpPoi, i: int):
     try:
         # Create a cursor for each POI request
         cursor = osmdb.cursor()
@@ -131,8 +137,9 @@ def get_osm_poi(atp_poi: AtpPoi):
         # 2. Name similarity and proximity matching
         # 3. Address matching (postcode and city)
         query = """
-        SELECT
-            node_id,
+        (SELECT
+            node_id as osm_id,
+            'point' as node_type,
             tags->'name' as name,
             tags->'brand:wikidata' as brand_wikidata,
             tags->'brand' as brand,
@@ -167,36 +174,58 @@ def get_osm_poi(atp_poi: AtpPoi):
                 -- Or match the exact email address
                 OR LOWER(tags->>'email') = LOWER(%s)
             )
-        LIMIT 2; -- only 2, it's to verify there is only one match.
+        LIMIT 2) -- only 2, it's to verify there is only one match.
+        UNION ALL
+        (SELECT
+            area_id as osm_id,
+            'polygon' as node_type,
+            tags->'name' as name,
+            tags->'brand:wikidata' as brand_wikidata,
+            tags->'brand' as brand,
+            tags->'addr:city' as city,
+            tags->'addr:postcode' as postcode,
+            tags->'opening_hours' as opening_hours,
+            tags->'website' as website,
+            tags->'phone' as phone,
+            tags->'email' as email,
+            geom
+        FROM polygons
+        WHERE
+            -- Filter by proximity (within 500 meters)
+            ST_DWithin(
+                ST_Transform(geom, 9794),
+                ST_Transform(ST_GeomFromGeoJSON(%s), 9794),
+                500
+            )
+            AND (
+                -- Match by brand:wikidata
+                tags->>'brand:wikidata' = %s
+                -- Or match by brand name
+                OR LOWER(tags->>'brand') = LOWER(%s)
+                -- Or match by exact name
+                OR LOWER(tags->>'name') = LOWER(%s)
+                -- Or match by similar name
+                OR similarity(LOWER(tags->>'name'), LOWER(%s)) > 0.6
+                -- Or match by exact website (less http[s]://)
+                OR LOWER(REGEXP_REPLACE(tags->>'website', '^https?://', '')) = LOWER(REGEXP_REPLACE(%s, '^https?://', ''))
+                -- Or match by exact phone number (without +33 prefix, replaced by 0, if anywhere)
+                OR REGEXP_REPLACE(REGEXP_REPLACE(tags->>'phone', '^\+33', '0'), ' ', '') = REGEXP_REPLACE(%s, '^\+33', '0')
+                -- Or match the exact email address
+                OR LOWER(tags->>'email') = LOWER(%s)
+            )
+        LIMIT 2); -- only 2, it's to verify there is only one match.
         -- %s
         -- %s
         """
-
-        # Convert DuckDB geometry to WKT format for PostGIS
-        # Assuming geom is in WKT format or needs conversion
-        # wkt_geom = f"POINT({atp_poi.geom})" if isinstance(atp_poi.geom, str) else str(atp_poi.geom)
-
-        # Save the query to a file for debugging
-        if Config.debug():
-            # Create the debug folder if it does not exist
-            if not os.path.exists("./data/debug"):
-                os.makedirs("./data/debug")
-            with open(f"./data/debug/{atp_poi.brand_wikidata}.sql", "w") as f:
-                f.write(cursor.mogrify(query, (
-                    atp_poi.geom,  # For ST_Distance
-                    atp_poi.brand_wikidata,  # For brand:wikidata exact match
-                    atp_poi.brand,  # For brand name match
-                    atp_poi.name,  # For name exact match
-                    atp_poi.name,  # For name exact match
-                    atp_poi.website,  # For website match
-                    atp_poi.phone,  # For phone match
-                    atp_poi.email,  # For email match
-                    atp_poi.postcode, # For debug
-                    atp_poi.city, # For debug
-                )).decode('utf-8'))
-
-        # Execute query with parameters
-        cursor.execute(query, (
+        query_params = (
+            atp_poi.geom,  # For ST_Distance
+            atp_poi.brand_wikidata,  # For brand:wikidata exact match
+            atp_poi.brand,  # For brand name match
+            atp_poi.name,  # For name exact match
+            atp_poi.name,  # For name exact match
+            atp_poi.website,  # For website match
+            atp_poi.phone,  # For phone match
+            atp_poi.email,  # For email match
             atp_poi.geom,  # For ST_Distance
             atp_poi.brand_wikidata,  # For brand:wikidata exact match
             atp_poi.brand,  # For brand name match
@@ -207,26 +236,42 @@ def get_osm_poi(atp_poi: AtpPoi):
             atp_poi.email,  # For email match
             atp_poi.postcode, # For debug
             atp_poi.city, # For debug
-        ))
+        )
+        # Convert DuckDB geometry to WKT format for PostGIS
+        # Assuming geom is in WKT format or needs conversion
+        # wkt_geom = f"POINT({atp_poi.geom})" if isinstance(atp_poi.geom, str) else str(atp_poi.geom)
+
+        # Save the query to a file for debugging
+        if Config.debug():
+            # Create the debug folder if it does not exist
+            if not os.path.exists("./data/debug"):
+                os.makedirs("./data/debug")
+            with open(f"./data/debug/{atp_poi.brand_wikidata}-{i}.sql", "w") as f:
+                f.write(cursor.mogrify(query, query_params).decode('utf-8'))
+
+        # Execute query with parameters
+        cursor.execute(query, query_params)
 
         osm_pois = cursor.fetchall()
+        polygons_matched = [poi for poi in osm_pois if poi[1] == "polygon"]
+        points_matched = [poi for poi in osm_pois if poi[1] == "point"]
 
-        if len(osm_pois) == 0:
+        if len(polygons_matched) == 0 and len(points_matched) == 0:
             # The POI does not exist in OSM. TODO: create a quest in StreetComplete
             logger.debug("POI's doesn't exist in OSM")
             return
 
-        if len(osm_pois) > 1:
+        if len(polygons_matched) > 1 or len(points_matched) > 1:
             # There is more than 1 result, the POI is skipped
             logger.debug("There is more than one result in OSM")
             return
 
-        osm_poi = osm_pois[0]
-        logger.info("POI exists in OSM")
-        logger.info(osm_poi)
-        # Complete the OSM poi with the ATP data
-        # osm_poi = complete_osm_poi(osm_poi, atp_poi)
-        # upload in OSM with a changeset, see https://wiki.openstreetmap.org/wiki/API_v0.6#JSON_Format
+        for _osm_poi in osm_pois:
+            osm_poi = OsmPoi(_osm_poi)
+            logger.info(f"POI exists in OSM as {osm_poi.node_type}")
+            # Complete the OSM poi with the ATP data
+            apply_changes(atp_poi, osm_poi)
+            # upload in OSM with a changeset, see https://wiki.openstreetmap.org/wiki/API_v0.6#JSON_Format
 
         # Process the results as needed
         return osm_poi
@@ -236,8 +281,9 @@ def get_osm_poi(atp_poi: AtpPoi):
             cursor.close()
 
 
-def apply_changes(atp_poi, osm_poi):
-    logger.info(atp_poi, osm_poi)
+def apply_changes(atp_poi: AtpPoi, osm_poi: OsmPoi):
+    logger.info(f"{atp_poi}")
+    logger.info(f"{osm_poi}")
 
 
 def compute_changes(brands):
@@ -250,28 +296,31 @@ def compute_changes(brands):
             continue
 
         limit = 100
+        i = 0
         logger.info(f"Processing {brand_wikidata} with {brand_count} POIs")
         for skip in range(0, brand_count, 100):
             logger.debug(f"Processing {brand_wikidata} {skip} to {min(skip + limit, brand_count)}")
+
+            where_clause = f" AND postcode = {Config.postcode()}" if Config.postcode() is not None else ""
+
             atp_pois = duckdb.sql(f"""
                 SELECT *
                 FROM atp_fr
-                WHERE brand_wikidata = '{brand_wikidata}'
+                WHERE brand_wikidata = '{brand_wikidata}' {where_clause}
                 LIMIT {limit} OFFSET {skip}
             """).fetchall()
             
-            osm_pois = []
             # Iterate on each value to get the OSM POIs
             for atp_poi in atp_pois:
-                osm_poi = get_osm_poi(AtpPoi(atp_poi))
-                if osm_poi is not None:
-                    apply_changes(brand_wikidata, atp_poi, osm_poi)
+                get_osm_poi(AtpPoi(atp_poi), i)
+                i+=1
 
 
 def main():
     parser = argparse.ArgumentParser(prog="atp2osm-import" ,description="Display CLI arguments")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode")
-    parser.add_argument("-b", "--brand", action="store", help="Brand to process")
+    parser.add_argument("-b", "--brand-wikidata", action="store", help="Brand wikidata filter")
+    parser.add_argument("-p", "--postcode", action="store", help="Postcode filter")
 
     args = parser.parse_args()
     Config.setup(args)
@@ -306,6 +355,7 @@ def main():
     # 6. Save the changes in a .osc file
 
     # 7. Publish the file to OSM
+
 
 if __name__ == "__main__":
     main()
