@@ -52,7 +52,7 @@ def timer(func: F) -> F:
             # la fonction lève une exception.
             end = time.perf_counter()
             duration = end - start
-            if (duration > 1): 
+            if (duration > 3): 
                 logger.info(f"{func.__name__} – Execution took {duration:.0f} seconds")
         return result
 

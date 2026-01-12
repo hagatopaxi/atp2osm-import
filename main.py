@@ -11,6 +11,7 @@ import psycopg2
 from utils import limit_offset, delete_file_if_exists, timer
 from AtpPoi import AtpPoi
 from OsmPoi import OsmPoi
+from Config import Config
 
 logger = logging.getLogger(__name__)
 osmdb = psycopg2.connect(
@@ -20,34 +21,6 @@ osmdb = psycopg2.connect(
     host=os.getenv('OSM_DB_HOST'),
     port=os.getenv('OSM_DB_PORT')
 )
-
-
-class Config:
-    args = None
-
-    @staticmethod
-    def setup(_args):
-        Config.args = _args
-    
-    @staticmethod
-    def debug():
-        return Config.args.debug
-    
-    @staticmethod
-    def brand():
-        return Config.args.brand_wikidata
-
-    @staticmethod
-    def postcode():
-        return Config.args.postcode
-
-    @staticmethod
-    def force_atp_setup():
-        return Config.args.force_atp_setup
-
-    @staticmethod
-    def force_osm_setup():
-        return Config.args.force_osm_setup
 
 
 def download_latest_atp_data():
@@ -214,7 +187,8 @@ def setup_osm_db():
         CREATE INDEX IF NOT EXISTS mv_places_email_lower_idx
             ON mv_places (LOWER(email));
     """)
-
+    
+    osmdb.commit()
     cursor.close()
     logger.info("OSM DB completely setup")
 

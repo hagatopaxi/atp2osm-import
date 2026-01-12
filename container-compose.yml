@@ -19,6 +19,7 @@ services:
       PGPASSWORD: ${OSM_DB_PASSWORD}
     volumes:
       - ./data:/data
+      - ./osm2pgsql:/osm2pgsql
     network_mode: host
 
 volumes:
