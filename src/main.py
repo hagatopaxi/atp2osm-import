@@ -231,14 +231,14 @@ def get_osm_poi(atp_poi: AtpPoi, i: int):
                     OR LOWER(brand) = LOWER(%s)
                     -- Or match by exact name
                     OR LOWER(name) = LOWER(%s)
+                    -- Or match the exact email address
+                    OR LOWER(email) = LOWER(%s)
                     -- Or match by similar name
                     OR similarity(LOWER(name), LOWER(%s)) > 0.6
                     -- Or match by exact website (less http[s]://)
                     OR LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(%s, '^https?://', '', 'i'))
                     -- Or match by exact phone number (without +33 prefix, replaced by 0, if anywhere)
                     OR REGEXP_REPLACE(REGEXP_REPLACE(phone, '^\+33', '0'), '\s+', '', 'g') = REGEXP_REPLACE(REGEXP_REPLACE(%s, '^\+33', '0'), '\s+', '', 'g')
-                    -- Or match the exact email address
-                    OR LOWER(email) = LOWER(%s)
                 )
             LIMIT 2; -- only 2, it's to verify there is only one match.
             -- %s
@@ -249,10 +249,10 @@ def get_osm_poi(atp_poi: AtpPoi, i: int):
             atp_poi.brand_wikidata,  # For brand:wikidata exact match
             atp_poi.brand,  # For brand name match
             atp_poi.name,  # For name exact match
+            atp_poi.email,  # For email match
             atp_poi.name,  # For name exact match
             atp_poi.website,  # For website match
             atp_poi.phone,  # For phone match
-            atp_poi.email,  # For email match
             atp_poi.postcode, # For debug
             atp_poi.city, # For debug
         )
