@@ -28,10 +28,9 @@ def get_osm_poi(atp_poi: AtpPoi, i: int):
         cursor = osmdb.cursor()
 
         # SQL query to match OSM POIs based on ATP data
-        # This query uses multiple matching strategies:
-        # 1. Exact match on brand:wikidata tag
-        # 2. Name similarity and proximity matching
-        # 3. Address matching (postcode and city)
+        # POI must match on multiple conditions:
+        # 1. ATP POI and OSM POI are in the same 500 meters range
+        # 2. At least one of the following fields are the same: brand, brand:wikidata, name, email, phone, website
         query = """
             SELECT
                 osm_id,
@@ -63,8 +62,6 @@ def get_osm_poi(atp_poi: AtpPoi, i: int):
                     OR LOWER(name) = LOWER(%s)
                     -- Or match the exact email address
                     OR LOWER(email) = LOWER(%s)
-                    -- Or match by similar name
-                    OR similarity(LOWER(name), LOWER(%s)) > 0.6
                     -- Or match by exact website (less http[s]://)
                     OR LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(%s, '^https?://', '', 'i'))
                     -- Or match by exact phone number (without +33 prefix, replaced by 0, if anywhere)

@@ -88,9 +88,7 @@ def setup_atp_fr_db():
 
 @timer
 def setup_osm_db(osmdb):
-    # Check if the extension pg_trgm is installed on the osm database
     cursor = osmdb.cursor()
-    cursor.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm;")
 
     # Insert the EPSG/9793 official projection of France
     # See https://spatialreference.org/ref/epsg/9794/ and https://fr.wikipedia.org/wiki/Projection_conique_conforme_de_Lambert#Projections_officielles_en_France_m%C3%A9tropolitaine
