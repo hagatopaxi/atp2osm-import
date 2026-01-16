@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import duckdb
 import logging
 import sys
 import os
@@ -9,7 +8,7 @@ import psycopg2
 
 from utils import timer
 from models import AtpPoi, OsmPoi, Config
-from setup import setup_atp_fr_db, setup_osm_db
+from setup import setup_atp2osm_db
 
 
 logger = logging.getLogger(__name__)
@@ -133,51 +132,45 @@ def apply_changes(atp_poi: AtpPoi, osm_poi: OsmPoi):
 
 @timer
 def compute_changes():
-    brands = duckdb.sql("""
-        SELECT brand_wikidata, count(*)
-        FROM atp_fr
-        WHERE brand_wikidata IS NOT NULL
-        GROUP BY brand_wikidata
-    """).fetchall()
+    pass
+    # for city in cities:
+    #     city = city[0]
+    #     total = city[1]
 
-    for brand in brands:
-        brand_wikidata = brand[0]
-        brand_count = brand[1]
+    #     # if Config.brand() is not None and Config.brand() != brand_wikidata:
+    #     #     # Filter brands
+    #     #     continue
 
-        if Config.brand() is not None and Config.brand() != brand_wikidata:
-            # Filter brands
-            continue
+    #     limit = 100
+    #     i = 0
+    #     logger.info(f"Processing {brand_wikidata} with {total} POIs")
+    #     for skip in range(0, total, 100):
+    #         logger.info(
+    #             f"Processing {brand_wikidata} {skip} to {min(skip + limit, total)}"
+    #         )
 
-        limit = 100
-        i = 0
-        logger.info(f"Processing {brand_wikidata} with {brand_count} POIs")
-        for skip in range(0, brand_count, 100):
-            logger.info(
-                f"Processing {brand_wikidata} {skip} to {min(skip + limit, brand_count)}"
-            )
+    #         query_params = [
+    #             brand_wikidata,
+    #         ]
+    #         where_clause = ""
+    #         if Config.postcode() is not None:
+    #             query_params.append(Config.postcode())
+    #             where_clause = " AND postcode = ?"
 
-            query_params = [
-                brand_wikidata,
-            ]
-            where_clause = ""
-            if Config.postcode() is not None:
-                query_params.append(Config.postcode())
-                where_clause = " AND postcode = ?"
+    #         atp_pois = duckdb.execute(
+    #             f"""
+    #             SELECT *
+    #             FROM atp_fr
+    #             WHERE brand_wikidata = ? {where_clause}
+    #             LIMIT ? OFFSET ?
+    #         """,
+    #             query_params + [limit, skip],
+    #         ).fetchall()
 
-            atp_pois = duckdb.execute(
-                f"""
-                SELECT *
-                FROM atp_fr
-                WHERE brand_wikidata = ? {where_clause}
-                LIMIT ? OFFSET ?
-            """,
-                query_params + [limit, skip],
-            ).fetchall()
-
-            # Iterate on each value to get the OSM POIs
-            for atp_poi in atp_pois:
-                get_osm_poi(AtpPoi(atp_poi), i)
-                i += 1
+    #         # Iterate on each value to get the OSM POIs
+    #         for atp_poi in atp_pois:
+    #             get_osm_poi(AtpPoi(atp_poi), i)
+    #             i += 1
 
 
 @timer
@@ -203,6 +196,11 @@ def main():
     parser.add_argument(
         "--force-osm-setup", action="store_true", help="Force setup the OSM database"
     )
+    parser.add_argument(
+        "--force-atp-dl",
+        action="store_true",
+        help="Force to download the last ATP dump",
+    )
 
     args = parser.parse_args()
     Config.setup(args)
@@ -211,13 +209,10 @@ def main():
         stream=sys.stdout, level=logging.DEBUG if Config.debug() else logging.INFO
     )
 
-    # 1. Setup ATP_FR table (download and extract)
-    setup_atp_fr_db()
+    # 1. Setup the database, that import fresh new data before starting
+    setup_atp2osm_db(osmdb)
 
-    # 2. Setup OSM database (create a view and necessary indexes)
-    setup_osm_db(osmdb)
-
-    # 3. For each brands, check if there is an existing POI in OSM, then apply the changes
+    # 2. For each brands, check if there is an existing POI in OSM, then apply the changes
     compute_changes()
 
 

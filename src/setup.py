@@ -12,8 +12,9 @@ from utils import delete_file_if_exists, timer
 logger = logging.getLogger(__name__)
 
 
+@timer
 def download_latest_atp_data():
-    if Config.force_atp_setup():
+    if Config.force_atp_dl():
         logger.info("Forcing download of latest ATP data")
         delete_file_if_exists("./data/atp/latest.parquet")
         delete_file_if_exists("./data/atp/atp_fr.parquet")
@@ -53,20 +54,26 @@ def download_latest_atp_data():
 
 
 @timer
-def setup_atp_fr_db():
+def import_atp_data(osmdb):
     download_latest_atp_data()
 
+    duckdb.sql("INSTALL postgres; LOAD postgres;")
     duckdb.sql("INSTALL spatial; LOAD spatial;")
 
-    if os.path.exists("./data/atp/atp_fr.parquet"):
-        logger.info("Loading existing atp_fr.parquet")
-        duckdb.read_parquet("./data/atp/atp_fr.parquet")
-        duckdb.sql("CREATE TABLE atp_fr AS SELECT * FROM 'data/atp/atp_fr.parquet'")
-        return
+    if Config.force_atp_setup():
+        logger.info("Forcing ATP setup")
+        cursor = osmdb.cursor()
+        cursor.execute("DROP TABLE IF EXISTS atp_fr CASCADE")
+        cursor.close()
+        osmdb.commit()
 
-    logger.info("Creating new atp_fr table and saving to parquet")
+    duckdb.execute(
+        f"ATTACH 'dbname={os.getenv('OSM_DB_NAME')} user={os.getenv('OSM_DB_USER')} host={os.getenv('OSM_DB_HOST')} password={os.getenv('OSM_DB_PASSWORD')} port={os.getenv('OSM_DB_PORT')}' AS pg (TYPE postgres);",
+    )
+
+    logger.info("Creating new atp_fr table from parquet file")
     duckdb.sql("""
-        CREATE TABLE atp_fr AS
+        CREATE TABLE IF NOT EXISTS pg.atp_fr AS
         SELECT
             properties->>'$.addr:country' as country,
             properties->>'$.addr:city' as city,
@@ -81,13 +88,18 @@ def setup_atp_fr_db():
             ST_AsGeoJSON(geom)
         FROM read_parquet('./data/atp/latest.parquet')
         WHERE properties->>'$.addr:country' = 'FR';
-        CREATE INDEX atp_fr_brand_wikidata_idx ON atp_fr (brand_wikidata);
     """)
-    duckdb.sql("COPY atp_fr TO './data/atp/atp_fr.parquet' (FORMAT parquet);")
+
+    logger.info("Creating indexes for atp_fr fields")
+    cursor = osmdb.cursor()
+    # cursor.execute("""
+
+    # """)
+    cursor.close()
 
 
 @timer
-def setup_osm_db(osmdb):
+def import_osm_data(osmdb):
     cursor = osmdb.cursor()
 
     # Insert the EPSG/9793 official projection of France
@@ -158,10 +170,6 @@ def setup_osm_db(osmdb):
         CREATE INDEX IF NOT EXISTS mv_places_name_lower_idx
             ON mv_places (LOWER(name));
 
-        -- 3.5  Index trigramme pour la similarité sur le nom
-        CREATE INDEX IF NOT EXISTS mv_places_name_trgm_idx
-            ON mv_places USING GIN (LOWER(name) gin_trgm_ops);
-
         -- 3.6  Normalisation du site web (supprime http/https) – insensible à la casse
         CREATE INDEX IF NOT EXISTS mv_places_website_norm_idx
             ON mv_places (LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')));
@@ -178,3 +186,9 @@ def setup_osm_db(osmdb):
     osmdb.commit()
     cursor.close()
     logger.info("OSM DB completely setup")
+
+
+@timer
+def setup_atp2osm_db(osmdb):
+    import_osm_data(osmdb)
+    import_atp_data(osmdb)
