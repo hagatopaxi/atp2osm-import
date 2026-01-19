@@ -75,9 +75,11 @@ def import_atp_data(osmdb):
     duckdb.sql("""
         CREATE TABLE IF NOT EXISTS pg.atp_fr AS
         SELECT
+            id,
             properties->>'$.addr:country' as country,
             properties->>'$.addr:city' as city,
             properties->>'$.addr:postcode' as postcode,
+            TRY_CAST(SUBSTRING(properties->>'$.addr:postcode', 1, 2) AS INTEGER) as departement_number,
             properties->>'$.brand:wikidata' as brand_wikidata,
             properties->>'$.brand' as brand,
             properties->>'$.name' as name,
@@ -85,16 +87,52 @@ def import_atp_data(osmdb):
             properties->>'$.website' as website,
             properties->>'$.phone' as phone,
             properties->>'$.email' as email,
-            ST_AsGeoJSON(geom)
+            ST_AsGeoJSON(geom) as geom
         FROM read_parquet('./data/atp/latest.parquet')
-        WHERE properties->>'$.addr:country' = 'FR';
+        WHERE properties->>'$.addr:country' = 'FR' 
+            AND map_extract(properties, 'addr:postcode') IS NOT NULL
+            AND geom IS NOT NULL
+            AND REGEXP_MATCHES(SUBSTRING(properties->>'$.addr:postcode', 1, 2), '^[0-9]+$') -- Remove postcode error
+            AND TRY_CAST(SUBSTRING(properties->>'$.addr:postcode', 1, 2) AS INTEGER) BETWEEN 1 AND 95; -- Keep only metropolitan POIs
     """)
 
     logger.info("Creating indexes for atp_fr fields")
     cursor = osmdb.cursor()
-    # cursor.execute("""
+    cursor.execute("DELETE FROM atp_fr WHERE postcode IS NULL;")
+    cursor.execute("""
+        -- 3.1  Index spatial (GIST) – indispensable pour ST_DWithin
+        CREATE INDEX IF NOT EXISTS atp_fr_geom_idx
+            ON atp_fr USING GIST (ST_Transform(ST_GeomFromGeoJSON(geom), 9794));
 
-    # """)
+        -- 3.2  Index sur la clé brand:wikidata (exact match)
+        CREATE INDEX IF NOT EXISTS atp_fr_brand_wikidata_idx
+            ON atp_fr (brand_wikidata);
+
+        -- 3.3  Index fonctionnel insensible à la casse sur brand
+        CREATE INDEX IF NOT EXISTS atp_fr_brand_lower_idx
+            ON atp_fr (LOWER(brand));
+
+        -- 3.4  Index fonctionnel insensible à la casse sur name
+        CREATE INDEX IF NOT EXISTS atp_fr_name_lower_idx
+            ON atp_fr (LOWER(name));
+
+        -- 3.6  Normalisation du site web (supprime http/https) – insensible à la casse
+        CREATE INDEX IF NOT EXISTS atp_fr_website_norm_idx
+            ON atp_fr (LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')));
+
+        -- 3.7  Normalisation du téléphone (supprime le préfixe +33 et les espaces)
+        CREATE INDEX IF NOT EXISTS atp_fr_phone_norm_idx
+            ON atp_fr (REGEXP_REPLACE(REGEXP_REPLACE(phone, '^\+33', '0'), '\s+', '', 'g'));
+
+        -- 3.8  Index fonctionnel insensible à la casse sur l'email
+        CREATE INDEX IF NOT EXISTS atp_fr_email_lower_idx
+            ON atp_fr (LOWER(email));
+
+        -- 3.9  Index fonctionnel insensible à la casse sur l'email
+        CREATE INDEX IF NOT EXISTS atp_fr_departement_number_idx
+            ON atp_fr (departement_number);
+    """)
+    osmdb.commit()
     cursor.close()
 
 
