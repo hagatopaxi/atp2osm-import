@@ -4,7 +4,7 @@ import argparse
 import logging
 import sys
 import os
-import psycopg2
+import psycopg
 
 from utils import timer
 from models import Config
@@ -12,16 +12,10 @@ from setup import setup_atp2osm_db
 
 
 logger = logging.getLogger(__name__)
-osmdb = psycopg2.connect(
-    dbname=os.getenv("OSM_DB_NAME"),
-    user=os.getenv("OSM_DB_USER"),
-    password=os.getenv("OSM_DB_PASSWORD"),
-    host=os.getenv("OSM_DB_HOST"),
-    port=os.getenv("OSM_DB_PORT"),
-)
 
 
 def apply_changes(matched_poi):
+    print(matched_poi)
     pass
 
 
@@ -42,7 +36,7 @@ def compute_changes():
                 500
             )
         WHERE
-            atp.departement_number = ? AND
+            atp.departement_number = %s AND
             ( 
                 osm.brand_wikidata = atp.brand_wikidata
                 OR LOWER(osm.brand) = LOWER(atp.brand)
@@ -56,18 +50,17 @@ def compute_changes():
         FROM joined_poi
         WHERE pt_cnt <= 1 AND poly_cnt <= 1;
     """
-    cursor = osmdb.cursor()
 
-    # Iterate over metropolitan department numbers from 1 to 95
-    for dep_number in range(1, 96):
-        matched_pois = cursor.execute(query, [dep_number]).fetchall()
-
-        for matched_poi in matched_pois:
-            apply_changes(matched_poi)
+    with osmdb.cursor() as cursor:
+        # Iterate over metropolitan department numbers from 1 to 95
+        for dep_number in range(1, 96):
+            cursor.execute(query, [dep_number])
+            for matched_poi in cursor:
+                apply_changes(matched_poi)
 
 
 @timer
-def main():
+def main(osmdb):
     parser = argparse.ArgumentParser(
         prog="atp2osm-import", description="Import ATP FR data into OSM"
     )
@@ -110,8 +103,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-
-    # Close the osmdb connection at to end
-    if osmdb:
-        osmdb.close()
+    with psycopg.connect(
+        dbname=os.getenv("OSM_DB_NAME"),
+        user=os.getenv("OSM_DB_USER"),
+        password=os.getenv("OSM_DB_PASSWORD"),
+        host=os.getenv("OSM_DB_HOST"),
+        port=os.getenv("OSM_DB_PORT"),
+    ) as osmdb:
+        main(osmdb)

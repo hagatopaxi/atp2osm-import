@@ -8,6 +8,6 @@ dependencies = [
     "argparse>=1.4.0",
     "duckdb>=1.4.3",
     "logging>=0.4.9.6",
-    "psycopg2-binary>=2.9.11",
+    "psycopg[binary]>=3.3.2",
     "requests>=2.32.5",
 ]
