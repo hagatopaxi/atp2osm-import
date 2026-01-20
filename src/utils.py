@@ -61,3 +61,14 @@ def timer(func: F) -> F:
 
     # Cast pour que le type retourné corresponde à celui du décorateur
     return cast(F, wrapper)
+
+
+def deep_equal(a: dict, b: dict):
+    if len(a) != len(b):
+        return False
+
+    for key in a:
+        if key not in b or b[key] != a[key]:
+            return False
+
+    return True

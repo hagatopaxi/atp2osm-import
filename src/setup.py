@@ -168,6 +168,7 @@ def import_osm_data(osmdb):
                 tags->>'website'         AS website,
                 tags->>'phone'           AS phone,
                 tags->>'email'           AS email,
+                version,
                 ST_Transform(geom, 9794) AS geom_9794,
                 geom
             FROM points
@@ -187,6 +188,7 @@ def import_osm_data(osmdb):
                 tags->>'website'         AS website,
                 tags->>'phone'           AS phone,
                 tags->>'email'           AS email,
+                version,
                 ST_Transform(geom, 9794) AS geom_9794,
                 geom
             FROM polygons;

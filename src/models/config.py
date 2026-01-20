@@ -28,3 +28,7 @@ class Config:
     @staticmethod
     def force_atp_dl():
         return Config.args.force_atp_dl
+
+    @staticmethod
+    def departement_number():
+        return Config.args.departement_number

@@ -6,17 +6,43 @@ import sys
 import os
 import psycopg
 
-from utils import timer
+from utils import timer, deep_equal
 from models import Config
 from setup import setup_atp2osm_db
+from psycopg.rows import dict_row
+from typing import Any
 
 
 logger = logging.getLogger(__name__)
 
 
-def apply_changes(matched_poi):
-    print(matched_poi)
-    pass
+def apply_tag(tags: dict, key: str, value: Any):
+    if key not in tags:
+        tags[key] = value
+
+
+def apply_changes(matched_poi: dict):
+    new_tags = dict(matched_poi["tags"])
+
+    apply_tag(new_tags, "opening_hours", matched_poi["atp_opening_hours"])
+    apply_tag(new_tags, "addr:country", matched_poi["atp_country"])
+    apply_tag(new_tags, "addr:postcode", matched_poi["atp_postcode"])
+    apply_tag(new_tags, "addr:city", matched_poi["atp_city"])
+    apply_tag(new_tags, "website", matched_poi["atp_website"])
+
+    # Do not duplicate (contact:email and email) or (contact:phone and phone) in tags
+    if "contact:email" not in new_tags:
+        apply_tag(new_tags, "email", matched_poi["atp_email"])
+    if "contact:phone" not in new_tags:
+        apply_tag(new_tags, "phone", matched_poi["atp_phone"])
+
+    # If new_tags and original ones are the same we do not try to update the node in OSM
+    if not deep_equal(new_tags, matched_poi["tags"]):
+        return {
+            "osm_id": matched_poi["osm_id"],
+            "version": matched_poi["version"],
+            "tags": new_tags,
+        }
 
 
 @timer
@@ -24,7 +50,14 @@ def compute_changes():
     query = """
         WITH joined_poi AS (
         SELECT
-            *, 
+            *,
+            atp.opening_hours as atp_opening_hours,
+            atp.phone as atp_phone,
+            atp.email as atp_email,
+            atp.website as atp_website,
+            atp.country as atp_country,
+            atp.postcode as atp_postcode,
+            atp.city as atp_city,
             count(*) FILTER (WHERE osm.node_type = 'point') OVER (PARTITION BY atp.id) AS pt_cnt, 
             count(*) FILTER (WHERE osm.node_type = 'polygon') OVER (PARTITION BY atp.id) AS poly_cnt
         FROM
@@ -51,12 +84,21 @@ def compute_changes():
         WHERE pt_cnt <= 1 AND poly_cnt <= 1;
     """
 
-    with osmdb.cursor() as cursor:
+    with osmdb.cursor(row_factory=dict_row) as cursor:
         # Iterate over metropolitan department numbers from 1 to 95
-        for dep_number in range(1, 96):
+        update_nodes = []
+        dep_list = (
+            [Config.departement_number()]
+            if Config.departement_number() is not None
+            else range(1, 96)
+        )
+        for dep_number in dep_list:
             cursor.execute(query, [dep_number])
+
             for matched_poi in cursor:
-                apply_changes(matched_poi)
+                res = apply_changes(matched_poi)
+                if res is not None:
+                    update_nodes.append(res)
 
 
 @timer
@@ -86,6 +128,12 @@ def main(osmdb):
         "--force-atp-dl",
         action="store_true",
         help="Force to download the last ATP dump",
+    )
+    parser.add_argument(
+        "-n",
+        "--departement-number",
+        action="store",
+        help="Specify a departement number from 1 to 95",
     )
 
     args = parser.parse_args()
