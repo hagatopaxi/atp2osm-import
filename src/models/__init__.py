@@ -1,5 +1,4 @@
-from .config   import Config
-from .atp_poi  import AtpPoi
-from .osm_poi  import OsmPoi
+from .config import Config
 
-__all__ = ["Config", "AtpPoi", "OsmPoi"]
+
+__all__ = ["Config"]
