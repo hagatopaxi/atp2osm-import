@@ -6,15 +6,38 @@ import sys
 import os
 import psycopg
 
-from utils import timer
+from utils import timer, clean_debug_folder
 from models import Config
 from setup import setup_atp2osm_db
 from matching import execute_query
-from compute_diff import apply_changes
+from compute_diff import apply_on_node
 from psycopg.rows import dict_row
+from upload import BulkUpload
+from psycopg import Cursor
 
 
 logger = logging.getLogger(__name__)
+
+
+@timer
+def get_changes(cursor: Cursor):
+    nodes_by_brand = {"no_brand": []}
+
+    for atp_osm_match in cursor:
+        res = apply_on_node(atp_osm_match)
+        if res is not None:
+            brand_wikidata = (
+                res["tag"]["brand:wikidata"] if "brand:wikidata" in res["tag"] else None
+            )
+            if brand_wikidata is None:
+                nodes_by_brand["no_brand"].append(res)
+            else:
+                if brand_wikidata in nodes_by_brand:
+                    nodes_by_brand[brand_wikidata].append(res)
+                else:
+                    nodes_by_brand[brand_wikidata] = [res]
+
+    return nodes_by_brand
 
 
 @timer
@@ -59,6 +82,9 @@ def main(osmdb):
         stream=sys.stdout, level=logging.DEBUG if Config.debug() else logging.INFO
     )
 
+    if Config.departement_number():
+        clean_debug_folder()
+
     # 1. Setup the database, that import fresh new data before starting
     setup_atp2osm_db(osmdb)
 
@@ -67,7 +93,10 @@ def main(osmdb):
         execute_query(cursor)
 
         # 3. Iterate on the cursor to apply changes
-        apply_changes(cursor)
+        changes = get_changes(cursor)
+
+    # 4. Upload changes into OSM
+    BulkUpload(changes)
 
 
 if __name__ == "__main__":

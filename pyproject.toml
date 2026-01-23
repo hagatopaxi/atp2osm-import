@@ -6,13 +6,17 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "argparse>=1.4.0",
+    "cli-oauth2>=0.3.1",
     "duckdb>=1.4.3",
     "logging>=0.4.9.6",
+    "osmapi>=4.3.0",
     "psycopg[binary]>=3.3.2",
     "requests>=2.32.5",
 ]
 
 [dependency-groups]
-dev = [
-    "pytest>=9.0.2",
-]
+dev = ["pytest>=9.0.2"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+addopts = ["--import-mode=importlib"]

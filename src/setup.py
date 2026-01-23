@@ -157,7 +157,7 @@ def import_osm_data(osmdb):
             CREATE MATERIALIZED VIEW IF NOT EXISTS mv_places AS
             SELECT
                 node_id                  AS osm_id,
-                'point'                  AS node_type,
+                'node'                   AS node_type,
                 tags                     AS tags,
                 tags->>'name'            AS name,
                 tags->>'brand:wikidata'  AS brand_wikidata,
@@ -177,7 +177,7 @@ def import_osm_data(osmdb):
 
             SELECT
                 area_id                  AS osm_id,
-                'polygon'                AS node_type,
+                'relation'                AS node_type,
                 tags                     AS tags,
                 tags->>'name'            AS name,
                 tags->>'brand:wikidata'  AS brand_wikidata,

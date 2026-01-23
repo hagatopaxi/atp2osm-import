@@ -1,20 +1,12 @@
 import os
 import time
 import functools
-from typing import Callable, Any, TypeVar, cast, Tuple
 import logging
+
+from typing import Callable, Any, TypeVar, cast, Tuple
 
 
 logger = logging.getLogger(__name__)
-
-
-def limit_offset(count, step):
-    """
-    Generator that returns tuple of (start, end) for each step in a range for a database limit offset values.
-    For example, limit_offset(14, 5) will yield (0, 5), (5, 10), (10, 14).
-    """
-    for i in range(0, count, step):
-        yield (i, min(i + step, count))
 
 
 def delete_file_if_exists(file_path):
@@ -63,12 +55,6 @@ def timer(func: F) -> F:
     return cast(F, wrapper)
 
 
-def deep_equal(a: dict, b: dict):
-    if len(a) != len(b):
-        return False
-
-    for key in a:
-        if key not in b or b[key] != a[key]:
-            return False
-
-    return True
+def clean_debug_folder():
+    for file_path in os.listdir("./data/debug"):
+        os.remove(f"./data/debug/{file_path}")

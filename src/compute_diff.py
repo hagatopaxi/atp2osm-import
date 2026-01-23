@@ -1,9 +1,9 @@
-from utils import timer, deep_equal
 from typing import Any
-from psycopg import Cursor
 
 
 def apply_tag(tags: dict, key: str, value: Any):
+    if value is None:
+        return
     if key not in tags:
         tags[key] = value
 
@@ -24,22 +24,14 @@ def apply_on_node(atp_osm_match: dict):
         apply_tag(new_tags, "phone", atp_osm_match["atp_phone"])
 
     # If new_tags and original ones are the same returns None to skip the update
-    if deep_equal(new_tags, atp_osm_match["tags"]):
+    if new_tags == atp_osm_match["tags"]:
         return None
 
     return {
-        "osm_id": atp_osm_match["osm_id"],
+        "id": atp_osm_match["osm_id"],
+        "node_type": atp_osm_match["node_type"],
         "version": atp_osm_match["version"],
-        "tags": new_tags,
+        "tag": new_tags,
+        "lon": atp_osm_match["lon"],
+        "lat": atp_osm_match["lat"],
     }
-
-
-@timer
-def apply_changes(cursor: Cursor):
-    update_nodes = []
-    for atp_osm_match in cursor:
-        res = apply_on_node(atp_osm_match)
-        if res is not None:
-            update_nodes.append(res)
-
-    return update_nodes

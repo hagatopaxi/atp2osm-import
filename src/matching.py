@@ -9,6 +9,8 @@ def execute_query(cursor: Cursor) -> Cursor:
         WITH joined_poi AS (
         SELECT
             *,
+            ST_X(ST_Centroid(ST_Transform(osm.geom, 4326))) AS lon,
+            ST_Y(ST_Centroid(ST_Transform(osm.geom, 4326))) AS lat,
             atp.opening_hours as atp_opening_hours,
             atp.phone as atp_phone,
             atp.email as atp_email,
@@ -16,8 +18,8 @@ def execute_query(cursor: Cursor) -> Cursor:
             atp.country as atp_country,
             atp.postcode as atp_postcode,
             atp.city as atp_city,
-            count(*) FILTER (WHERE osm.node_type = 'point') OVER (PARTITION BY atp.id) AS pt_cnt, 
-            count(*) FILTER (WHERE osm.node_type = 'polygon') OVER (PARTITION BY atp.id) AS poly_cnt
+            count(*) FILTER (WHERE osm.node_type = 'node') OVER (PARTITION BY atp.id) AS pt_cnt, 
+            count(*) FILTER (WHERE osm.node_type = 'relation') OVER (PARTITION BY atp.id) AS poly_cnt
         FROM
             mv_places osm
         INNER JOIN atp_fr atp ON
