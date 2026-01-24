@@ -177,7 +177,7 @@ def import_osm_data(osmdb):
 
             SELECT
                 area_id                  AS osm_id,
-                'relation'                AS node_type,
+                'relation'               AS node_type,
                 tags                     AS tags,
                 tags->>'name'            AS name,
                 tags->>'brand:wikidata'  AS brand_wikidata,

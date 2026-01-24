@@ -1,4 +1,5 @@
 .env
+.env.*
 pbf
 data
 __pycache__
