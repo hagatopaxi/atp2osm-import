@@ -32,3 +32,7 @@ class Config:
     @staticmethod
     def departement_number():
         return Config.args.departement_number
+
+    @staticmethod
+    def limit():
+        return int(Config.args.limit)

@@ -41,7 +41,15 @@ def execute_query(cursor: Cursor) -> Cursor:
         )
         SELECT *
         FROM joined_poi
-        WHERE pt_cnt <= 1 AND poly_cnt <= 1;
+        WHERE pt_cnt <= 1 AND poly_cnt <= 1
     """
+    params = [Config.departement_number()]
+    if Config.brand():
+        query += " AND atp.brand_wikidata = %s"
+        params.append(Config.brand())
 
-    return cursor.execute(query, [Config.departement_number()])
+    if Config.postcode():
+        query += " AND atp.postcode = %s"
+        params.append(Config.postcode())
+
+    return cursor.execute(query, params)

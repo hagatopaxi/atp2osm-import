@@ -22,20 +22,27 @@ logger = logging.getLogger(__name__)
 @timer
 def get_changes(cursor: Cursor):
     nodes_by_brand = {"no_brand": []}
+    total = 0
 
     for atp_osm_match in cursor:
+        if Config.limit() <= total:
+            break
+
         res = apply_on_node(atp_osm_match)
-        if res is not None:
-            brand_wikidata = (
-                res["tag"]["brand:wikidata"] if "brand:wikidata" in res["tag"] else None
-            )
-            if brand_wikidata is None:
-                nodes_by_brand["no_brand"].append(res)
+        if res is None:
+            continue
+
+        total += 1
+        brand_wikidata = (
+            res["tag"]["brand:wikidata"] if "brand:wikidata" in res["tag"] else None
+        )
+        if brand_wikidata is None:
+            nodes_by_brand["no_brand"].append(res)
+        else:
+            if brand_wikidata in nodes_by_brand:
+                nodes_by_brand[brand_wikidata].append(res)
             else:
-                if brand_wikidata in nodes_by_brand:
-                    nodes_by_brand[brand_wikidata].append(res)
-                else:
-                    nodes_by_brand[brand_wikidata] = [res]
+                nodes_by_brand[brand_wikidata] = [res]
 
     return nodes_by_brand
 
@@ -73,6 +80,13 @@ def main(osmdb):
         "--departement-number",
         action="store",
         help="Specify a departement number from 1 to 95",
+        required=True,
+    )
+    parser.add_argument(
+        "-l",
+        "--limit",
+        action="store",
+        help="Set a limit POI to update",
     )
 
     args = parser.parse_args()
