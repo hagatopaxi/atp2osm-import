@@ -18,10 +18,12 @@ from psycopg import Cursor
 
 logger = logging.getLogger(__name__)
 
+NO_BRAND_KEY = "NO-BRAND"
+
 
 @timer
 def get_changes(cursor: Cursor):
-    nodes_by_brand = {"no_brand": []}
+    nodes_by_brand = {NO_BRAND_KEY: []}
     total = 0
 
     for atp_osm_match in cursor:
@@ -37,7 +39,7 @@ def get_changes(cursor: Cursor):
             res["tag"]["brand:wikidata"] if "brand:wikidata" in res["tag"] else None
         )
         if brand_wikidata is None:
-            nodes_by_brand["no_brand"].append(res)
+            nodes_by_brand[NO_BRAND_KEY].append(res)
         else:
             if brand_wikidata in nodes_by_brand:
                 nodes_by_brand[brand_wikidata].append(res)

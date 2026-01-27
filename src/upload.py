@@ -7,7 +7,6 @@ from models import Config
 from osmapi.errors import ApiError
 from utils import timer
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -37,7 +36,7 @@ class BulkUpload:
     def upload_brand(self, brand_changes: list, brand: str):
         with self.api.Changeset(
             {
-                "comment": f"Ajout des données ATP pour le département {Config.departement_number()} {f'et la marque {brand}.' if brand != 'no_brand' else 'sans marque associée.'}",
+                "comment": f"Importation des données ATP ({Config.departement_number()}; {brand})",
                 "created_by": "atp2osm-import",
                 "source": "https://alltheplaces.xyz",
                 "bot": "yes",
