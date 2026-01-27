@@ -2,8 +2,10 @@ import os
 import time
 import functools
 import logging
+import requests
 
-from typing import Callable, Any, TypeVar, cast, Tuple
+from pathlib import Path
+from typing import Callable, Any, TypeVar, cast
 
 
 logger = logging.getLogger(__name__)
@@ -58,3 +60,86 @@ def timer(func: F) -> F:
 def clean_debug_folder():
     for file_path in os.listdir("./data/debug"):
         os.remove(f"./data/debug/{file_path}")
+
+
+def download_large_file(
+    url: str,
+    destination: str | Path,
+    chunk_size: int = 8192,
+    progress_interval: int = 15,
+) -> None:
+    """
+    Stream a file from *url* to *destination* while printing a progress
+    percentage roughly every ``progress_interval`` seconds.
+
+    Parameters
+    ----------
+    url               : URL of the file to download.
+    destination       : Local path where the file will be saved.
+    chunk_size        : Number of bytes read per iteration (default 8192).
+    progress_interval : Seconds between progress updates (default 15 s).
+    """
+    dest_path = Path(destination)
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        # ``stream=True`` gives us an iterator over the response body.
+        with requests.get(url, stream=True, timeout=30) as resp:
+            resp.raise_for_status()
+
+            # Try to obtain the total size from the HTTP header.
+            total_bytes = resp.headers.get("Content-Length")
+            total_bytes = (
+                int(total_bytes) if total_bytes and total_bytes.isdigit() else None
+            )
+
+            # If we don’t know the size we’ll fall back to a simple byte counter.
+            show_percent = total_bytes is not None
+
+            written = 0
+            start = last_report = time.time()
+
+            with open(dest_path, "wb") as out_file:
+                for chunk in resp.iter_content(chunk_size=chunk_size):
+                    if not chunk:  # skip keep‑alive chunks
+                        continue
+                    out_file.write(chunk)
+                    written += len(chunk)
+
+                    now = time.time()
+                    if now - last_report >= progress_interval:
+                        elapsed = now - start
+                        speed = written / elapsed if elapsed > 0 else 0
+
+                        if show_percent:
+                            pct = (written / total_bytes) * 100
+                            logger.info(
+                                f"[{elapsed:6.1f}s] "
+                                f"{pct:5.1f}% ({written:,} / {total_bytes:,} bytes) "
+                                f"@ {speed / 1024:,.1f} KiB/s"
+                            )
+                        else:
+                            # No length header → just show bytes transferred.
+                            logger.info(
+                                f"[{elapsed:6.1f}s] "
+                                f"{written:,} bytes downloaded "
+                                f"@ {speed / 1024:,.1f} KiB/s"
+                            )
+                        last_report = now
+
+            # ----- final summary -------------------------------------------------
+            total_elapsed = time.time() - start
+            avg_speed = written / total_elapsed if total_elapsed > 0 else 0
+            if show_percent:
+                logger.info(
+                    f"\nDownload complete: 100.0% ({written:,} / {total_bytes:,} bytes) "
+                    f"in {total_elapsed:.1f}s ({avg_speed / 1024:,.1f} KiB/s)."
+                )
+            else:
+                logger.info(
+                    f"\nDownload complete: {written:,} bytes in "
+                    f"{total_elapsed:.1f}s ({avg_speed / 1024:,.1f} KiB/s)."
+                )
+
+    except requests.exceptions.RequestException as exc:
+        logger.info(f"Error downloading the file: {exc}")

@@ -6,7 +6,7 @@ import duckdb
 
 
 from models import Config
-from utils import delete_file_if_exists, timer
+from utils import delete_file_if_exists, timer, download_large_file
 
 
 logger = logging.getLogger(__name__)
@@ -41,14 +41,7 @@ def download_latest_atp_data():
         logger.error("'parquet_url' key not found in JSON response")
         sys.exit(1)
 
-    logger.info("Downloading latest ATP data")
-    parquet_response = requests.get(parquet_url)
-    if parquet_response.status_code != 200:
-        logger.error(f"Failed to download {parquet_url}")
-        sys.exit(1)
-
-    with open(download_path, "wb") as file:
-        file.write(parquet_response.content)
+    download_large_file(parquet_url, download_path)
 
     logger.info(f"Downloaded {download_path}")
 
