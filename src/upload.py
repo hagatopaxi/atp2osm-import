@@ -43,7 +43,7 @@ class BulkUpload:
             }
         ) as changeset:
             logger.info(
-                f"https://master.apis.dev.openstreetmap.org/changeset/{changeset}"
+                f"{os.getenv('OSM_API_HOST').rstrip('/')}/changeset/{changeset}"
             )
             changingNodes = []
             changingRelations = []
