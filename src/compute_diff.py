@@ -12,13 +12,14 @@ def apply_on_node(atp_osm_match: dict):
     new_tags = dict(atp_osm_match["tags"])
 
     apply_tag(new_tags, "opening_hours", atp_osm_match["atp_opening_hours"])
-    apply_tag(new_tags, "website", atp_osm_match["atp_website"])
 
-    # Do not duplicate (contact:email and email) or (contact:phone and phone) in tags
+    # Do not duplicate (contact:email and email) or (contact:phone and phone) or (contact:website and website) in tags
     if "contact:email" not in new_tags:
         apply_tag(new_tags, "email", atp_osm_match["atp_email"])
     if "contact:phone" not in new_tags:
         apply_tag(new_tags, "phone", atp_osm_match["atp_phone"])
+    if "contact:website" not in new_tags:
+        apply_tag(new_tags, "website", atp_osm_match["atp_website"])
 
     # If new_tags and original ones are the same returns None to skip the update
     if new_tags == atp_osm_match["tags"]:
