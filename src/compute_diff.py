@@ -12,9 +12,6 @@ def apply_on_node(atp_osm_match: dict):
     new_tags = dict(atp_osm_match["tags"])
 
     apply_tag(new_tags, "opening_hours", atp_osm_match["atp_opening_hours"])
-    apply_tag(new_tags, "addr:country", atp_osm_match["atp_country"])
-    apply_tag(new_tags, "addr:postcode", atp_osm_match["atp_postcode"])
-    apply_tag(new_tags, "addr:city", atp_osm_match["atp_city"])
     apply_tag(new_tags, "website", atp_osm_match["atp_website"])
 
     # Do not duplicate (contact:email and email) or (contact:phone and phone) in tags
