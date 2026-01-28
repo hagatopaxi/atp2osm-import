@@ -1,14 +1,21 @@
+import logging
+import os
+import json
+
 from typing import Any
 
 
-def apply_tag(tags: dict, key: str, value: Any):
+logger = logging.getLogger(__name__)
+
+
+def apply_tag(tags: dict, key: str, value: Any) -> None:
     if value is None:
         return
     if key not in tags:
         tags[key] = value
 
 
-def apply_on_node(atp_osm_match: dict):
+def apply_on_node(atp_osm_match: dict) -> dict:
     new_tags = dict(atp_osm_match["tags"])
 
     apply_tag(new_tags, "opening_hours", atp_osm_match["atp_opening_hours"])
@@ -32,4 +39,36 @@ def apply_on_node(atp_osm_match: dict):
         "tag": new_tags,
         "lon": atp_osm_match["lon"],
         "lat": atp_osm_match["lat"],
+        "old_tag": atp_osm_match["tags"],
     }
+
+
+def save_dry_run(changes_by_brand) -> None:
+    dry_result = []
+
+    for brand_changes in changes_by_brand.values():
+        for change in brand_changes:
+            old_tag = change["old_tag"]
+            new_tag = change["tag"]
+
+            diff_keys = [
+                tag_key for tag_key in new_tag.keys() if tag_key not in old_tag
+            ]
+
+            for diff_key in diff_keys:
+                old_tag[f"new:{diff_key}"] = new_tag[diff_key]
+
+            dry_result.append({"osm_id": change["id"], "diff": old_tag})
+
+    if len(dry_result) == 0:
+        logger.ingo("There is no changes in this run. Nothing saved.")
+
+    save_path = "./data/dry/latest.json"
+
+    # If the save directory doesn't exist, create it
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+    with open(save_path, "w") as file:
+        file.write(json.dumps(dry_result, indent=4, ensure_ascii=False))
+
+    logger.info(f"Dry run results saved into {save_path}")

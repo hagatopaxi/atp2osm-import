@@ -35,4 +35,8 @@ class Config:
 
     @staticmethod
     def limit():
-        return int(Config.args.limit)
+        return Config.args.limit
+
+    @staticmethod
+    def dry():
+        return Config.args.dry

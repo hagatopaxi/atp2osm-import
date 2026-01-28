@@ -10,7 +10,7 @@ from utils import timer, clean_debug_folder
 from models import Config
 from setup import setup_atp2osm_db
 from matching import execute_query
-from compute_diff import apply_on_node
+from compute_diff import apply_on_node, save_dry_run
 from psycopg.rows import dict_row
 from upload import BulkUpload
 from psycopg import Cursor
@@ -27,7 +27,7 @@ def get_changes(cursor: Cursor):
     total = 0
 
     for atp_osm_match in cursor:
-        if Config.limit() <= total:
+        if Config.limit() and total >= Config.limit():
             break
 
         res = apply_on_node(atp_osm_match)
@@ -81,6 +81,7 @@ def main(osmdb):
         "-n",
         "--departement-number",
         action="store",
+        type=int,
         help="Specify a departement number from 1 to 95",
         required=True,
     )
@@ -88,7 +89,13 @@ def main(osmdb):
         "-l",
         "--limit",
         action="store",
+        type=int,
         help="Set a limit POI to update",
+    )
+    parser.add_argument(
+        "--dry",
+        action="store_true",
+        help="Compute changes without applying",
     )
 
     args = parser.parse_args()
@@ -112,7 +119,10 @@ def main(osmdb):
         changes = get_changes(cursor)
 
     # 4. Upload changes into OSM
-    BulkUpload(changes)
+    if not Config.dry():
+        BulkUpload(changes)
+    else:
+        save_dry_run(changes)
 
 
 if __name__ == "__main__":
