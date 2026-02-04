@@ -66,7 +66,11 @@ def main(osmdb):
         help="Enable debug mode, that will slow down the process, better to use with filter",
     )
     parser.add_argument(
-        "-b", "--brand-wikidata", action="store", help="Brand wikidata filter"
+        "-b",
+        "--brand-wikidata",
+        action="store",
+        help="Brand wikidata filter",
+        required=True,
     )
     parser.add_argument("-p", "--postcode", action="store", help="Postcode filter")
     parser.add_argument(
@@ -88,7 +92,6 @@ def main(osmdb):
         action="store",
         type=int,
         help="Specify a departement number from 1 to 95",
-        required=True,
     )
     parser.add_argument(
         "-l",

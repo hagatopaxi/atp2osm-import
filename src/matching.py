@@ -29,7 +29,7 @@ def execute_query(cursor: Cursor) -> Cursor:
                 500
             )
         WHERE
-            atp.departement_number = %s AND
+            {where_options} AND
             ( 
                 osm.brand_wikidata = atp.brand_wikidata
                 OR LOWER(osm.brand) = LOWER(atp.brand)
@@ -43,13 +43,18 @@ def execute_query(cursor: Cursor) -> Cursor:
         FROM joined_poi
         WHERE pt_cnt <= 1 AND poly_cnt <= 1
     """
-    params = [Config.departement_number()]
+    options = []
+    params = []
     if Config.brand():
-        query += " AND atp.brand_wikidata = %s"
+        options.append("atp.brand_wikidata = %s")
         params.append(Config.brand())
-
     if Config.postcode():
-        query += " AND atp.postcode = %s"
+        options.append("atp.postcode = %s")
         params.append(Config.postcode())
+    if Config.departement_number():
+        options.append("atp.departement_number = %s")
+        params.append(Config.departement_number())
 
-    return cursor.execute(query, params)
+    where_options = " AND ".join(options)
+
+    return cursor.execute(query.format(where_options=where_options), params)
