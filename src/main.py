@@ -10,10 +10,11 @@ from utils import timer, clean_debug_folder
 from models import Config
 from setup import setup_atp2osm_db
 from matching import execute_query
-from compute_diff import apply_on_node, save_dry_run
+from compute_diff import apply_on_node
 from psycopg.rows import dict_row
 from upload import BulkUpload
 from psycopg import Cursor
+from logs import save_log_file
 
 
 logger = logging.getLogger(__name__)
@@ -21,9 +22,16 @@ logger = logging.getLogger(__name__)
 NO_BRAND_KEY = "NO-BRAND"
 
 
+def add_result(nodes_by_brand, brand_wikidata, res):
+    if brand_wikidata in nodes_by_brand:
+        nodes_by_brand[brand_wikidata].append(res)
+    else:
+        nodes_by_brand[brand_wikidata] = [res]
+
+
 @timer
 def get_changes(cursor: Cursor):
-    nodes_by_brand = {NO_BRAND_KEY: []}
+    nodes_by_brand = {}
     total = 0
 
     for atp_osm_match in cursor:
@@ -36,15 +44,12 @@ def get_changes(cursor: Cursor):
 
         total += 1
         brand_wikidata = (
-            res["tag"]["brand:wikidata"] if "brand:wikidata" in res["tag"] else None
+            res["tag"]["brand:wikidata"]
+            if "brand:wikidata" in res["tag"]
+            else NO_BRAND_KEY
         )
-        if brand_wikidata is None:
-            nodes_by_brand[NO_BRAND_KEY].append(res)
-        else:
-            if brand_wikidata in nodes_by_brand:
-                nodes_by_brand[brand_wikidata].append(res)
-            else:
-                nodes_by_brand[brand_wikidata] = [res]
+
+        add_result(nodes_by_brand, brand_wikidata, res)
 
     return nodes_by_brand
 
@@ -121,8 +126,8 @@ def main(osmdb):
     # 4. Upload changes into OSM
     if not Config.dry():
         BulkUpload(changes)
-    else:
-        save_dry_run(changes)
+
+    save_log_file(changes)
 
 
 if __name__ == "__main__":

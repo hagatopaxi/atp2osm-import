@@ -31,14 +31,16 @@ class BulkUpload:
         )
 
         for brand in all_brands_changes:
-            self.upload_brand(all_brands_changes[brand], brand)
+            self.upload_brand(all_brands_changes[brand])
 
-    def upload_brand(self, brand_changes: list, brand: str):
+    def upload_brand(self, brand_changes: list):
+        brand_name = brand_changes[0]["tag"]["brand"]
         with self.api.Changeset(
             {
-                "comment": f"Importation des données ATP ({Config.departement_number()}; {brand})",
+                "comment": f"Importation des données ATP (dép. {Config.departement_number()}; {brand_name})",
                 "created_by": "atp2osm-import",
                 "source": "https://alltheplaces.xyz",
+                "wiki": "https://wiki.openstreetmap.org/wiki/Automated_edits/atp2osm_bot",
                 "bot": "yes",
             }
         ) as changeset:
