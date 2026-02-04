@@ -3,6 +3,8 @@ import os
 import json
 import datetime
 
+from models import Config
+
 logger = logging.getLogger(__name__)
 
 
@@ -16,7 +18,9 @@ def save_log_file(changes_by_brand) -> None:
     if len(dry_result) == 0:
         logger.ingo("There is no changes in this run. No logse saved.")
 
-    save_path = f"./logs/{datetime.datetime.now().strftime('%Y-%m-%d')}.json"
+    save_path = (
+        f"./logs/{Config.brand()}/{datetime.datetime.now().strftime('%Y-%m-%d')}.json"
+    )
 
     # If the save directory doesn't exist, create it
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
