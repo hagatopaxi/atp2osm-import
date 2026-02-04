@@ -149,40 +149,40 @@ def import_osm_data(osmdb):
         cursor.execute("""
             CREATE MATERIALIZED VIEW IF NOT EXISTS mv_places AS
             SELECT
-                node_id                  AS osm_id,
-                'node'                   AS node_type,
-                tags                     AS tags,
-                tags->>'name'            AS name,
-                tags->>'brand:wikidata'  AS brand_wikidata,
-                tags->>'brand'           AS brand,
-                tags->>'addr:city'       AS city,
-                tags->>'addr:postcode'   AS postcode,
-                tags->>'opening_hours'   AS opening_hours,
-                tags->>'website'         AS website,
-                tags->>'phone'           AS phone,
-                tags->>'email'           AS email,
+                node_id                                              AS osm_id,
+                'node'                                               AS node_type,
+                tags                                                 AS tags,
+                tags->>'name'                                        AS name,
+                tags->>'brand:wikidata'                              AS brand_wikidata,
+                tags->>'brand'                                       AS brand,
+                tags->>'addr:city'                                   AS city,
+                tags->>'addr:postcode'                               AS postcode,
+                tags->>'opening_hours'                               AS opening_hours,
+                COALESCE(tags->>'website', tags->>'contact:website') AS website,
+                COALESCE(tags->>'phone', tags->>'contact:phone')     AS phone,
+                COALESCE(tags->>'email', tags->>'contact:email')     AS email,
                 version,
-                ST_Transform(geom, 9794) AS geom_9794,
+                ST_Transform(geom, 9794)                             AS geom_9794,
                 geom
             FROM points
 
             UNION ALL
 
             SELECT
-                area_id                  AS osm_id,
-                'relation'               AS node_type,
-                tags                     AS tags,
-                tags->>'name'            AS name,
-                tags->>'brand:wikidata'  AS brand_wikidata,
-                tags->>'brand'           AS brand,
-                tags->>'addr:city'       AS city,
-                tags->>'addr:postcode'   AS postcode,
-                tags->>'opening_hours'   AS opening_hours,
-                tags->>'website'         AS website,
-                tags->>'phone'           AS phone,
-                tags->>'email'           AS email,
+                area_id                                              AS osm_id,
+                'relation'                                           AS node_type,
+                tags                                                 AS tags,
+                tags->>'name'                                        AS name,
+                tags->>'brand:wikidata'                              AS brand_wikidata,
+                tags->>'brand'                                       AS brand,
+                tags->>'addr:city'                                   AS city,
+                tags->>'addr:postcode'                               AS postcode,
+                tags->>'opening_hours'                               AS opening_hours,
+                COALESCE(tags->>'website', tags->>'contact:website') AS website,
+                COALESCE(tags->>'phone', tags->>'contact:phone')     AS phone,
+                COALESCE(tags->>'email', tags->>'contact:email')     AS email,
                 version,
-                ST_Transform(geom, 9794) AS geom_9794,
+                ST_Transform(geom, 9794)                             AS geom_9794,
                 geom
             FROM polygons;
 
