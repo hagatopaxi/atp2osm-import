@@ -6,7 +6,7 @@ import sys
 import os
 import psycopg
 
-from utils import timer, clean_debug_folder
+from utils import timer, clean_debug_folder, sync_file
 from models import Config
 from setup import setup_atp2osm_db
 from matching import execute_query
@@ -130,7 +130,8 @@ def main(osmdb):
     if not Config.dry():
         BulkUpload(changes)
 
-    save_log_file(changes)
+    log_path = save_log_file(changes)
+    sync_file(log_path)
 
 
 if __name__ == "__main__":

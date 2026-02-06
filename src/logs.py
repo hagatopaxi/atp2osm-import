@@ -29,3 +29,4 @@ def save_log_file(changes_by_brand) -> None:
         file.write(json.dumps(dry_result, indent=4, ensure_ascii=False))
 
     logger.info(f"Logs for the run saved into {save_path}")
+    return save_path
