@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>atp2osm</title>
+
+    <!-- Tailwind + DaisyUI (CDN) -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <!-- Optional custom CSS (if you created one) -->
+    {% block custom_css %}
+    {% endblock %}
+</head>
+
+<body class="flex min-h-screen bg-base-300 flex gap-2 p-2 flex-grow">
+    {% include '_aside.html' %}
+
+    <main class="bg-base-200 rounded-md">
+        {%block content %}{% endblock %}
+    </main>
+</body>
+
+</html>
