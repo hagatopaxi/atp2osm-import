@@ -1,48 +1,49 @@
 {% extends '_base.html' %}
 
-{% block title %}Importations les plus anciennes des données ATP{% endblock %}
+{% block title %}Liste des marques à importer dans Open Street Map{% endblock %}
+{% block subtitle %}Les données sont issues de la base All The Places.{% endblock %}
 
 {% block content %}
-<div class="flex-1 p-6">
-    <div class="mb-4">
-        <h1 class="text-xl font-bold">Listes des marques à importer dans Open Street Map</h1>
-        <p class="text-sm text-gray-500">Les données sont issues de la base All The Places.</p>
-    </div>
+<table class="table table-compact bg-base-100 rounded-2">
+    <thead>
+        <tr>
+            <th>Code Wikidata</th>
+            <th>Nom</th>
+            <th>Nombre de POIs</th>
+            <th>Status</th>
+            <th>Dernier import</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in metadata %}
+        <tr class="group">
+            <td>
+                {{ row["brand_wikidata"] }}
+            </td>
 
-    <!-- Table -->
-    <div class="overflow-x-auto bg-base-100 rounded-box">
-        <table class="table table-compact w-full">
-            <thead>
-                <tr>
-                    <th>Code Wikidata</th>
-                    <th>Nom</th>
-                    <th>Nombre de POIs</th>
-                    <th>Status</th>
-                    <th>Dernier import</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Example row, repeat as needed -->
-                <tr>
-                    <td>Q134542</td>
-                    <td>Pizza Good</td>
-                    <td>245</td>
-                    <td><span class="badge badge-success">OK</span></td>
-                    <td>12/04/2026</td>
-                    <td>
-                        <button class="btn btn-square btn-ghost btn-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                            </svg>
-                        </button>
-                    </td>
-                </tr>
-                <!-- Repeat rows for each entry -->
-            </tbody>
-        </table>
-    </div>
-</div>
+            <td>
+                {{ row["brand"] }}
+            </td>
+
+            <td>
+                {{ row["total"] }}
+            </td>
+
+            <td><span class="badge badge-info">TBD</span></td>
+
+            <td>
+                {{ row["last_import"] if row["last_import"] != "never" else 'Jamais' }}
+            </td>
+
+            <td>
+                <button class="btn btn-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                    <i class="iconoir-double-check"></i>
+                    Importer
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}

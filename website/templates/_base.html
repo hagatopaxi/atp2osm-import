@@ -9,15 +9,25 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/iconoir-icons/iconoir@main/css/iconoir.css" />
+
     <!-- Optional custom CSS (if you created one) -->
     {% block custom_css %}
     {% endblock %}
 </head>
 
-<body class="flex min-h-screen bg-base-300 flex gap-2 p-2 flex-grow">
+<body class="flex h-screen w-screen bg-base-300 flex gap-2 p-2">
     {% include '_aside.html' %}
 
-    <main class="bg-base-200 rounded-md">
+    <main class="bg-base-200 rounded-md flex-grow p-3 overflow-x-auto">
+        <div class="mb-4">
+            <h1 class="text-xl font-bold mb-4 font-mono flex items-center"><i class="iconoir-nav-arrow-right"></i>{%
+                block
+                title %}{%
+                endblock %}</h1>
+            <p class="text-sm text-gray-500">{% block subtitle %}{% endblock %}</p>
+        </div>
+
         {%block content %}{% endblock %}
     </main>
 </body>

@@ -1,10 +1,15 @@
-from utils import timer
 from psycopg import Cursor
-from models import Config
+
+from src.utils import timer
 
 
 @timer
-def execute_query(cursor: Cursor) -> Cursor:
+def execute_query(
+    cursor: Cursor,
+    brand: str = None,
+    postcode: str = None,
+    departement_number: str = None,
+) -> Cursor:
     query = """
         WITH joined_poi AS (
         SELECT
@@ -45,15 +50,15 @@ def execute_query(cursor: Cursor) -> Cursor:
     """
     options = []
     params = []
-    if Config.brand():
+    if brand:
         options.append("atp.brand_wikidata = %s")
-        params.append(Config.brand())
-    if Config.postcode():
+        params.append(brand)
+    if postcode:
         options.append("atp.postcode = %s")
-        params.append(Config.postcode())
-    if Config.departement_number():
+        params.append(postcode)
+    if departement_number:
         options.append("atp.departement_number = %s")
-        params.append(Config.departement_number())
+        params.append(departement_number)
 
     where_options = " AND ".join(options)
 

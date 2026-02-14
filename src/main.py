@@ -121,7 +121,12 @@ def main(osmdb):
 
     with osmdb.cursor(row_factory=dict_row) as cursor:
         # 2. For each brands, check if there is an existing POI in OSM, then apply the changes
-        execute_query(cursor)
+        execute_query(
+            cursor,
+            brand=Config.brand(),
+            postcode=Config.postcode(),
+            departement_number=Config.departement_number(),
+        )
 
         # 3. Iterate on the cursor to apply changes
         changes = get_changes(cursor)
