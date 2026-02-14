@@ -4,10 +4,8 @@ import functools
 import logging
 import requests
 
-from pathlib import Path, PurePath
+from pathlib import Path
 from typing import Callable, Any, TypeVar, cast
-from scp import SCPClient
-from paramiko import SSHClient
 
 
 logger = logging.getLogger(__name__)
@@ -144,26 +142,3 @@ def download_large_file(
 
     except requests.exceptions.RequestException as exc:
         logger.info(f"Error downloading the file: {exc}")
-
-
-def sync_file(src_path: str) -> None:
-    ssh = SSHClient()
-    ssh.load_system_host_keys()
-    ssh.connect(
-        hostname=os.getenv("ATP2OSM_HOST"),
-        username=os.getenv("ATP2OSM_USER"),
-        password=os.getenv("ATP2OSM_PASSWORD"),
-    )
-    scp = SCPClient(transport=ssh.get_transport())
-
-    if not os.path.isfile(src_path):
-        logger.error(f"The file does not exists: {src_path}")
-
-    dest_path = PurePath(os.getenv("ATP2OSM_ROOT", ""), src_path).as_posix()
-    dest_dir_path = os.path.dirname(dest_path)
-    _, _, stderr = ssh.exec_command(f"mkdir -p {dest_dir_path}")
-    error = stderr.read().decode()
-    if error:
-        logger.error(f"SSH error: {error}")
-        return
-    scp.put(src_path, remote_path=dest_path)

@@ -3,10 +3,12 @@ import requests
 import sys
 import os
 import duckdb
+import json
 
 
 from models import Config
 from utils import delete_file_if_exists, timer, download_large_file
+from pathlib import Path
 
 
 logger = logging.getLogger(__name__)
@@ -14,16 +16,20 @@ logger = logging.getLogger(__name__)
 
 @timer
 def download_latest_atp_data():
+    atp_dir = Path("./data/atp")
+    parquet_path = atp_dir / "latest.parquet"
+    stats_path = atp_dir / "stats.json"
+    spiders_path = atp_dir / "spriders.json"
+
     if Config.force_atp_dl():
         logger.info("Forcing download of latest ATP data")
-        delete_file_if_exists("./data/atp/latest.parquet")
-        delete_file_if_exists("./data/atp/atp_fr.parquet")
-
-    download_path = "./data/atp/latest.parquet"
+        delete_file_if_exists(parquet_path)
+        delete_file_if_exists(stats_path)
+        delete_file_if_exists(spiders_path)
 
     # If the download_path file is already there, skip the download
-    if os.path.exists(download_path):
-        logger.info(f"{download_path} already exists, skipping download")
+    if os.path.exists(parquet_path):
+        logger.info(f"{parquet_path} already exists, skipping download")
         return
 
     url = "https://data.alltheplaces.xyz/runs/latest.json"
@@ -34,16 +40,23 @@ def download_latest_atp_data():
 
     data = response.json()
     parquet_url = data.get("parquet_url")
+    stats_url = data.get("stats_url")
     # If the download_path directory doesn't exist, create it
-    os.makedirs(os.path.dirname(download_path), exist_ok=True)
+    os.makedirs(atp_dir, exist_ok=True)
 
     if not parquet_url:
         logger.error("'parquet_url' key not found in JSON response")
         sys.exit(1)
 
-    download_large_file(parquet_url, download_path)
+    download_large_file(parquet_url, parquet_path)
+    download_large_file(stats_url, stats_path)
 
-    logger.info(f"Downloaded {download_path}")
+    with open(stats_path, "r") as infile, open(spiders_path, "w") as out:
+        stats = json.loads(infile.read())
+        out.write(json.dumps(stats["results"]))
+        delete_file_if_exists(stats_path)
+
+    logger.info(f"Downloaded {parquet_path} and {stats_path}")
 
 
 @timer
@@ -63,6 +76,13 @@ def import_atp_data(osmdb):
         f"ATTACH 'dbname={os.getenv('OSM_DB_NAME')} user={os.getenv('OSM_DB_USER')} host={os.getenv('OSM_DB_HOST')} password={os.getenv('OSM_DB_PASSWORD')} port={os.getenv('OSM_DB_PORT')}' AS pg (TYPE postgres);",
     )
 
+    logger.info("Creating new atp_spiders table from stats json and parquet data")
+    duckdb.sql("""
+        CREATE TABLE IF NOT EXISTS pg.atp_spiders AS
+        SELECT * 
+        FROM read_json('./data/atp/spiders.json');
+    """)
+
     logger.info("Creating new atp_fr table from parquet file")
     duckdb.sql("""
         CREATE TABLE IF NOT EXISTS pg.atp_fr AS
@@ -79,6 +99,7 @@ def import_atp_data(osmdb):
             properties->>'$.website' as website,
             properties->>'$.phone' as phone,
             properties->>'$.email' as email,
+            properties->>'$.end_date' as end_date,
             ST_AsGeoJSON(geom) as geom
         FROM read_parquet('./data/atp/latest.parquet')
         WHERE properties->>'$.addr:country' = 'FR' 
@@ -125,6 +146,17 @@ def import_atp_data(osmdb):
                 ON atp_fr (departement_number);
         """)
         osmdb.commit()
+
+        # dataset_attributes->>'$.@spider' as spider_id,
+        # dataset_attributes->>'$.source' as source_type,
+
+        # -- 3.10  Index fonctionnel sur spider_id
+        # CREATE INDEX IF NOT EXISTS atp_fr_spider_idx
+        #     ON atp_fr (spider_id);
+
+        # -- 3.11  Index fonctionnel sur source_type
+        # CREATE INDEX IF NOT EXISTS atp_fr_source_type_idx
+        #     ON atp_fr (source_type);
 
 
 @timer

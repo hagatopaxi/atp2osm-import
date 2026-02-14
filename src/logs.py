@@ -4,11 +4,12 @@ import json
 import datetime
 
 from models import Config
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
-def save_log_file(changes_by_brand) -> None:
+def save_log_file(changes_by_brand) -> Path:
     dry_result = []
 
     for brand_changes in changes_by_brand.values():
@@ -18,12 +19,12 @@ def save_log_file(changes_by_brand) -> None:
     if len(dry_result) == 0:
         logger.ingo("There is no changes in this run. No logse saved.")
 
-    save_path = (
+    save_path = Path(
         f"./logs/{Config.brand()}/{datetime.datetime.now().strftime('%Y-%m-%d')}.json"
     )
 
     # If the save directory doesn't exist, create it
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    os.makedirs(save_path.parent, exist_ok=True)
 
     with open(save_path, "w") as file:
         file.write(json.dumps(dry_result, indent=4, ensure_ascii=False))

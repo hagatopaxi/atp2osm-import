@@ -6,8 +6,8 @@ import sys
 import os
 import psycopg
 
-from utils import timer, clean_debug_folder, sync_file
-from models import Config
+from utils import timer, clean_debug_folder
+from models import Config, ServerWrapper
 from setup import setup_atp2osm_db
 from matching import execute_query
 from compute_diff import apply_on_node
@@ -131,7 +131,8 @@ def main(osmdb):
         BulkUpload(changes)
 
     log_path = save_log_file(changes)
-    sync_file(log_path)
+    server = ServerWrapper()
+    server.sync_file(log_path)
 
 
 if __name__ == "__main__":
