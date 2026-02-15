@@ -151,16 +151,16 @@ def get_rand_items(arr: list, n: int) -> list:
     No duplicate
     """
     if n >= len(arr):
-        return [item for item in arr]
+        return arr
 
     items_idx = []
     length = len(arr)
     for _ in range(n):
-        rand_idx = random.randint(0, length)
+        rand_idx = random.randint(0, length - 1)
         max_iter = 15
         i = 0
         while rand_idx in items_idx and i < max_iter:
-            rand_idx = random.randint(0, length)
+            rand_idx = random.randint(0, length - 1)
             i += 1
 
         if i != max_iter:

@@ -2,7 +2,6 @@ import logging
 import pathlib
 import os
 import psycopg
-import math
 import datetime
 
 from io import BytesIO
@@ -10,6 +9,7 @@ from psycopg.rows import dict_row
 from flask import Flask, render_template, g, abort, Response
 from flask_caching import Cache
 from staticmap import StaticMap, CircleMarker
+from math import ceil
 
 from src.matching import get_all, get_filtered
 from src.utils import get_rand_items
@@ -22,7 +22,7 @@ TEMPLATE_DIR = PROJECT_ROOT / "website" / "templates"
 CACHE_DIR = PROJECT_ROOT / ".cache"
 STATIC_DIR = PROJECT_ROOT / "static"
 
-app = Flask(__name__, template_folder=TEMPLATE_DIR)
+app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 
 app.config["CACHE_TYPE"] = "FileSystemCache"
 app.config["CACHE_DIR"] = CACHE_DIR
@@ -55,7 +55,7 @@ def teardown_osmdb(exception):
 
 
 @app.route("/")
-@cache.cached(key_prefix="brands")
+@cache.cached(key_prefix="home")
 def home():
     return render_template("home.html")
 
@@ -76,7 +76,7 @@ def brands_validate(brand_wikidata):
         rows = get_filtered(cursor, brand=brand_wikidata).fetchall()
     if len(rows) == 0:
         abort(404)
-    items = get_rand_items(rows, n=math.ceil(len(rows) / 100))
+    items = get_rand_items(rows, n=ceil(len(rows) / 100))
     brand = items[0]["brand"]
     for idx, item in enumerate(items):
         item["name"] = (
@@ -97,8 +97,6 @@ def brands_validate(brand_wikidata):
 @app.route("/staticmap/<long>/<lat>")
 @cache.cached(query_string=True, key_prefix="staticmap/", timeout=300)
 def staticmap(long, lat):
-
-    print(type(long))
     m = StaticMap(400, 300, url_template="http://b.tile.osm.org/{z}/{x}/{y}.png")
 
     marker_outline = CircleMarker((float(long), float(lat)), "white", 18)
@@ -108,7 +106,8 @@ def staticmap(long, lat):
     m.add_marker(marker)
     datetime.time()
     image = m.render(zoom=17)
-    # Convert the Pillow image to bytes in memory
+
+    # In memory image returned directly to the client
     img_io = BytesIO()
     image.save(img_io, "PNG")
     img_io.seek(0)

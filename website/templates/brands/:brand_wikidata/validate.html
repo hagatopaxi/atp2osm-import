@@ -3,15 +3,18 @@
 {% block title %}1/2 - Validation des données de {{ brand }} ({{brand_wikidata}}){% endblock %}
 {% block subtitle %}Validez 1% des {{size}} points d'intérêt destinés à l'importation.{% endblock %}
 
+{% block custom_js %}
+<script src="/static/js/validate.js" type="text/javascript"></script>
+{% endblock %}
 
 {% block content %}
 <div class="flex flex-col gap-2">
     {% for item in items %}
-    <div class="card bg-base-100 border-base-300 border shadow-md p-4">
-        <div class="font-semibold mb-4">
+    <div class="card bg-base-100 border-base-300 gap-4 border shadow-md p-4" data-item-id="{{item['osm_id']}}">
+        <div class="title font-semibold">
             {{ loop.index }} - {{ item["name"] }}
         </div>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="content grid grid-cols-2 gap-2">
             <div class="flex flex-col gap-2">
                 <a class="btn btn-accent btn-sm" href="{{ item['source_uri'] }}" target="_blank">
                     Ouvrir la source de donnée<i class="iconoir-open-new-window ml-1"></i>
@@ -44,7 +47,14 @@
                     <i class="iconoir-clock mr-2 mt-1"></i>
                     <div>
                         <strong>Horaires:</strong>
-                        <p class="whitespace-pre-wrap">{{ item["opening_hours"] }}</p>
+                        <div>
+                            {% set oprning_hours = item["opening_hours"].split(';') %}
+                            {% for item in oprning_hours %}
+                            <p>
+                                {{ item }}
+                            </p>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
                 {% endif %}
@@ -68,10 +78,10 @@
                 </a>
 
                 <div class="flex gap-2 w-64 self-end">
-                    <button class="btn btn-error btn-sm flex-1" onclick="invalidateData(`{{ item['id'] }}`)">
+                    <button class="btn btn-error btn-sm flex-1" onclick="invalidateData(`{{ item['osm_id'] }}`)">
                         Invalider <i class="iconoir-prohibition"></i>
                     </button>
-                    <button class="btn btn-success btn-sm flex-1" onclick="validateData(`{{ item['id'] }}`)">
+                    <button class="btn btn-success btn-sm flex-1" onclick="validateData(`{{ item['osm_id'] }}`)">
                         Valider <i class="iconoir-check"></i>
                     </button>
                 </div>
@@ -80,5 +90,22 @@
     </div>
 
     {% endfor %}
+
 </div>
+
+<dialog id="invalidation_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Pourquoi invalidez-vous cette donnée ?</h3>
+        <h4 id="subtitle"></h4>
+        <textarea id="invalidation_comment" class="textarea textarea-bordered w-full mt-4"
+            placeholder="Expliquez ici..."></textarea>
+        <div class="modal-action">
+            <button id="submit_invalidation" class="btn btn-error" onclick="publishComment()">Soumettre</button>
+            <button onclick="document.getElementById('invalidation_modal').close()" class="btn">Annuler</button>
+        </div>
+    </div>
+</dialog>
+
+<button class="nextStep btn btn-primary mt-4" disabled>Passer à l'étape suivante</button>
+
 {% endblock %}
