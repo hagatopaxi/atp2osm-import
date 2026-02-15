@@ -91,6 +91,7 @@ def get_all(osmdb):
                         500
                     )
                 WHERE
+                    atp.source_type != 'api' AND
                     (
                         osm.brand_wikidata = atp.brand_wikidata
                         OR LOWER(osm.brand) = LOWER(atp.brand)
