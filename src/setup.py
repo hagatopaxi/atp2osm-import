@@ -76,13 +76,6 @@ def import_atp_data(osmdb):
         f"ATTACH 'dbname={os.getenv('OSM_DB_NAME')} user={os.getenv('OSM_DB_USER')} host={os.getenv('OSM_DB_HOST')} password={os.getenv('OSM_DB_PASSWORD')} port={os.getenv('OSM_DB_PORT')}' AS pg (TYPE postgres);",
     )
 
-    logger.info("Creating new atp_spiders table from stats json and parquet data")
-    duckdb.sql("""
-        CREATE TABLE IF NOT EXISTS pg.atp_spiders AS
-        SELECT * 
-        FROM read_json('./data/atp/spiders.json');
-    """)
-
     logger.info("Creating new atp_fr table from parquet file")
     duckdb.sql("""
         CREATE TABLE IF NOT EXISTS pg.atp_fr AS
@@ -100,6 +93,8 @@ def import_atp_data(osmdb):
             properties->>'$.phone' as phone,
             properties->>'$.email' as email,
             properties->>'$.end_date' as end_date,
+            dataset_attributes->>'$.@spider' as spider_id,
+            dataset_attributes->>'$.source' as source_type,
             ST_AsGeoJSON(geom) as geom
         FROM read_parquet('./data/atp/latest.parquet')
         WHERE properties->>'$.addr:country' = 'FR' 
@@ -144,8 +139,24 @@ def import_atp_data(osmdb):
             -- 3.9  Index fonctionnel insensible à la casse sur l'email
             CREATE INDEX IF NOT EXISTS atp_fr_departement_number_idx
                 ON atp_fr (departement_number);
+
+            -- 3.10  Index fonctionnel sur spider_id
+            CREATE INDEX IF NOT EXISTS atp_fr_spider_idx
+                ON atp_fr (spider_id);
+
+            -- 3.11  Index fonctionnel sur source_type
+            CREATE INDEX IF NOT EXISTS atp_fr_source_type_idx
+                ON atp_fr (source_type);
         """)
         osmdb.commit()
+
+        logger.info("Creating new atp_spiders table from stats json and parquet data")
+        duckdb.sql("""
+            CREATE TABLE IF NOT EXISTS pg.atp_spiders AS
+            SELECT * 
+            FROM read_json('./data/atp/spiders.json')
+            WHERE spider IN (SELECT distinct(spider_id) FROM pg.atp_fr)
+        """)
 
         # dataset_attributes->>'$.@spider' as spider_id,
         # dataset_attributes->>'$.source' as source_type,

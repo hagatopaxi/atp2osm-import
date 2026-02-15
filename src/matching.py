@@ -1,9 +1,6 @@
 from psycopg import Cursor
 
-from src.utils import timer
 
-
-@timer
 def execute_query(
     cursor: Cursor,
     brand: str = None,
