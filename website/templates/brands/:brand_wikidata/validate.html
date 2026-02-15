@@ -9,6 +9,10 @@
 
 {% block content %}
 <div class="flex flex-col gap-2">
+    <a href="/brands/{{brand_wikidata}}/validate" class="btn btn-outline btn-info self-end"><i
+            class="iconoir-refresh"></i>Annulez votre
+        saisie et recommencez</a>
+
     {% for item in items %}
     <div class="card bg-base-100 border-base-300 gap-4 border shadow-md p-4" data-item-id="{{item['osm_id']}}">
         <div class="title font-semibold">
@@ -91,6 +95,11 @@
 
     {% endfor %}
 
+
+    <a class="nextStep btn btn-primary mt-4 self-end" disabled href="/brands/{{brand_wikidata}}/confirm">Passer à
+        l'étape
+        suivante</a>
+
 </div>
 
 <dialog id="invalidation_modal" class="modal">
@@ -105,7 +114,5 @@
         </div>
     </div>
 </dialog>
-
-<button class="nextStep btn btn-primary mt-4" disabled>Passer à l'étape suivante</button>
 
 {% endblock %}

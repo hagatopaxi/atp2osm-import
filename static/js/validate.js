@@ -13,14 +13,20 @@ function invalidateData(itemId) {
 
 function checkAllValidated() {
   const cards = document.querySelectorAll("[data-item-id]");
-  const nextStepButton = document.querySelector(".nextStep");
+  const nextStepButton = document.querySelector("a.nextStep");
 
   const allValidated = Array.from(cards).every((card) =>
     card.classList.contains("validated"),
   );
 
+  console.log(allValidated, nextStepButton);
+
   if (nextStepButton) {
-    nextStepButton.disabled = !allValidated;
+    if (allValidated) {
+      nextStepButton.removeAttribute("disabled");
+    } else {
+      nextStepButton.setAttribute("disabled");
+    }
   }
 }
 
