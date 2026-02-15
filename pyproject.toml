@@ -17,6 +17,7 @@ dependencies = [
     "psycopg[binary]>=3.3.2",
     "requests>=2.32.5",
     "scp>=0.15.0",
+    "staticmap>=0.5.7",
 ]
 
 [dependency-groups]

@@ -7,65 +7,74 @@
 {% block content %}
 <div class="flex flex-col gap-2">
     {% for item in items %}
-    <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
-        <input type="checkbox" />
-        <div class="collapse-title font-semibold">
-            {{ loop.index }} - {{ item["name"] if item["name"] is not none else brand }} - {{ item["postcode"] }}
+    <div class="card bg-base-100 border-base-300 border shadow-md p-4">
+        <div class="font-semibold mb-4">
+            {{ loop.index }} - {{ item["name"] }}
         </div>
-        <div class="collapse-content flex flex-col space-y-2">
-            {{item}}
-            <a class="btn btn-accent btn-sm" href="{{ item['source_uri'] }}" target="_blank">
-                Ouvrir la source de donnée<i class="iconoir-open-new-window ml-1"></i>
-            </a>
+        <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col gap-2">
+                <a class="btn btn-accent btn-sm" href="{{ item['source_uri'] }}" target="_blank">
+                    Ouvrir la source de donnée<i class="iconoir-open-new-window ml-1"></i>
+                </a>
 
-
-            {% if item["email"] is not none %}
-            <div class="flex items-start">
-                <i class="iconoir-mail mr-2 mt-1"></i>
-                <div>
-                    <strong>Email:</strong>
-                    <p>{{ item["email"] }}</p>
+                {% if item["email"] is not none %}
+                <div class="flex items-start">
+                    <i class="iconoir-mail mr-2 mt-1"></i>
+                    <div>
+                        <strong>Email:</strong>
+                        <p>{{ item["email"] }}</p>
+                    </div>
                 </div>
-            </div>
-            {% endif %}
+                {% endif %}
 
-            {% if item["website"] is not none %}
-            <div class="flex items-start">
-                <i class="iconoir-globe mr-2 mt-1"></i>
-                <div>
-                    <strong>Site web:</strong>
-                    <a href="{{ item['website'] }}" target="_blank" class="link link-primary">{{ item["website"] }}</a>
+                {% if item["website"] is not none %}
+                <div class="flex items-start">
+                    <i class="iconoir-globe mr-2 mt-1"></i>
+                    <div>
+                        <strong>Site web:</strong>
+                        <p><a href="{{ item['website'] }}" target="_blank" class="link link-primary">{{ item["website"]
+                                }}</a>
+                        </p>
+                    </div>
                 </div>
-            </div>
-            {% endif %}
+                {% endif %}
 
-            {% if item["opening_hours"] is not none %}
-            <div class="flex items-start">
-                <i class="iconoir-clock mr-2 mt-1"></i>
-                <div>
-                    <strong>Horaires:</strong>
-                    <p class="whitespace-pre-wrap">{{ item["opening_hours"] }}</p>
+                {% if item["opening_hours"] is not none %}
+                <div class="flex items-start">
+                    <i class="iconoir-clock mr-2 mt-1"></i>
+                    <div>
+                        <strong>Horaires:</strong>
+                        <p class="whitespace-pre-wrap">{{ item["opening_hours"] }}</p>
+                    </div>
                 </div>
-            </div>
-            {% endif %}
+                {% endif %}
 
-            {% if item["phone"] is not none %}
-            <div class="flex items-start">
-                <i class="iconoir-phone mr-2 mt-1"></i>
-                <div>
-                    <strong>Téléphone:</strong>
-                    <p>{{ item["phone"] }}</p>
+                {% if item["phone"] is not none %}
+                <div class="flex items-start">
+                    <i class="iconoir-phone mr-2 mt-1"></i>
+                    <div>
+                        <strong>Téléphone:</strong>
+                        <p>{{ item["phone"] }}</p>
+                    </div>
                 </div>
+                {% endif %}
             </div>
-            {% endif %}
 
-            <div class="flex mt-2 gap-2 w-64 self-end">
-                <button class="btn btn-error btn-sm flex-1" onclick="invalidateData(`{{ item['id'] }}`)">
-                    Invalider <i class="iconoir-prohibition"></i>
-                </button>
-                <button class="btn btn-success btn-sm flex-1" onclick="validateData(`{{ item['id'] }}`)">
-                    Valider <i class="iconoir-check"></i>
-                </button>
+            <div class="flex flex-col gap-4 w-full">
+                <a href="https://www.openstreetmap.org/node/{{item['osm_id']}}" target="_blank">
+                    <img class="rounded-lg border-base-200 border-2 shadow-md"
+                        src="/staticmap/{{item['long']}}/{{item['lat']}}" alt="Carte de {{item['name']}}"
+                        tilte="Ouvrir dans OSM" style="width: 100%; height: auto;" />
+                </a>
+
+                <div class="flex gap-2 w-64 self-end">
+                    <button class="btn btn-error btn-sm flex-1" onclick="invalidateData(`{{ item['id'] }}`)">
+                        Invalider <i class="iconoir-prohibition"></i>
+                    </button>
+                    <button class="btn btn-success btn-sm flex-1" onclick="validateData(`{{ item['id'] }}`)">
+                        Valider <i class="iconoir-check"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

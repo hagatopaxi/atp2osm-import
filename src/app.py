@@ -3,10 +3,13 @@ import pathlib
 import os
 import psycopg
 import math
+import datetime
 
+from io import BytesIO
 from psycopg.rows import dict_row
-from flask import Flask, render_template, g
+from flask import Flask, render_template, g, abort, Response
 from flask_caching import Cache
+from staticmap import StaticMap, CircleMarker
 
 from src.matching import get_all, get_filtered
 from src.utils import get_rand_items
@@ -16,11 +19,13 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = pathlib.Path(__file__).parent.parent.resolve()
 TEMPLATE_DIR = PROJECT_ROOT / "website" / "templates"
+CACHE_DIR = PROJECT_ROOT / ".cache"
+STATIC_DIR = PROJECT_ROOT / "static"
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 
 app.config["CACHE_TYPE"] = "FileSystemCache"
-app.config["CACHE_DIR"] = "./.cache"
+app.config["CACHE_DIR"] = CACHE_DIR
 app.config["CACHE_THRESHOLD"] = 1000
 app.config["CACHE_DEFAULT_TIMEOUT"] = 0  # Infinite cache duration
 
@@ -69,15 +74,45 @@ def brands_validate(brand_wikidata):
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         rows = get_filtered(cursor, brand=brand_wikidata).fetchall()
+    if len(rows) == 0:
+        abort(404)
     items = get_rand_items(rows, n=math.ceil(len(rows) / 100))
-    print(items[0]["source_uri"])
+    brand = items[0]["brand"]
+    for idx, item in enumerate(items):
+        item["name"] = (
+            f"{item['name'] if item['name'] is not None else brand} - {item['postcode']}"
+        )
+        item["long"] = item["geom"]["coordinates"][0]
+        item["lat"] = item["geom"]["coordinates"][1]
+
     return render_template(
         "brands/:brand_wikidata/validate.html",
         brand_wikidata=brand_wikidata,
-        brand=items[0]["brand"],
+        brand=brand,
         size=len(rows),
         items=items,
     )
+
+
+@app.route("/staticmap/<long>/<lat>")
+@cache.cached(query_string=True, key_prefix="staticmap/", timeout=300)
+def staticmap(long, lat):
+
+    print(type(long))
+    m = StaticMap(400, 300, url_template="http://b.tile.osm.org/{z}/{x}/{y}.png")
+
+    marker_outline = CircleMarker((float(long), float(lat)), "white", 18)
+    marker = CircleMarker((float(long), float(lat)), "#0036FF", 12)
+
+    m.add_marker(marker_outline)
+    m.add_marker(marker)
+    datetime.time()
+    image = m.render(zoom=17)
+    # Convert the Pillow image to bytes in memory
+    img_io = BytesIO()
+    image.save(img_io, "PNG")
+    img_io.seek(0)
+    return Response(img_io, mimetype="image/png")
 
 
 @app.route("/invalidate/<key>")
