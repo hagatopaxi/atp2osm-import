@@ -95,6 +95,7 @@ def import_atp_data(osmdb):
             properties->>'$.end_date' as end_date,
             dataset_attributes->>'$.@spider' as spider_id,
             dataset_attributes->>'$.source' as source_type,
+            properties->>'$.@source_uri' as source_uri,
             ST_AsGeoJSON(geom) as geom
         FROM read_parquet('./data/atp/latest.parquet')
         WHERE properties->>'$.addr:country' = 'FR' 
@@ -157,17 +158,6 @@ def import_atp_data(osmdb):
             FROM read_json('./data/atp/spiders.json')
             WHERE spider IN (SELECT distinct(spider_id) FROM pg.atp_fr)
         """)
-
-        # dataset_attributes->>'$.@spider' as spider_id,
-        # dataset_attributes->>'$.source' as source_type,
-
-        # -- 3.10  Index fonctionnel sur spider_id
-        # CREATE INDEX IF NOT EXISTS atp_fr_spider_idx
-        #     ON atp_fr (spider_id);
-
-        # -- 3.11  Index fonctionnel sur source_type
-        # CREATE INDEX IF NOT EXISTS atp_fr_source_type_idx
-        #     ON atp_fr (source_type);
 
 
 @timer

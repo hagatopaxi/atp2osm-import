@@ -2,10 +2,14 @@ import logging
 import pathlib
 import os
 import psycopg
+import math
 
+from psycopg.rows import dict_row
 from flask import Flask, render_template, g
 from flask_caching import Cache
-from src.views_utils import get_metadata
+
+from src.matching import get_all, get_filtered
+from src.utils import get_rand_items
 
 
 logger = logging.getLogger(__name__)
@@ -55,8 +59,25 @@ def home():
 @cache.cached(key_prefix="brands")
 def brands():
     osmdb = get_osmdb()
-    metadata = get_metadata(osmdb)
+    metadata = get_all(osmdb)
     return render_template("brands.html", metadata=metadata)
+
+
+@app.route("/brands/<brand_wikidata>/validate")
+# @cache.cached(query_string=True, key_prefix="brands/")
+def brands_validate(brand_wikidata):
+    osmdb = get_osmdb()
+    with osmdb.cursor(row_factory=dict_row) as cursor:
+        rows = get_filtered(cursor, brand=brand_wikidata).fetchall()
+    items = get_rand_items(rows, n=math.ceil(len(rows) / 100))
+    print(items[0]["source_uri"])
+    return render_template(
+        "brands/:brand_wikidata/validate.html",
+        brand_wikidata=brand_wikidata,
+        brand=items[0]["brand"],
+        size=len(rows),
+        items=items,
+    )
 
 
 @app.route("/invalidate/<key>")

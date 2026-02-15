@@ -3,6 +3,7 @@ import time
 import functools
 import logging
 import requests
+import random
 
 from pathlib import Path
 from typing import Callable, Any, TypeVar, cast
@@ -142,3 +143,26 @@ def download_large_file(
 
     except requests.exceptions.RequestException as exc:
         logger.info(f"Error downloading the file: {exc}")
+
+
+def get_rand_items(arr: list, n: int) -> list:
+    """
+    Returns a new array which contains n random items.
+    No duplicate
+    """
+    if n >= len(arr):
+        return [item for item in arr]
+
+    items_idx = []
+    length = len(arr)
+    for _ in range(n):
+        rand_idx = random.randint(0, length)
+        max_iter = 15
+        i = 0
+        while rand_idx in items_idx and i < max_iter:
+            rand_idx = random.randint(0, length)
+            i += 1
+
+        if i != max_iter:
+            items_idx.append(rand_idx)
+    return [arr[idx] for idx in items_idx]

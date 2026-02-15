@@ -9,7 +9,7 @@ import psycopg
 from utils import timer, clean_debug_folder
 from models import Config, ServerWrapper
 from setup import setup_atp2osm_db
-from matching import execute_query
+from matching import get_filtered
 from compute_diff import apply_on_node
 from psycopg.rows import dict_row
 from upload import BulkUpload
@@ -121,7 +121,7 @@ def main(osmdb):
 
     with osmdb.cursor(row_factory=dict_row) as cursor:
         # 2. For each brands, check if there is an existing POI in OSM, then apply the changes
-        execute_query(
+        get_filtered(
             cursor,
             brand=Config.brand(),
             postcode=Config.postcode(),

@@ -1,0 +1,75 @@
+{% extends '_base.html' %}
+
+{% block title %}1/2 - Validation des données de {{ brand }} ({{brand_wikidata}}){% endblock %}
+{% block subtitle %}Validez 1% des {{size}} points d'intérêt destinés à l'importation.{% endblock %}
+
+
+{% block content %}
+<div class="flex flex-col gap-2">
+    {% for item in items %}
+    <div tabindex="0" class="collapse collapse-arrow bg-base-100 border-base-300 border">
+        <input type="checkbox" />
+        <div class="collapse-title font-semibold">
+            {{ loop.index }} - {{ item["name"] if item["name"] is not none else brand }} - {{ item["postcode"] }}
+        </div>
+        <div class="collapse-content flex flex-col space-y-2">
+            {{item}}
+            <a class="btn btn-accent btn-sm" href="{{ item['source_uri'] }}" target="_blank">
+                Ouvrir la source de donnée<i class="iconoir-open-new-window ml-1"></i>
+            </a>
+
+
+            {% if item["email"] is not none %}
+            <div class="flex items-start">
+                <i class="iconoir-mail mr-2 mt-1"></i>
+                <div>
+                    <strong>Email:</strong>
+                    <p>{{ item["email"] }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if item["website"] is not none %}
+            <div class="flex items-start">
+                <i class="iconoir-globe mr-2 mt-1"></i>
+                <div>
+                    <strong>Site web:</strong>
+                    <a href="{{ item['website'] }}" target="_blank" class="link link-primary">{{ item["website"] }}</a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if item["opening_hours"] is not none %}
+            <div class="flex items-start">
+                <i class="iconoir-clock mr-2 mt-1"></i>
+                <div>
+                    <strong>Horaires:</strong>
+                    <p class="whitespace-pre-wrap">{{ item["opening_hours"] }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if item["phone"] is not none %}
+            <div class="flex items-start">
+                <i class="iconoir-phone mr-2 mt-1"></i>
+                <div>
+                    <strong>Téléphone:</strong>
+                    <p>{{ item["phone"] }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="flex mt-2 gap-2 w-64 self-end">
+                <button class="btn btn-error btn-sm flex-1" onclick="invalidateData(`{{ item['id'] }}`)">
+                    Invalider <i class="iconoir-prohibition"></i>
+                </button>
+                <button class="btn btn-success btn-sm flex-1" onclick="validateData(`{{ item['id'] }}`)">
+                    Valider <i class="iconoir-check"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {% endfor %}
+</div>
+{% endblock %}
