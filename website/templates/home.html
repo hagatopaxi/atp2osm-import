@@ -1,49 +1,8 @@
 {% extends '_base.html' %}
 
-{% block title %}Liste des marques à importer dans Open Street Map{% endblock %}
-{% block subtitle %}Les données sont issues de la base All The Places.{% endblock %}
+{% block title %}Statistiques{% endblock %}
+{% block subtitle %}atp2osm en quelques chiffres{% endblock %}
 
 {% block content %}
-<table class="table table-compact bg-base-100 rounded-2">
-    <thead>
-        <tr>
-            <th>Code Wikidata</th>
-            <th>Nom</th>
-            <th>Taille de l'import</th>
-            <th>Status</th>
-            <th>Dernier import</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for row in metadata %}
-        <tr class="group">
-            <td>
-                {{ row["brand_wikidata"] }}
-            </td>
-
-            <td>
-                {{ row["brand"] }}
-            </td>
-
-            <td>
-                {{ row["total"] }}
-            </td>
-
-            <td><span class="badge badge-info">TBD</span></td>
-
-            <td>
-                {{ row["last_import"] if row["last_import"] != "never" else 'Jamais' }}
-            </td>
-
-            <td>
-                <button class="btn btn-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-                    <i class="iconoir-double-check"></i>
-                    Importer
-                </button>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+TOOD
 {% endblock %}

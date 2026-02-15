@@ -39,9 +39,14 @@ def teardown_osmdb(exception):
 
 @app.route("/")
 def home():
+    return render_template("home.html")
+
+
+@app.route("/brands")
+def brands():
     osmdb = get_osmdb()
     metadata = get_metadata(osmdb)
-    return render_template("home.html", metadata=metadata)
+    return render_template("brands.html", metadata=metadata)
 
 
 @app.errorhandler(500)
