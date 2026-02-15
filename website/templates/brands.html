@@ -37,10 +37,11 @@
             </td>
 
             <td>
-                <button class="btn btn-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                <a href="/brands/{{ row['brand_wikidata'] }}/validate"
+                    class="btn btn-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
                     <i class="iconoir-double-check"></i>
                     Importer
-                </button>
+                </a>
             </td>
         </tr>
         {% endfor %}

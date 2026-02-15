@@ -4,6 +4,7 @@ import os
 import psycopg
 
 from flask import Flask, render_template, g
+from flask_caching import Cache
 from src.views_utils import get_metadata
 
 
@@ -13,6 +14,13 @@ PROJECT_ROOT = pathlib.Path(__file__).parent.parent.resolve()
 TEMPLATE_DIR = PROJECT_ROOT / "website" / "templates"
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
+
+app.config["CACHE_TYPE"] = "FileSystemCache"
+app.config["CACHE_DIR"] = "./.cache"
+app.config["CACHE_THRESHOLD"] = 1000
+app.config["CACHE_DEFAULT_TIMEOUT"] = 0  # Infinite cache duration
+
+cache = Cache(app)
 
 
 def get_osmdb():
@@ -38,15 +46,23 @@ def teardown_osmdb(exception):
 
 
 @app.route("/")
+@cache.cached(key_prefix="brands")
 def home():
     return render_template("home.html")
 
 
 @app.route("/brands")
+@cache.cached(key_prefix="brands")
 def brands():
     osmdb = get_osmdb()
     metadata = get_metadata(osmdb)
     return render_template("brands.html", metadata=metadata)
+
+
+@app.route("/invalidate/<key>")
+def invalidate_cache(key):
+    cache.delete(key)
+    return "OK"
 
 
 @app.errorhandler(500)
