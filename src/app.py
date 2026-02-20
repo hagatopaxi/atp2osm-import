@@ -79,18 +79,27 @@ def brands_validate(brand_wikidata):
     items = get_rand_items(rows, n=ceil(len(rows) / 100))
     brand = items[0]["brand"]
     for idx, item in enumerate(items):
-        item["name"] = (
+        item["title"] = (
             f"{item['name'] if item['name'] is not None else brand} - {item['postcode']}"
         )
         item["long"] = item["geom"]["coordinates"][0]
         item["lat"] = item["geom"]["coordinates"][1]
+        item["new_tags"] = [key for key in item["tags"] if key not in item["old_tags"]]
 
+    print(items[0]["new_tags"])
     return render_template(
         "brands/:brand_wikidata/validate.html",
         brand_wikidata=brand_wikidata,
         brand=brand,
         size=len(rows),
         items=items,
+    )
+
+
+@app.route("/brands/<brand_wikidata>/confirm")
+def brands_confirm(brand_wikidata):
+    return render_template(
+        "brands/:brand_wikidata/confirm.html",
     )
 
 

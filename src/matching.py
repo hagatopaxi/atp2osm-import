@@ -12,6 +12,7 @@ def get_filtered(
         WITH joined_poi AS (
         SELECT
             *,
+            osm.tags as old_tags,
             ST_X(ST_Centroid(ST_Transform(osm.geom, 4326))) AS lon,
             ST_Y(ST_Centroid(ST_Transform(osm.geom, 4326))) AS lat,
             atp.opening_hours as atp_opening_hours,

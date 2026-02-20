@@ -16,13 +16,49 @@
     {% for item in items %}
     <div class="card bg-base-100 border-base-300 gap-4 border shadow-md p-4" data-item-id="{{item['osm_id']}}">
         <div class="title font-semibold">
-            {{ loop.index }} - {{ item["name"] }}
+            {{ loop.index }} - {{ item["title"] }}
         </div>
         <div class="content grid grid-cols-2 gap-2">
             <div class="flex flex-col gap-2">
+                {% if item['source_type'] != "api" %}
                 <a class="btn btn-accent btn-sm" href="{{ item['source_uri'] }}" target="_blank">
                     Ouvrir la source de donnée<i class="iconoir-open-new-window ml-1"></i>
                 </a>
+                {% else %}
+                <a class="btn btn-accent btn-sm" disabled>
+                    La donnée provient d'une API
+                </a>
+                {% endif %}
+
+                {% if item["brand"] is not none %}
+                <div class="flex items-start">
+                    <i class="iconoir-shop mr-2 mt-1"></i>
+                    <div>
+                        <strong>Nom de la marque:</strong>
+                        <p>{{ item["brand"] }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if item["brand_wikidata"] is not none %}
+                <div class="flex items-start">
+                    <i class="iconoir-database mr-2 mt-1"></i>
+                    <div>
+                        <strong>Code Wikidata:</strong>
+                        <p>{{ item["brand_wikidata"] }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if item["name"] is not none %}
+                <div class="flex items-start">
+                    <i class="iconoir-quote mr-2 mt-1"></i>
+                    <div>
+                        <strong>Nom du magasin:</strong>
+                        <p>{{ item["name"] }}</p>
+                    </div>
+                </div>
+                {% endif %}
 
                 {% if item["email"] is not none %}
                 <div class="flex items-start">
