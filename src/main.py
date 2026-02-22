@@ -9,49 +9,13 @@ import psycopg
 from utils import timer, clean_debug_folder
 from models import Config, ServerWrapper
 from setup import setup_atp2osm_db
-from matching import get_filtered
-from compute_diff import apply_on_node
+from matching import get_filtered, get_changes
 from psycopg.rows import dict_row
 from upload import BulkUpload
-from psycopg import Cursor
 from logs import save_log_file
 
 
 logger = logging.getLogger(__name__)
-
-NO_BRAND_KEY = "NO-BRAND"
-
-
-def add_result(nodes_by_brand, brand_wikidata, res):
-    if brand_wikidata in nodes_by_brand:
-        nodes_by_brand[brand_wikidata].append(res)
-    else:
-        nodes_by_brand[brand_wikidata] = [res]
-
-
-@timer
-def get_changes(cursor: Cursor):
-    nodes_by_brand = {}
-    total = 0
-
-    for atp_osm_match in cursor:
-        if Config.limit() and total >= Config.limit():
-            break
-
-        res = apply_on_node(atp_osm_match)
-        if res is None:
-            continue
-
-        total += 1
-        brand_wikidata = (
-            res["tag"]["brand:wikidata"]
-            if "brand:wikidata" in res["tag"]
-            else NO_BRAND_KEY
-        )
-
-        add_result(nodes_by_brand, brand_wikidata, res)
-
-    return nodes_by_brand
 
 
 @timer
@@ -133,7 +97,7 @@ def main(osmdb):
 
     # 4. Upload changes into OSM
     if not Config.dry():
-        BulkUpload(changes)
+        BulkUpload(changes, Config.limit())
 
     log_path = save_log_file(changes)
     server = ServerWrapper()

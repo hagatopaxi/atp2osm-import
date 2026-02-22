@@ -1,5 +1,6 @@
 from psycopg import Cursor
 from psycopg.rows import dict_row
+from typing import Any
 
 
 def get_filtered(
@@ -127,3 +128,61 @@ def get_all(osmdb):
 
     brands = sorted(brands, key=lambda brand: brand["last_import"], reverse=True)
     return brands
+
+
+def apply_tag(tags: dict, key: str, value: Any) -> None:
+    if value is None:
+        return
+    if key not in tags:
+        tags[key] = value
+
+
+def apply_on_node(atp_osm_match: dict) -> dict:
+    new_tags = dict(atp_osm_match["tags"])
+
+    apply_tag(new_tags, "opening_hours", atp_osm_match["atp_opening_hours"])
+
+    # Do not duplicate (contact:email and email) or (contact:phone and phone) or (contact:website and website) in tags
+    if "contact:email" not in new_tags:
+        apply_tag(new_tags, "email", atp_osm_match["atp_email"])
+    if "contact:phone" not in new_tags:
+        apply_tag(new_tags, "phone", atp_osm_match["atp_phone"])
+    if "contact:website" not in new_tags:
+        apply_tag(new_tags, "website", atp_osm_match["atp_website"])
+
+    # If new_tags and original ones are the same returns None to skip the update
+    if new_tags == atp_osm_match["tags"]:
+        return None
+
+    return {
+        # Values for bulk upload
+        "id": atp_osm_match["osm_id"],
+        "node_type": atp_osm_match["node_type"],
+        "version": atp_osm_match["version"],
+        "tag": new_tags,
+        "lon": atp_osm_match["lon"],
+        "lat": atp_osm_match["lat"],
+        # Values only for atp2osm render
+        "source_uri": atp_osm_match["source_uri"],
+        "postcode": atp_osm_match["postcode"],
+        "old_tag": atp_osm_match["tags"],
+    }
+
+
+def add_result(nodes_by_brand, brand_wikidata, res):
+    if brand_wikidata in nodes_by_brand:
+        nodes_by_brand[brand_wikidata].append(res)
+    else:
+        nodes_by_brand[brand_wikidata] = [res]
+
+
+def get_changes(cursor: Cursor):
+    changes = []
+
+    for atp_osm_match in cursor:
+        res = apply_on_node(atp_osm_match)
+        if res is None:
+            continue
+        changes.append(res)
+
+    return changes

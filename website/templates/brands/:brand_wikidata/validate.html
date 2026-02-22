@@ -1,11 +1,42 @@
 {% extends '_base.html' %}
 
 {% block title %}1/2 - Validation des données de {{ brand }} ({{brand_wikidata}}){% endblock %}
-{% block subtitle %}Validez 1% des {{size}} points d'intérêt destinés à l'importation.{% endblock %}
+{% block subtitle %}Validez 1% des {{size}} points d'intérêt destinés à l'importation. Les tags en <span
+    class="text-success">verts</span> sont les nouvelles valeurs ajoutées issues de ATP, les autres sont déjà présentent
+dans OSM et ne seront pas mises à jour.{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/validate.js" type="text/javascript"></script>
 {% endblock %}
+
+{% macro render_tag(key, label, icon, item) %}
+{% if key in item["tag"] %}
+<div class="flex items-start">
+    <i class="{{icon}} mr-2 mt-1"></i>
+    <div>
+        <strong>{{label}} :</strong>
+
+        {% if key == 'website' %}
+        <p class="{{'text-success' if key in item['new_tags_keys']}}"><a href="{{ item['tag'][key] }}" target="_blank"
+                class="link">{{
+                item["tag"][key]
+                }}</a></p>
+        {% elif key == 'opening_hours' %}
+        <div class="{{'text-success' if key in item['new_tags_keys']}}">
+            {% set opening_hours = item["tag"]["opening_hours"].split(';') %}
+            {% for item in opening_hours %}
+            <p>
+                {{ item }}
+            </p>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="{{'text-success' if key in item['new_tags_keys']}}">{{ item["tag"][key] }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endmacro %}
 
 {% block content %}
 <div class="flex flex-col gap-2">
@@ -14,7 +45,7 @@
         saisie et recommencez</a>
 
     {% for item in items %}
-    <div class="card bg-base-100 border-base-300 gap-4 border shadow-md p-4" data-item-id="{{item['osm_id']}}">
+    <div class="card bg-base-100 border-base-300 gap-4 border shadow-md p-4" data-item-id="{{item['id']}}">
         <div class="title font-semibold">
             {{ loop.index }} - {{ item["title"] }}
         </div>
@@ -30,98 +61,34 @@
                 </a>
                 {% endif %}
 
-                {% if item["brand"] is not none %}
-                <div class="flex items-start">
-                    <i class="iconoir-shop mr-2 mt-1"></i>
-                    <div>
-                        <strong>Nom de la marque:</strong>
-                        <p>{{ item["brand"] }}</p>
-                    </div>
-                </div>
-                {% endif %}
+                {{ render_tag("brand", "Nom de la marque", "iconoir-shop", item) }}
 
-                {% if item["brand_wikidata"] is not none %}
-                <div class="flex items-start">
-                    <i class="iconoir-database mr-2 mt-1"></i>
-                    <div>
-                        <strong>Code Wikidata:</strong>
-                        <p>{{ item["brand_wikidata"] }}</p>
-                    </div>
-                </div>
-                {% endif %}
+                {{ render_tag('brand:wikidata', "Code Wikidata", "iconoir-database", item) }}
 
-                {% if item["name"] is not none %}
-                <div class="flex items-start">
-                    <i class="iconoir-quote mr-2 mt-1"></i>
-                    <div>
-                        <strong>Nom du magasin:</strong>
-                        <p>{{ item["name"] }}</p>
-                    </div>
-                </div>
-                {% endif %}
+                {{ render_tag('name', "Nom du magasin", "iconoir-quote", item) }}
 
-                {% if item["email"] is not none %}
-                <div class="flex items-start">
-                    <i class="iconoir-mail mr-2 mt-1"></i>
-                    <div>
-                        <strong>Email:</strong>
-                        <p>{{ item["email"] }}</p>
-                    </div>
-                </div>
-                {% endif %}
+                {{ render_tag('email', "Email", "iconoir-mail", item) }}
 
-                {% if item["website"] is not none %}
-                <div class="flex items-start">
-                    <i class="iconoir-globe mr-2 mt-1"></i>
-                    <div>
-                        <strong>Site web:</strong>
-                        <p><a href="{{ item['website'] }}" target="_blank" class="link link-primary">{{ item["website"]
-                                }}</a>
-                        </p>
-                    </div>
-                </div>
-                {% endif %}
+                {{ render_tag('phone', "Téléphone", "iconoir-phone", item) }}
 
-                {% if item["opening_hours"] is not none %}
-                <div class="flex items-start">
-                    <i class="iconoir-clock mr-2 mt-1"></i>
-                    <div>
-                        <strong>Horaires:</strong>
-                        <div>
-                            {% set oprning_hours = item["opening_hours"].split(';') %}
-                            {% for item in oprning_hours %}
-                            <p>
-                                {{ item }}
-                            </p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
+                {{ render_tag('website', "Site web", "iconoir-globe", item) }}
 
-                {% if item["phone"] is not none %}
-                <div class="flex items-start">
-                    <i class="iconoir-phone mr-2 mt-1"></i>
-                    <div>
-                        <strong>Téléphone:</strong>
-                        <p>{{ item["phone"] }}</p>
-                    </div>
-                </div>
-                {% endif %}
+                {{ render_tag('opening_hours', "Horaires", "iconoir-clock", item) }}
+
             </div>
 
             <div class="flex flex-col gap-4 w-full">
-                <a href="https://www.openstreetmap.org/node/{{item['osm_id']}}" target="_blank">
+                <a href="https://www.openstreetmap.org/node/{{item['id']}}" target="_blank" title="Ouvrir dans OSM">
                     <img class="rounded-lg border-base-200 border-2 shadow-md"
-                        src="/staticmap/{{item['long']}}/{{item['lat']}}" alt="Carte de {{item['name']}}"
-                        tilte="Ouvrir dans OSM" style="width: 100%; height: auto;" />
+                        src="/staticmap/{{item['lon']}}/{{item['lat']}}" alt="Carte de {{item['title']}}"
+                        style="width: 100%; height: auto;" />
                 </a>
 
                 <div class="flex gap-2 w-64 self-end">
-                    <button class="btn btn-error btn-sm flex-1" onclick="invalidateData(`{{ item['osm_id'] }}`)">
+                    <button class="btn btn-error btn-sm flex-1" onclick="invalidateData(`{{ item['id'] }}`)">
                         Invalider <i class="iconoir-prohibition"></i>
                     </button>
-                    <button class="btn btn-success btn-sm flex-1" onclick="validateData(`{{ item['osm_id'] }}`)">
+                    <button class="btn btn-success btn-sm flex-1" onclick="validateData(`{{ item['id'] }}`)">
                         Valider <i class="iconoir-check"></i>
                     </button>
                 </div>

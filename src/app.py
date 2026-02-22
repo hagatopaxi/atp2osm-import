@@ -11,7 +11,7 @@ from flask_caching import Cache
 from staticmap import StaticMap, CircleMarker
 from math import ceil
 
-from src.matching import get_all, get_filtered
+from src.matching import get_all, get_filtered, get_changes
 from src.utils import get_rand_items
 
 
@@ -73,25 +73,28 @@ def brands():
 def brands_validate(brand_wikidata):
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
-        rows = get_filtered(cursor, brand=brand_wikidata).fetchall()
-    if len(rows) == 0:
-        abort(404)
-    items = get_rand_items(rows, n=ceil(len(rows) / 100))
-    brand = items[0]["brand"]
+        get_filtered(cursor, brand=brand_wikidata)
+        changes = get_changes(cursor)
+    if len(changes) == 0:
+        return render_template("brands/:brand_wikidata/empty.html")
+
+    # Check at least 5 items
+    min_to_check = max(ceil(len(changes) / 100), 5)
+    items = get_rand_items(changes, n=min_to_check)
+    brand = items[0]["tag"]["brand"]
     for idx, item in enumerate(items):
         item["title"] = (
-            f"{item['name'] if item['name'] is not None else brand} - {item['postcode']}"
+            f"{item['tag']['name'] if 'name' in item['tag'] else brand} - {item['postcode']}"
         )
-        item["long"] = item["geom"]["coordinates"][0]
-        item["lat"] = item["geom"]["coordinates"][1]
-        item["new_tags"] = [key for key in item["tags"] if key not in item["old_tags"]]
+        item["new_tags_keys"] = [
+            key for key in item["tag"] if key not in item["old_tag"]
+        ]
 
-    print(items[0]["new_tags"])
     return render_template(
         "brands/:brand_wikidata/validate.html",
         brand_wikidata=brand_wikidata,
         brand=brand,
-        size=len(rows),
+        size=len(changes),
         items=items,
     )
 
