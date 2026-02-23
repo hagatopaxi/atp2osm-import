@@ -49,7 +49,10 @@ client_secret = os.getenv("OSM_OAUTH_CLIENT_SECRET")
 api_url = os.getenv("OSM_API_HOST").strip("/")
 authorization_base_url = f"{api_url}/oauth2/authorize"
 token_url = f"{api_url}/oauth2/token"
-scope = ["write_api"]
+scope = ["write_api", "read_prefs"]
+
+# Save token in memory, indexed by osm user's id
+token_store = {}
 
 
 def get_osmdb():
@@ -84,6 +87,7 @@ def teardown_osmdb(exception):
 @app.route("/")
 # @cache.cached(key_prefix="home")
 def home():
+    print(session)
     return render_template("home.html")
 
 
@@ -177,10 +181,29 @@ def oauth_callback():
     token = osm.fetch_token(
         token_url, client_secret=client_secret, authorization_response=request.url
     )
+    user_detail_url = f"{api_url}/api/0.6/user/details.json"
+    response = osm.get(user_detail_url)
+    res_json = response.json()
+    user = {"osm_id": res_json["user"]["id"], "name": res_json["user"]["display_name"]}
+    token_store[user["osm_id"]] = token
 
-    session.token = token
+    session["user"] = user
 
     return redirect("/")
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    user_id = session["user"]["osm_id"]
+
+    # remove the saved token
+    if user_id in token_store:
+        del token_store[session["user"]["osm_id"]]
+
+    # clean the session
+    session.clear()
+
+    return Response(200)
 
 
 @app.route("/staticmap/<long>/<lat>")

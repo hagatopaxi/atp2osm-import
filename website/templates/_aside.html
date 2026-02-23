@@ -12,8 +12,15 @@
   <div class="flex-1"></div>
 
   <div class="bottom-4 left-4 w-full">
+    {% if 'user' in session %}
+    <p class="mb-2 text-sm">En tant que {{ session['user']['name'] }}</p>
+    <button class="btn btn-outline btn-error w-full rounded-full" onclick="logout()"><i class="iconoir-log-out"></i>
+      Deconnexion
+    </button>
+    {% else %}
     <button class="btn bg-accent w-full rounded-full" onclick="login()"><i class="iconoir-log-in"></i>Connectez
       vous
     </button>
+    {% endif %}
   </div>
 </div>
