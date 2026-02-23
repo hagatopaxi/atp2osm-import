@@ -3,6 +3,58 @@
 {% block title %}2/2 - Confirmation de l'import{% endblock %}
 {% block subtitle %}Dernière étape avant l'importation.{% endblock %}
 
+{% block custom_js %}
+<script src="/static/js/confirm.js" type="text/javascript"></script>
+{% endblock %}
+
+{% macro render_stat_card(title, value) %}
+<div class="card bg-base-100 w-1/5 shadow-sm w-full">
+    <div class="card-body items-center text-center">
+        <h2 class="card-title font-mono">{{ title }}</h2>
+        <p class="text-2xl">{{ value }}</p>
+    </div>
+</div>
+{% endmacro %}
+
 {% block content %}
-Confirm
+<h2 class="text-lg">Taille de l'import</h2>
+<div class="grid grid-cols-5 gap-2">
+    {{ render_stat_card("Nombre de POI", stats["size"]) }}
+    {{ render_stat_card("Nombre de tag", stats["total_tag_updates"]) }}
+</div>
+
+<h2 class="text-lg">Nombre de mise à jour par tag</h2>
+<div class="grid grid-cols-5 gap-2">
+    {% for stat in stats["by_tag"] %}
+    {{ render_stat_card(stat, stats["by_tag"][stat]) }}
+    {% endfor %}
+</div>
+
+<h2 class="text-lg">Nombre de mise à jour par département</h2>
+<div class="grid grid-cols-5 gap-2">
+    {% for stat in stats["by_department"] %}
+    {{ render_stat_card(stat, stats["by_department"][stat]) }}
+    {% endfor %}
+</div>
+
+<button class="btn btn-primary mt-4 self-end" onclick="document.getElementById('last_confirm_modal').show()">Confirmer
+    l'importation</button>
+<dialog id="last_confirm_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Attention cette action est irréversible ?</h3>
+        <div id="warning" role="alert" class="alert alert-warning">
+            <i class="iconoir-warning-triangle"></i>
+            <span>Attention ! Les changements seront irréversibles.</span>
+        </div>
+
+        <div class="modal-action">
+            <button id="submit_importation" class="btn btn-error" onclick="confirm_import()">
+                <div id="loading" class="loading loading-spinner loading-md hidden"></div>Importer les
+                données
+            </button>
+            <button id="cancel" onclick="document.getElementById('last_confirm_modal').close()"
+                class="btn">Annuler</button>
+        </div>
+    </div>
+</dialog>
 {% endblock %}

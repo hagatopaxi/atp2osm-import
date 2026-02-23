@@ -19,8 +19,6 @@ function checkAllValidated() {
     card.classList.contains("validated"),
   );
 
-  console.log(allValidated, nextStepButton);
-
   if (nextStepButton) {
     if (allValidated) {
       nextStepButton.removeAttribute("disabled");

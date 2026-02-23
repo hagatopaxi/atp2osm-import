@@ -186,3 +186,32 @@ def get_changes(cursor: Cursor):
         changes.append(res)
 
     return changes
+
+
+def get_stats(changes: list) -> dict:
+    tag_updates = {}
+    total_tag_updates = 0
+    dept_changes = {}
+
+    for change in changes:
+        # Count tag updates
+        tag = change.get("tag", {})
+        old_tag = change.get("old_tag", {})
+        updated_tags = set(tag.keys()).union(set(old_tag.keys()))
+        for t in updated_tags:
+            if tag.get(t) != old_tag.get(t):
+                tag_updates[t] = tag_updates.get(t, 0) + 1
+                total_tag_updates += 1
+
+        # Count changes by department
+        postcode = change.get("postcode", "")
+        if len(postcode) >= 2:
+            dept = postcode[:2]
+            dept_changes[dept] = dept_changes.get(dept, 0) + 1
+
+    return {
+        "by_tag": tag_updates,
+        "size": len(changes),
+        "total_tag_updates": total_tag_updates,
+        "by_department": dept_changes,
+    }

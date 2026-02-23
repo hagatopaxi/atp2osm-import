@@ -3,15 +3,16 @@ import pathlib
 import os
 import psycopg
 import datetime
+import json
 
 from io import BytesIO
 from psycopg.rows import dict_row
-from flask import Flask, render_template, g, abort, Response
+from flask import Flask, render_template, g, Response
 from flask_caching import Cache
 from staticmap import StaticMap, CircleMarker
 from math import ceil
 
-from src.matching import get_all, get_filtered, get_changes
+from src.matching import get_all, get_filtered, get_changes, get_stats
 from src.utils import get_rand_items
 
 
@@ -46,6 +47,13 @@ def get_osmdb():
     return g.osmdb
 
 
+def get_changes_by_brand_wikidata(brand_wikidata):
+    osmdb = get_osmdb()
+    with osmdb.cursor(row_factory=dict_row) as cursor:
+        get_filtered(cursor, brand=brand_wikidata)
+        return get_changes(cursor)
+
+
 @app.teardown_appcontext
 def teardown_osmdb(exception):
     osmdb = g.pop("osmdb", None)
@@ -71,10 +79,8 @@ def brands():
 @app.route("/brands/<brand_wikidata>/validate")
 # @cache.cached(query_string=True, key_prefix="brands/")
 def brands_validate(brand_wikidata):
-    osmdb = get_osmdb()
-    with osmdb.cursor(row_factory=dict_row) as cursor:
-        get_filtered(cursor, brand=brand_wikidata)
-        changes = get_changes(cursor)
+    changes = get_changes_by_brand_wikidata(brand_wikidata)
+
     if len(changes) == 0:
         return render_template("brands/:brand_wikidata/empty.html")
 
@@ -101,8 +107,17 @@ def brands_validate(brand_wikidata):
 
 @app.route("/brands/<brand_wikidata>/confirm")
 def brands_confirm(brand_wikidata):
+    changes = get_changes_by_brand_wikidata(brand_wikidata)
+
+    if len(changes) == 0:
+        return render_template("brands/:brand_wikidata/empty.html")
+
+    stats = get_stats(changes)
+
     return render_template(
         "brands/:brand_wikidata/confirm.html",
+        stats=stats,
+        logs=json.dumps(changes, indent=4, ensure_ascii=False),
     )
 
 
