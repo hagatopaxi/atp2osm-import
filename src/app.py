@@ -187,6 +187,7 @@ def oauth_callback():
     user = {"osm_id": res_json["user"]["id"], "name": res_json["user"]["display_name"]}
     token_store[user["osm_id"]] = token
 
+    del session["oauth_state"]
     session["user"] = user
 
     return redirect("/")
