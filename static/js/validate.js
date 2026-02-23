@@ -23,7 +23,7 @@ function checkAllValidated() {
     if (allValidated) {
       nextStepButton.removeAttribute("disabled");
     } else {
-      nextStepButton.setAttribute("disabled");
+      nextStepButton.setAttribute("disabled", true);
     }
   }
 }

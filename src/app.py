@@ -121,6 +121,13 @@ def brands_confirm(brand_wikidata):
     )
 
 
+@app.route("/brands/<brand_wikidata>/upload", methods=["POST"])
+def upload_changes(brand_wikidata):
+    # changes = get_changes_by_brand_wikidata(brand_wikidata)
+    # bulk_upload = BulkUpload()
+    return Response(status=200)
+
+
 @app.route("/staticmap/<long>/<lat>")
 @cache.cached(query_string=True, key_prefix="staticmap/", timeout=300)
 def staticmap(long, lat):

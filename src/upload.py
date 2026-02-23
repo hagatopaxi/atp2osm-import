@@ -17,8 +17,7 @@ class BulkUpload:
     """
 
     @timer
-    def __init__(self, all_brands_changes):
-        self.all_brands_changes = all_brands_changes
+    def __init__(self, changes):
         auth = OpenStreetMapAuth(
             client_id=os.getenv("OSM_OAUTH_CLIENT_ID"),
             client_secret=os.getenv("OSM_OAUTH_CLIENT_SECRET"),
@@ -30,8 +29,7 @@ class BulkUpload:
             session=auth.session,
         )
 
-        for brand in all_brands_changes:
-            self.upload_brand(all_brands_changes[brand])
+        self.upload_brand(changes)
 
     def upload_brand(self, brand_changes: list):
         brand_name = brand_changes[0]["tag"]["brand"]
