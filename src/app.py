@@ -7,10 +7,20 @@ import json
 
 from io import BytesIO
 from psycopg.rows import dict_row
-from flask import Flask, render_template, g, Response
+from flask import (
+    Flask,
+    render_template,
+    g,
+    Response,
+    request,
+    session,
+    url_for,
+    redirect,
+)
 from flask_caching import Cache
 from staticmap import StaticMap, CircleMarker
 from math import ceil
+from requests_oauthlib import OAuth2Session
 
 from src.matching import get_all, get_filtered, get_changes, get_stats
 from src.utils import get_rand_items
@@ -24,6 +34,7 @@ CACHE_DIR = PROJECT_ROOT / ".cache"
 STATIC_DIR = PROJECT_ROOT / "static"
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
+app.secret_key = os.urandom(24)
 
 app.config["CACHE_TYPE"] = "FileSystemCache"
 app.config["CACHE_DIR"] = CACHE_DIR
@@ -31,6 +42,14 @@ app.config["CACHE_THRESHOLD"] = 1000
 app.config["CACHE_DEFAULT_TIMEOUT"] = 0  # Infinite cache duration
 
 cache = Cache(app)
+
+
+client_id = os.getenv("OSM_OAUTH_CLIENT_ID")
+client_secret = os.getenv("OSM_OAUTH_CLIENT_SECRET")
+api_url = os.getenv("OSM_API_HOST").strip("/")
+authorization_base_url = f"{api_url}/oauth2/authorize"
+token_url = f"{api_url}/oauth2/token"
+scope = ["write_api"]
 
 
 def get_osmdb():
@@ -63,13 +82,13 @@ def teardown_osmdb(exception):
 
 
 @app.route("/")
-@cache.cached(key_prefix="home")
+# @cache.cached(key_prefix="home")
 def home():
     return render_template("home.html")
 
 
 @app.route("/brands")
-@cache.cached(key_prefix="brands")
+# @cache.cached(key_prefix="brands")
 def brands():
     osmdb = get_osmdb()
     metadata = get_all(osmdb)
@@ -126,6 +145,42 @@ def upload_changes(brand_wikidata):
     # changes = get_changes_by_brand_wikidata(brand_wikidata)
     # bulk_upload = BulkUpload()
     return Response(status=200)
+
+
+@app.route("/login", methods=["POST"])
+def login():
+
+    redirect_uri = url_for("oauth_callback", _external=True)
+
+    osm = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=scope)
+    authorization_url, state = osm.authorization_url(authorization_base_url)
+    session["oauth_state"] = state
+
+    return authorization_url
+
+
+@app.route("/oauth-callback")
+def oauth_callback():
+    if "error" in request.args:
+        return "Authentication failed: " + request.args["error"], 401
+
+    # Validate state
+    if request.args.get("state") != session.get("oauth_state"):
+        return "Invalid state parameter", 401
+
+    redirect_uri = url_for("oauth_callback", _external=True)
+
+    osm = OAuth2Session(
+        client_id, redirect_uri=redirect_uri, state=session["oauth_state"]
+    )
+
+    token = osm.fetch_token(
+        token_url, client_secret=client_secret, authorization_response=request.url
+    )
+
+    session.token = token
+
+    return redirect("/")
 
 
 @app.route("/staticmap/<long>/<lat>")

@@ -2,10 +2,11 @@ import osmapi
 import os
 import logging
 
-from oauthcli import OpenStreetMapAuth
-from models import Config
+from requests_oauthlib import OAuth2Session
 from osmapi.errors import ApiError
+
 from utils import timer
+from models import Config
 
 logger = logging.getLogger(__name__)
 
@@ -17,16 +18,10 @@ class BulkUpload:
     """
 
     @timer
-    def __init__(self, changes):
-        auth = OpenStreetMapAuth(
-            client_id=os.getenv("OSM_OAUTH_CLIENT_ID"),
-            client_secret=os.getenv("OSM_OAUTH_CLIENT_SECRET"),
-            scopes=["write_api"],
-            url=os.getenv("OSM_API_HOST"),
-        ).auth_code()
+    def __init__(self, changes: list, session: OAuth2Session):
         self.api = osmapi.OsmApi(
             api=os.getenv("OSM_API_HOST"),
-            session=auth.session,
+            session=session,
         )
 
         self.upload_brand(changes)

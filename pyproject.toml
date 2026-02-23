@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "argparse>=1.4.0",
-    "cli-oauth2>=0.3.1",
     "duckdb>=1.4.3",
     "flask>=3.1.2",
     "flask-caching>=2.3.1",
@@ -16,6 +15,7 @@ dependencies = [
     "paramiko>=4.0.0",
     "psycopg[binary]>=3.3.2",
     "requests>=2.32.5",
+    "requests-oauthlib>=2.0.0",
     "scp>=0.15.0",
     "staticmap>=0.5.7",
 ]
