@@ -1,7 +1,10 @@
 import osmapi
 import os
 import logging
+import json
+import datetime
 
+from pathlib import Path
 from requests_oauthlib import OAuth2Session
 from osmapi.errors import ApiError
 
@@ -19,15 +22,38 @@ class BulkUpload:
 
     @timer
     def __init__(self, changes: list, session: OAuth2Session):
+        self.changes = changes
+        self.brand_name = changes[0]["tag"]["brand"]
+        self.brand_wikidata = changes[0]["tag"]["brand:wikidata"]
+        self.changesets = []
+
         self.api = osmapi.OsmApi(
             api=os.getenv("OSM_API_HOST"),
             session=session,
         )
 
-        self.upload_brand(changes)
+    def save_log_file(self) -> Path:
+        if len(self.changes) == 0:
+            logger.ingo("There is no changes in this run. No logse saved.")
 
-    def upload_brand(self, brand_changes: list):
-        brand_name = brand_changes[0]["tag"]["brand"]
+        save_path = Path(
+            f"./logs/{self.brand_wikidata}/{datetime.datetime.now().strftime('%Y-%m-%d')}.json"
+        )
+
+        # If the save directory doesn't exist, create it
+        os.makedirs(save_path.parent, exist_ok=True)
+
+        with open(save_path, "w") as file:
+            file.write(json.dumps(self.changes, indent=4, ensure_ascii=False))
+
+        logger.debug(f"Logs for the run saved into {save_path}")
+        return save_path
+
+    def upload_one_dpt(self):
+        if len(self.changes) == 0:
+            return
+
+        brand_name = self.changes[0]["tag"]["brand"]
         with self.api.Changeset(
             {
                 "comment": f"Importation des données ATP (dép. {Config.departement_number()}; {brand_name})",
@@ -37,12 +63,12 @@ class BulkUpload:
                 "bot": "yes",
             }
         ) as changeset:
-            logger.info(
+            logger.debug(
                 f"{os.getenv('OSM_API_HOST').rstrip('/')}/changeset/{changeset}"
             )
             changingNodes = []
             changingRelations = []
-            for poi in brand_changes:
+            for poi in self.changes:
                 poi["changeset"] = changeset
 
                 if poi["node_type"] == "node":
@@ -61,5 +87,8 @@ class BulkUpload:
                         },
                     ]
                 )
+
+                # Add to changeset list to save it in logs
+                self.changesets.append(changeset)
             except ApiError as error:
                 logger.error(f"OSM API error for changeset upload: {error.status}")

@@ -9,7 +9,7 @@
         <tr>
             <th>Code Wikidata</th>
             <th>Nom</th>
-            <th>Taille de l'import</th>
+            <th>Correspondances</th>
             <th>Status</th>
             <th>Dernier import</th>
             <th>Actions</th>
@@ -37,11 +37,21 @@
             </td>
 
             <td>
-                <a href="/brands/{{ row['brand_wikidata'] }}/validate"
-                    class="btn btn-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-                    <i class="iconoir-double-check"></i>
-                    Importer
-                </a>
+                <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                    {% if 'user' in session %}
+                    <a href="/brands/{{ row['brand_wikidata'] }}/validate" class="btn btn-accent btn-sm rounded-md">
+                        <i class="iconoir-double-check"></i>
+                        Importer
+                    </a>
+                    {% else %}
+                    <div class="tooltip" data-tip="Vous devez vous connecter">
+                        <a disabled class="btn btn-sm rounded-md">
+                            <i class="iconoir-double-check"></i>
+                            Importer
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
             </td>
         </tr>
         {% endfor %}
