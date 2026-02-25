@@ -53,29 +53,29 @@ class BulkUpload:
         changes_by_dpt = self._sorted_by_dpt()
 
         for dpt, dpt_changes in changes_by_dpt.items():
-            with self.api.Changeset(
-                {
-                    "comment": f"Importation des données ATP (dép. {dpt}; {self.brand_name})",
-                    "created_by": "atp2osm-import",
-                    "source": "https://alltheplaces.xyz",
-                    "wiki": "https://wiki.openstreetmap.org/wiki/Automated_edits/atp2osm_bot",
-                    "bot": "yes",
-                }
-            ) as changeset:
-                logger.debug(
-                    f"{os.getenv('OSM_API_HOST').rstrip('/')}/changeset/{changeset}"
-                )
-                changingNodes = []
-                changingRelations = []
-                for poi in dpt_changes:
-                    poi["changeset"] = changeset
+            try:
+                with self.api.Changeset(
+                    {
+                        "comment": f"Importation des données ATP (dép. {dpt}; {self.brand_name})",
+                        "created_by": "atp2osm-import",
+                        "source": "https://alltheplaces.xyz",
+                        "wiki": "https://wiki.openstreetmap.org/wiki/Automated_edits/atp2osm_bot",
+                        "bot": "yes",
+                    }
+                ) as changeset:
+                    logger.debug(
+                        f"{os.getenv('OSM_API_HOST').rstrip('/')}/changeset/{changeset}"
+                    )
+                    changingNodes = []
+                    changingRelations = []
+                    for poi in dpt_changes:
+                        poi["changeset"] = changeset
 
-                    if poi["node_type"] == "node":
-                        changingNodes.append(poi)
+                        if poi["node_type"] == "node":
+                            changingNodes.append(poi)
 
-                    if poi["node_type"] == "relation":
-                        changingRelations.append(poi)
-                try:
+                        if poi["node_type"] == "relation":
+                            changingRelations.append(poi)
                     self.api.ChangesetUpload(
                         [
                             {"type": "node", "action": "modify", "data": changingNodes},
@@ -89,8 +89,10 @@ class BulkUpload:
 
                     # Add to changeset list to save it in logs
                     self.changesets.append(changeset)
-                except ApiError as error:
-                    logger.error(f"OSM API error for changeset upload: {error.status}")
+            except ApiError as error:
+                logger.error(f"OSM API error for changeset upload: {error.status}")
+            except Exception as unknown:
+                logger.error(f"Unknown error {unknown}")
 
     def _sorted_by_dpt(self):
         sorted_changes = {}
