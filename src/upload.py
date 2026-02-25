@@ -8,9 +8,6 @@ from pathlib import Path
 from requests_oauthlib import OAuth2Session
 from osmapi.errors import ApiError
 
-from utils import timer
-from models import Config
-
 logger = logging.getLogger(__name__)
 
 
@@ -20,7 +17,6 @@ class BulkUpload:
     Batch by departement and brand wikidata
     """
 
-    @timer
     def __init__(self, changes: list, session: OAuth2Session):
         self.changes = changes
         self.brand_name = changes[0]["tag"]["brand"]
@@ -45,50 +41,64 @@ class BulkUpload:
 
         with open(save_path, "w") as file:
             file.write(json.dumps(self.changes, indent=4, ensure_ascii=False))
+            file.write(json.dumps(self.changesets, indent=4, ensure_ascii=False))
 
         logger.debug(f"Logs for the run saved into {save_path}")
         return save_path
 
-    def upload_one_dpt(self):
+    def upload(self):
         if len(self.changes) == 0:
             return
 
-        brand_name = self.changes[0]["tag"]["brand"]
-        with self.api.Changeset(
-            {
-                "comment": f"Importation des données ATP (dép. {Config.departement_number()}; {brand_name})",
-                "created_by": "atp2osm-import",
-                "source": "https://alltheplaces.xyz",
-                "wiki": "https://wiki.openstreetmap.org/wiki/Automated_edits/atp2osm_bot",
-                "bot": "yes",
-            }
-        ) as changeset:
-            logger.debug(
-                f"{os.getenv('OSM_API_HOST').rstrip('/')}/changeset/{changeset}"
-            )
-            changingNodes = []
-            changingRelations = []
-            for poi in self.changes:
-                poi["changeset"] = changeset
+        changes_by_dpt = self._sorted_by_dpt()
 
-                if poi["node_type"] == "node":
-                    changingNodes.append(poi)
-
-                if poi["node_type"] == "relation":
-                    changingRelations.append(poi)
-            try:
-                self.api.ChangesetUpload(
-                    [
-                        {"type": "node", "action": "modify", "data": changingNodes},
-                        {
-                            "type": "relation",
-                            "action": "modify",
-                            "data": changingRelations,
-                        },
-                    ]
+        for dpt, dpt_changes in changes_by_dpt.items():
+            with self.api.Changeset(
+                {
+                    "comment": f"Importation des données ATP (dép. {dpt}; {self.brand_name})",
+                    "created_by": "atp2osm-import",
+                    "source": "https://alltheplaces.xyz",
+                    "wiki": "https://wiki.openstreetmap.org/wiki/Automated_edits/atp2osm_bot",
+                    "bot": "yes",
+                }
+            ) as changeset:
+                logger.debug(
+                    f"{os.getenv('OSM_API_HOST').rstrip('/')}/changeset/{changeset}"
                 )
+                changingNodes = []
+                changingRelations = []
+                for poi in dpt_changes:
+                    poi["changeset"] = changeset
 
-                # Add to changeset list to save it in logs
-                self.changesets.append(changeset)
-            except ApiError as error:
-                logger.error(f"OSM API error for changeset upload: {error.status}")
+                    if poi["node_type"] == "node":
+                        changingNodes.append(poi)
+
+                    if poi["node_type"] == "relation":
+                        changingRelations.append(poi)
+                try:
+                    self.api.ChangesetUpload(
+                        [
+                            {"type": "node", "action": "modify", "data": changingNodes},
+                            {
+                                "type": "relation",
+                                "action": "modify",
+                                "data": changingRelations,
+                            },
+                        ]
+                    )
+
+                    # Add to changeset list to save it in logs
+                    self.changesets.append(changeset)
+                except ApiError as error:
+                    logger.error(f"OSM API error for changeset upload: {error.status}")
+
+    def _sorted_by_dpt(self):
+        sorted_changes = {}
+        for change in self.changes:
+            dpt = change["departement_number"]
+            if dpt in sorted_changes:
+                sorted_changes[dpt] = change
+            else:
+                sorted_changes[dpt] = [change]
+
+        return sorted_changes

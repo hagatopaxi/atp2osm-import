@@ -21,7 +21,6 @@ def get_filtered(
             atp.email as atp_email,
             atp.website as atp_website,
             atp.country as atp_country,
-            atp.postcode as atp_postcode,
             atp.city as atp_city,
             atp.source_uri as atp_source_uri,
             count(*) FILTER (WHERE osm.node_type = 'node') OVER (PARTITION BY atp.id) AS pt_cnt, 
@@ -166,6 +165,7 @@ def apply_on_node(atp_osm_match: dict) -> dict:
         "source_uri": atp_osm_match["source_uri"],
         "postcode": atp_osm_match["postcode"],
         "old_tag": atp_osm_match["tags"],
+        "departement_number": atp_osm_match["departement_number"],
     }
 
 
@@ -204,10 +204,9 @@ def get_stats(changes: list) -> dict:
                 total_tag_updates += 1
 
         # Count changes by department
-        postcode = change.get("postcode", "")
-        if len(postcode) >= 2:
-            dept = postcode[:2]
-            dept_changes[dept] = dept_changes.get(dept, 0) + 1
+        dpt = change.get("departement_number", 0)
+        if dpt != 0:
+            dept_changes[dpt] = dept_changes.get(dpt, 0) + 1
 
     return {
         "by_tag": tag_updates,

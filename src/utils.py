@@ -62,6 +62,9 @@ def clean_debug_folder():
         os.remove(f"./data/debug/{file_path}")
 
 
+print
+
+
 def download_large_file(
     url: str,
     destination: str | Path,

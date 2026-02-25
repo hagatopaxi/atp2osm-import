@@ -4,6 +4,7 @@ import os
 import psycopg
 import datetime
 import json
+import functools
 
 from io import BytesIO
 from psycopg.rows import dict_row
@@ -15,6 +16,7 @@ from flask import (
     request,
     session,
     url_for,
+    abort,
     redirect,
 )
 from flask_caching import Cache
@@ -24,7 +26,7 @@ from requests_oauthlib import OAuth2Session
 
 from src.matching import get_all, get_filtered, get_changes, get_stats
 from src.utils import get_rand_items
-
+from src.upload import BulkUpload
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +78,17 @@ def get_changes_by_brand_wikidata(brand_wikidata):
         return get_changes(cursor)
 
 
+def auth_required(f):
+    @functools.wraps(f)
+    def decorator(*args, **kwargs):
+        if "user" in session:
+            return f(*args, **kwargs)
+        else:
+            return abort(403)
+
+    return decorator
+
+
 @app.teardown_appcontext
 def teardown_osmdb(exception):
     osmdb = g.pop("osmdb", None)
@@ -87,7 +100,6 @@ def teardown_osmdb(exception):
 @app.route("/")
 # @cache.cached(key_prefix="home")
 def home():
-    print(session)
     return render_template("home.html")
 
 
@@ -100,6 +112,7 @@ def brands():
 
 
 @app.route("/brands/<brand_wikidata>/validate")
+@auth_required
 # @cache.cached(query_string=True, key_prefix="brands/")
 def brands_validate(brand_wikidata):
     changes = get_changes_by_brand_wikidata(brand_wikidata)
@@ -129,6 +142,7 @@ def brands_validate(brand_wikidata):
 
 
 @app.route("/brands/<brand_wikidata>/confirm")
+@auth_required
 def brands_confirm(brand_wikidata):
     changes = get_changes_by_brand_wikidata(brand_wikidata)
 
@@ -145,9 +159,13 @@ def brands_confirm(brand_wikidata):
 
 
 @app.route("/brands/<brand_wikidata>/upload", methods=["POST"])
+@auth_required
 def upload_changes(brand_wikidata):
-    # changes = get_changes_by_brand_wikidata(brand_wikidata)
-    # bulk_upload = BulkUpload()
+    changes = get_changes_by_brand_wikidata(brand_wikidata)
+    osm_session = OAuth2Session(token=token_store[session["user"]["osm_id"]])
+    bulk_upload = BulkUpload(changes, session=osm_session)
+    bulk_upload.upload()
+    bulk_upload.save_log_file()
     return Response(status=200)
 
 
@@ -194,6 +212,7 @@ def oauth_callback():
 
 
 @app.route("/logout", methods=["POST"])
+@auth_required
 def logout():
     user_id = session["user"]["osm_id"]
 
@@ -236,6 +255,11 @@ def invalidate_cache(key):
 @app.errorhandler(500)
 def internal_error(error):
     return render_template("errors/500.html"), 500
+
+
+@app.errorhandler(403)
+def not_authorized_error(error):
+    return render_template("errors/403.html"), 403
 
 
 @app.errorhandler(404)
