@@ -178,6 +178,28 @@ def brands_confirm(brand_wikidata):
     )
 
 
+@app.route("/brands/<brand_wikidata>/rejected")
+@auth_required
+def brands_rejected(brand_wikidata):
+    return render_template("brands/:brand_wikidata/rejected.html")
+
+
+@app.route("/brands/<brand_wikidata>/report-error", methods=["POST"])
+@auth_required
+def report_error(brand_wikidata):
+    data = request.get_json()
+    comment = data.get("comment", "")
+    osmdb = get_osmdb()
+    with osmdb.cursor() as cursor:
+        cursor.execute(
+            """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment)
+               VALUES (%s, %s, 'error', %s)""",
+            (brand_wikidata, session["user"]["osm_id"], comment),
+        )
+        osmdb.commit()
+    return Response(status=201)
+
+
 @app.route("/brands/<brand_wikidata>/upload", methods=["POST"])
 @auth_required
 def upload_changes(brand_wikidata):

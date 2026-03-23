@@ -1,0 +1,32 @@
+{% extends '_base.html' %}
+
+{% block title %}Import annulé{% endblock %}
+{% block subtitle %}Des erreurs ont été détectées dans les données, l'import ne sera pas effectué.{% endblock %}
+
+{% block custom_js %}
+<script src="/static/js/rejected.js" type="text/javascript"></script>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-4">
+
+    <h2 class="text-lg font-semibold">Points de données invalidés</h2>
+
+    <div id="invalidations_list" class="flex flex-col gap-2">
+    </div>
+
+    <div class="card bg-base-100 border-base-300 border shadow-md p-6">
+        <p class="text-base">En confirmant, les erreurs signalées seront enregistrées dans l'historique des imports.
+            Elles seront prises en compte lors des prochaines importations afin d'éviter de réimporter des données incorrectes.</p>
+    </div>
+
+    <div class="flex gap-2 self-end">
+        <a class="btn btn-ghost" href="/brands">Annuler</a>
+        <button id="confirm_btn" class="btn btn-error" onclick="confirmRejection()">
+            <div id="loading" class="loading loading-spinner loading-md hidden"></div>
+            Confirmer le signalement
+        </button>
+    </div>
+
+</div>
+{% endblock %}

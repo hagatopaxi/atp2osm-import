@@ -1,3 +1,11 @@
+let currentInvalidItemId = null;
+let invalidations = [];
+
+function extractWikidata(url) {
+  const parts = url.split("/");
+  return parts.find((part) => /^Q\d+$/.test(part));
+}
+
 function validateData(itemId) {
   const collapse = document.querySelector(`[data-item-id="${itemId}"]`);
   if (collapse) {
@@ -8,7 +16,9 @@ function validateData(itemId) {
 }
 
 function invalidateData(itemId) {
-  // TODO
+  currentInvalidItemId = itemId;
+  document.getElementById("invalidation_comment").value = "";
+  document.getElementById("invalidation_modal").showModal();
 }
 
 function checkAllValidated() {
@@ -22,10 +32,49 @@ function checkAllValidated() {
   if (nextStepButton) {
     if (allValidated) {
       nextStepButton.removeAttribute("disabled");
+      if (invalidations.length > 0) {
+        const wikidata = extractWikidata(window.location.href);
+        nextStepButton.href = `/brands/${wikidata}/rejected`;
+        nextStepButton.classList.remove("btn-primary");
+        nextStepButton.classList.add("btn-error");
+        nextStepButton.addEventListener("click", () => {
+          sessionStorage.setItem(
+            "invalidations",
+            JSON.stringify(invalidations),
+          );
+        });
+      }
     } else {
       nextStepButton.setAttribute("disabled", true);
     }
   }
 }
 
-function publishComment() {}
+function publishComment() {
+  const comment = document.getElementById("invalidation_comment").value;
+
+  const collapse = document.querySelector(
+    `[data-item-id="${currentInvalidItemId}"]`,
+  );
+  const title = collapse
+    ? collapse.querySelector(".title").textContent.trim()
+    : currentInvalidItemId;
+  const nodeType = collapse ? collapse.dataset.nodeType : null;
+
+  invalidations.push({
+    osm_id: currentInvalidItemId,
+    osm_type: nodeType,
+    title,
+    comment,
+  });
+
+  document.getElementById("invalidation_modal").close();
+
+  if (collapse) {
+    collapse.classList.add("border-error", "bg-error/10", "validated");
+    collapse.querySelector(".content").classList.add("hidden");
+    checkAllValidated();
+  }
+
+  currentInvalidItemId = null;
+}
