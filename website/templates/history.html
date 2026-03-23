@@ -1,0 +1,99 @@
+{% extends '_base.html' %}
+
+{% block title %}Historique des imports{% endblock %}
+{% block subtitle %}Liste de toutes les importations effectuées ou signalées comme erronées.{% endblock %}
+
+{% block content %}
+{% if entries|length == 0 and page == 1 %}
+<p class="text-base-content/60">Aucun import enregistré pour le moment.</p>
+{% else %}
+<div class="overflow-x-auto">
+    <table class="table table-zebra w-full">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Marque (Wikidata)</th>
+                <th>Statut</th>
+                <th>Utilisateur OSM</th>
+                <th>POIs importés</th>
+                <th>Changesets</th>
+                <th>Commentaire</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+            <tr>
+                <td class="whitespace-nowrap">{{ entry.import_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    <a class="link" href="/brands/{{ entry.brand_wikidata }}/validate">{{ entry.brand_wikidata }}</a>
+                </td>
+                <td>
+                    {% if entry.status == 'success' %}
+                    <span class="badge badge-success">{{ entry.status }}</span>
+                    {% elif entry.status == 'error' %}
+                    <span class="badge badge-error">{{ entry.status }}</span>
+                    {% else %}
+                    <span class="badge badge-info">{{ entry.status }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% set display_name = users.get(entry.osm_user_id) %}
+                    {% if display_name %}
+                    <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank">{{ display_name }}</a>
+                    {% else %}
+                    {{ entry.osm_user_id }}
+                    {% endif %}
+                </td>
+                <td>{{ entry.items_count if entry.items_count is not none else '—' }}</td>
+                <td>
+                    {% if entry.changeset_ids %}
+                    {% for cs in entry.changeset_ids %}
+                    <a class="link" href="{{ api_url }}/changeset/{{ cs }}" target="_blank">{{ cs }}</a>{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                    {% else %}
+                    —
+                    {% endif %}
+                </td>
+                <td class="max-w-xs">
+                    {% if entry.comment %}
+                    {% set comments = entry.comment | parse_comment %}
+                    {% if comments is iterable and comments is not string %}
+                    <div class="flex flex-col gap-1">
+                        {% for c in comments %}
+                        <div class="text-sm">
+                            <a class="link font-mono text-xs" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}</a>
+                            {% if c.comment %} — {{ c.comment }}{% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <span class="text-sm">{{ entry.comment }}</span>
+                    {% endif %}
+                    {% else %}
+                    —
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if total_pages > 1 %}
+<div class="join self-center mt-4">
+    {% if page > 1 %}
+    <a class="join-item btn" href="?page={{ page - 1 }}">«</a>
+    {% endif %}
+
+    {% for p in range(1, total_pages + 1) %}
+    <a class="join-item btn {{ 'btn-active' if p == page }}" href="?page={{ p }}">{{ p }}</a>
+    {% endfor %}
+
+    {% if page < total_pages %}
+    <a class="join-item btn" href="?page={{ page + 1 }}">»</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

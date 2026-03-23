@@ -5,6 +5,7 @@ import psycopg
 import datetime
 import json
 import functools
+import requests
 
 from io import BytesIO
 from psycopg.rows import dict_row
@@ -45,6 +46,14 @@ app.config["CACHE_THRESHOLD"] = 1000
 app.config["CACHE_DEFAULT_TIMEOUT"] = 0  # Infinite cache duration
 
 cache = Cache(app)
+
+
+@app.template_filter("parse_comment")
+def parse_comment(value):
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError):
+        return value
 
 
 def run_startup_tasks():
@@ -121,6 +130,61 @@ def teardown_osmdb(exception):
 # @cache.cached(key_prefix="home")
 def home():
     return render_template("home.html")
+
+
+HISTORY_PER_PAGE = 20
+
+
+def fetch_osm_users(user_ids):
+    """Batch fetch user display names from the OSM API."""
+    if not user_ids:
+        return {}
+    ids_param = ",".join(str(uid) for uid in user_ids)
+    try:
+        resp = requests.get(
+            f"{api_url}/api/0.6/users.json?users={ids_param}",
+            timeout=5,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return {
+            u["user"]["id"]: u["user"]["display_name"] for u in data.get("users", [])
+        }
+    except Exception:
+        logger.exception("Failed to fetch OSM user details")
+        return {}
+
+
+@app.route("/history")
+def history():
+    osmdb = get_osmdb()
+    page = request.args.get("page", 1, type=int)
+    page = max(1, page)
+    offset = (page - 1) * HISTORY_PER_PAGE
+
+    with osmdb.cursor(row_factory=dict_row) as cursor:
+        cursor.execute("SELECT COUNT(*) AS total FROM import_history")
+        total = cursor.fetchone()["total"]
+
+        cursor.execute(
+            "SELECT * FROM import_history ORDER BY import_date DESC LIMIT %s OFFSET %s",
+            (HISTORY_PER_PAGE, offset),
+        )
+        entries = cursor.fetchall()
+
+    total_pages = max(1, -(-total // HISTORY_PER_PAGE))
+
+    user_ids = list({e["osm_user_id"] for e in entries})
+    users = fetch_osm_users(user_ids)
+
+    return render_template(
+        "history.html",
+        entries=entries,
+        users=users,
+        api_url=api_url,
+        page=page,
+        total_pages=total_pages,
+    )
 
 
 @app.route("/brands")
