@@ -16,12 +16,12 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 uv sync
 ```
 
-## Run the script
+## Start the server
 
 Copy the `.env.sample` into `.env` and setup your own environment variables
 
 ```
-uv run --env-file .env src/main.py
+uv run --env-file .env flask --app ./src/app.py run
 ```
 
-To see every options run `uv run --env-file .env src/main.py --help`
+Add `--debug` flag in development

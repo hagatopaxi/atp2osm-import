@@ -27,6 +27,7 @@ from requests_oauthlib import OAuth2Session
 from src.matching import get_all, get_filtered, get_changes, get_stats
 from src.utils import get_rand_items
 from src.upload import BulkUpload
+from src.migrate import run_migrations
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,25 @@ app.config["CACHE_THRESHOLD"] = 1000
 app.config["CACHE_DEFAULT_TIMEOUT"] = 0  # Infinite cache duration
 
 cache = Cache(app)
+
+
+def run_startup_tasks():
+    """Run migrations at server startup."""
+    try:
+        with psycopg.connect(
+            dbname=os.getenv("OSM_DB_NAME"),
+            user=os.getenv("OSM_DB_USER"),
+            password=os.getenv("OSM_DB_PASSWORD"),
+            host=os.getenv("OSM_DB_HOST"),
+            port=os.getenv("OSM_DB_PORT"),
+        ) as conn:
+            run_migrations(conn)
+    except Exception:
+        logger.exception("Startup tasks failed.")
+        raise
+
+
+run_startup_tasks()
 
 
 client_id = os.getenv("OSM_OAUTH_CLIENT_ID")
