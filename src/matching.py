@@ -110,22 +110,29 @@ def get_all(osmdb):
         SELECT
             atp_brand AS brand,
             atp_brand_wikidata AS brand_wikidata,
-            COUNT(*) AS total
+            COUNT(*) AS total,
+            ih.last_import,
+            ih.last_status
         FROM
             matched_poi
+        LEFT JOIN (
+            SELECT DISTINCT ON (brand_wikidata)
+                brand_wikidata AS ih_brand_wikidata,
+                import_date AS last_import,
+                status AS last_status
+            FROM import_history
+            ORDER BY brand_wikidata, import_date DESC
+        ) ih ON ih.ih_brand_wikidata = atp_brand_wikidata
         GROUP BY
-            atp_brand, atp_brand_wikidata
+            atp_brand, atp_brand_wikidata, ih.last_import, ih.last_status
         ORDER BY
+            last_import ASC NULLS FIRST,
             total DESC;
     """
 
     with osmdb.cursor(row_factory=dict_row) as cursor:
         brands = cursor.execute(query).fetchall()
 
-        for brand in brands:
-            brand["last_import"] = "never"
-
-    brands = sorted(brands, key=lambda brand: brand["last_import"], reverse=True)
     return brands
 
 

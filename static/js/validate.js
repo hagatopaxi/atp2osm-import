@@ -38,10 +38,12 @@ function checkAllValidated() {
         nextStepButton.classList.remove("btn-primary");
         nextStepButton.classList.add("btn-error");
         nextStepButton.addEventListener("click", () => {
+          const brandName = document.querySelector("[data-brand-name]")?.dataset.brandName;
           sessionStorage.setItem(
             "invalidations",
             JSON.stringify(invalidations),
           );
+          sessionStorage.setItem("brand_name", brandName || "");
         });
       }
     } else {

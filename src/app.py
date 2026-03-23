@@ -253,12 +253,13 @@ def brands_rejected(brand_wikidata):
 def report_error(brand_wikidata):
     data = request.get_json()
     comment = data.get("comment", "")
+    brand_name = data.get("brand_name", "")
     osmdb = get_osmdb()
     with osmdb.cursor() as cursor:
         cursor.execute(
-            """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment)
-               VALUES (%s, %s, 'error', %s)""",
-            (brand_wikidata, session["user"]["osm_id"], comment),
+            """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, brand_name)
+               VALUES (%s, %s, 'error', %s, %s)""",
+            (brand_wikidata, session["user"]["osm_id"], comment, brand_name),
         )
         osmdb.commit()
     return Response(status=201)

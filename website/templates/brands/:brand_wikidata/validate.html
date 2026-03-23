@@ -39,7 +39,7 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
 {% endmacro %}
 
 {% block content %}
-<div class="flex flex-col gap-2">
+<div class="flex flex-col gap-2" data-brand-name="{{ brand }}">
     <a href="/brands/{{brand_wikidata}}/validate" class="btn btn-outline btn-info self-end"><i
             class="iconoir-refresh"></i>Annulez votre
         saisie et recommencez</a>

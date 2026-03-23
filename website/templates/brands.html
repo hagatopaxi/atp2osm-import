@@ -30,10 +30,22 @@
                 {{ row["total"] }}
             </td>
 
-            <td><span class="badge badge-info">TBD</span></td>
+            <td>
+                {% if row["last_status"] == 'success' %}
+                <span class="badge badge-success">{{ row["last_status"] }}</span>
+                {% elif row["last_status"] == 'error' %}
+                <span class="badge badge-error">{{ row["last_status"] }}</span>
+                {% else %}
+                <span class="badge badge-ghost">—</span>
+                {% endif %}
+            </td>
 
             <td>
-                {{ row["last_import"] if row["last_import"] != "never" else 'Jamais' }}
+                {% if row["last_import"] %}
+                {{ row["last_import"].strftime('%Y-%m-%d %H:%M') }}
+                {% else %}
+                Jamais
+                {% endif %}
             </td>
 
             <td>

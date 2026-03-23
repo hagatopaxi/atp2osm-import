@@ -47,12 +47,13 @@ async function confirmRejection() {
     const res = await fetch(`/brands/${wikidata}/report-error`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ comment: JSON.stringify(comment) }),
+      body: JSON.stringify({ comment: JSON.stringify(comment), brand_name: sessionStorage.getItem("brand_name") || "" }),
     });
 
     if (!res.ok) throw new Error(res.statusText);
 
     sessionStorage.removeItem("invalidations");
+    sessionStorage.removeItem("brand_name");
     window.location.href = "/brands";
   } catch (err) {
     alert("Erreur lors de l'envoi : " + err.message);
