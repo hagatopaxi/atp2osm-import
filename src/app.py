@@ -82,6 +82,14 @@ authorization_base_url = f"{api_url}/oauth2/authorize"
 token_url = f"{api_url}/oauth2/token"
 scope = ["write_api", "read_prefs"]
 
+env = os.getenv("APP_ENV")
+if env is None:
+    raise ValueError("APP_ENV environment variable is required (DEVELOPMENT or PRODUCTION)")
+env = env.upper()
+if env not in ("DEVELOPMENT", "PRODUCTION"):
+    raise ValueError(f"APP_ENV must be DEVELOPMENT or PRODUCTION, got '{env}'")
+logger.warning("*** Running in %s mode (OSM API: %s) ***", env, api_url)
+
 # Save token in memory, indexed by osm user's id
 token_store = {}
 
@@ -281,6 +289,22 @@ def upload_changes(brand_wikidata):
     bulk_upload = BulkUpload(changes, session=osm_session)
     bulk_upload.upload()
     bulk_upload.save_log_file()
+
+    osmdb = get_osmdb()
+    with osmdb.cursor() as cursor:
+        cursor.execute(
+            """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, changeset_ids, brand_name)
+               VALUES (%s, %s, 'success', %s, %s, %s)""",
+            (
+                brand_wikidata,
+                session["user"]["osm_id"],
+                len(changes),
+                bulk_upload.changesets,
+                bulk_upload.brand_name,
+            ),
+        )
+        osmdb.commit()
+
     return Response(status=200)
 
 

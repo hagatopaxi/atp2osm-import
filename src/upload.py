@@ -23,6 +23,7 @@ class BulkUpload:
         self.brand_wikidata = changes[0]["tag"]["brand:wikidata"]
         self.changesets = []
 
+        self.is_dev = os.getenv("APP_ENV").upper() == "DEVELOPMENT"
         self.api = osmapi.OsmApi(
             api=os.getenv("OSM_API_HOST"),
             session=session,
@@ -66,26 +67,30 @@ class BulkUpload:
                     logger.debug(
                         f"{os.getenv('OSM_API_HOST').rstrip('/')}/changeset/{changeset}"
                     )
-                    changingNodes = []
-                    changingRelations = []
-                    for poi in dpt_changes:
-                        poi["changeset"] = changeset
 
-                        if poi["node_type"] == "node":
-                            changingNodes.append(poi)
+                    if self.is_dev:
+                        logger.warning("DEV mode: skipping ChangesetUpload for changeset %s", changeset)
+                    else:
+                        changingNodes = []
+                        changingRelations = []
+                        for poi in dpt_changes:
+                            poi["changeset"] = changeset
 
-                        if poi["node_type"] == "relation":
-                            changingRelations.append(poi)
-                    self.api.ChangesetUpload(
-                        [
-                            {"type": "node", "action": "modify", "data": changingNodes},
-                            {
-                                "type": "relation",
-                                "action": "modify",
-                                "data": changingRelations,
-                            },
-                        ]
-                    )
+                            if poi["node_type"] == "node":
+                                changingNodes.append(poi)
+
+                            if poi["node_type"] == "relation":
+                                changingRelations.append(poi)
+                        self.api.ChangesetUpload(
+                            [
+                                {"type": "node", "action": "modify", "data": changingNodes},
+                                {
+                                    "type": "relation",
+                                    "action": "modify",
+                                    "data": changingRelations,
+                                },
+                            ]
+                        )
 
                     # Add to changeset list to save it in logs
                     self.changesets.append(changeset)
