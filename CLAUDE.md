@@ -12,9 +12,11 @@ atp2osm-import is a tool for importing [All The Places](https://alltheplaces.xyz
 # Install dependencies
 uv sync
 
-# Run the Flask server (copy .env.sample to .env first)
-uv run --env-file .env flask --app ./src/app.py run          # production
-uv run --env-file .env flask --app ./src/app.py run --debug   # development
+# Run the Flask server (development)
+uv run --env-file .env flask --app ./src/app.py run --debug
+
+# Production: app runs via gunicorn inside a container (see Containerfile)
+# Deploy is triggered by git push to the server (deploy/run hook)
 
 # Run tests
 uv run pytest
@@ -24,15 +26,22 @@ uv run pytest tests/test_compute_diff.py::test_apply_on_node_default  # single t
 # Start infrastructure (PostGIS database)
 podman-compose up -d
 
-# Import OSM PBF data into PostGIS
+# Import OSM PBF data into PostGIS (local dev, via container)
 podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -d o2p -U o2p -H 127.0.0.1 -P 5432 /data/osm/<file>.osm.pbf
+
+# Refresh all data (ATP + OSM) — runs weekly via systemd timer in production
+# Manual trigger on server:
+#   systemctl --user start atp2osm-import-refresh.service
+# Manual trigger locally:
+#   OSM_DB_NAME=o2p OSM_DB_USER=o2p OSM_DB_PASSWORD=... OSM_DB_HOST=127.0.0.1 OSM_DB_PORT=5432 ./refresh-data.sh
 ```
 
 ## Architecture
 
-**Data pipeline** (runs outside the web server, via `src/setup.py`):
-1. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points` and `polygons` tables in PostGIS (SRID 9794, Lambert-93 projection)
-2. `src/setup.py` — Downloads latest ATP parquet from alltheplaces.xyz, loads it into a `atp_fr` table via DuckDB's Postgres extension, creates a materialized view `mv_places` unifying points + polygons with normalized tag columns
+**Data pipeline** (runs outside the web server, via `refresh-data.sh` and `src/setup.py`):
+1. `refresh-data.sh` — Weekly data refresh script: streams OSM PBF from Geofabrik directly into osm2pgsql (no file stored on disk), then triggers ATP re-download and `setup.py`. Runs via systemd timer (Monday 04:00) in production.
+2. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points` and `polygons` tables in PostGIS (SRID 9794, Lambert-93 projection)
+3. `src/setup.py` — Downloads latest ATP parquet from alltheplaces.xyz, loads it into a `atp_fr` table via DuckDB's Postgres extension, creates a materialized view `mv_places` unifying points + polygons with normalized tag columns
 
 **Web application** (`src/app.py`, Flask):
 - Uses PostGIS with psycopg3, connection per-request via Flask `g`

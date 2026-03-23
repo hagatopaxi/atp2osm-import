@@ -18,6 +18,7 @@ dependencies = [
     "requests-oauthlib>=2.0.0",
     "scp>=0.15.0",
     "staticmap>=0.5.7",
+    "gunicorn>=23.0.0",
 ]
 
 [dependency-groups]
