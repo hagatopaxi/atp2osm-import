@@ -32,8 +32,8 @@
 
 <h2 class="text-lg">Nombre de mise à jour par département</h2>
 <div class="grid grid-cols-5 gap-2">
-    {% for stat in stats["by_department"] %}
-    {{ render_stat_card(stat, stats["by_department"][stat]) }}
+    {% for dpt, info in stats["by_department"].items() %}
+    {{ render_stat_card(dpt ~ " - " ~ info["name"], info["count"]) }}
     {% endfor %}
 </div>
 
