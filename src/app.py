@@ -202,6 +202,14 @@ def brands_validate(brand_wikidata):
     changes = get_changes_by_brand_wikidata(brand_wikidata)
 
     if len(changes) == 0:
+        osmdb = get_osmdb()
+        with osmdb.cursor() as cursor:
+            cursor.execute(
+                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count)
+                   VALUES (%s, %s, 'success', 0)""",
+                (brand_wikidata, session["user"]["osm_id"]),
+            )
+            osmdb.commit()
         return render_template("brands/:brand_wikidata/empty.html")
 
     # Check at least 5 items
@@ -231,7 +239,7 @@ def brands_confirm(brand_wikidata):
     changes = get_changes_by_brand_wikidata(brand_wikidata)
 
     if len(changes) == 0:
-        return render_template("brands/:brand_wikidata/empty.html")
+        return redirect(url_for("brands_validate", brand_wikidata=brand_wikidata))
 
     stats = get_stats(changes)
 
