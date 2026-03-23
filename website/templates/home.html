@@ -1,16 +1,48 @@
 {% extends '_base.html' %}
 
 {% block title %}Enrichir OpenStreetMap avec les données AllThePlaces{% endblock %}
+{% block subtitle %}Importez automatiquement les données de points d'intérêt depuis AllThePlaces vers OpenStreetMap.{%
+endblock %}
 
 {% block content %}
-
-
-
-<section class="container mx-auto p-6 text-center">
-
-    <a href="https://github.com/hagatopaxi/atp2osm-import" class="btn btn-success" target="_blank" rel="noopener">
-        👉 Accéder au repo GitHub
-    </a>
+<section class="max-w-3xl">
+    <p class="text-base leading-relaxed mb-4">
+        <strong>atp2osm</strong> est un outil qui rapproche les points d'intérêt (POI) de la base
+        <a href="https://alltheplaces.xyz" class="link link-primary" target="_blank" rel="noopener">All The Places</a>
+        avec les objets existants dans
+        <a href="https://www.openstreetmap.org" class="link link-primary" target="_blank"
+            rel="noopener">OpenStreetMap</a>.
+    </p>
+    <p class="text-base leading-relaxed mb-6">
+        Pour chaque marque, l'outil identifie les correspondances par proximité géographique et par attributs
+        (nom, marque, téléphone, email, site web), puis propose les mises à jour de tags à valider avant import.
+    </p>
 </section>
 
+<div class="grid grid-cols-3 gap-4 max-w-3xl">
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body items-center text-center">
+            <h2 class="card-title font-mono text-sm">Noeuds mis à jour</h2>
+            <p class="text-3xl font-bold">{{ stats["total_nodes_updated"] }}</p>
+        </div>
+    </div>
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body items-center text-center">
+            <h2 class="card-title font-mono text-sm">Imports réussis</h2>
+            <p class="text-3xl font-bold">{{ stats["successful_imports"] }}</p>
+        </div>
+    </div>
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body items-center text-center">
+            <h2 class="card-title font-mono text-sm">Marques importées</h2>
+            <p class="text-3xl font-bold">{{ stats["brands_imported"] }}</p>
+        </div>
+    </div>
+</div>
+
+<section class="mt-6">
+    <a href="/brands" class="btn btn-primary">
+        <i class="iconoir-double-check"></i> Commencer à importer !
+    </a>
+</section>
 {% endblock %}

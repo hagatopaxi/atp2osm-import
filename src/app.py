@@ -126,6 +126,11 @@ def auth_required(f):
     return decorator
 
 
+@app.context_processor
+def inject_globals():
+    return {"api_url": api_url}
+
+
 @app.teardown_appcontext
 def teardown_osmdb(exception):
     osmdb = g.pop("osmdb", None)
@@ -137,7 +142,16 @@ def teardown_osmdb(exception):
 @app.route("/")
 # @cache.cached(key_prefix="home")
 def home():
-    return render_template("home.html")
+    osmdb = get_osmdb()
+    with osmdb.cursor(row_factory=dict_row) as cursor:
+        stats = cursor.execute("""
+            SELECT
+                COALESCE(SUM(items_count), 0) AS total_nodes_updated,
+                COUNT(*) FILTER (WHERE status = 'success') AS successful_imports,
+                COUNT(DISTINCT brand_wikidata) FILTER (WHERE status = 'success') AS brands_imported
+            FROM import_history
+        """).fetchone()
+    return render_template("home.html", stats=stats)
 
 
 HISTORY_PER_PAGE = 20
@@ -189,7 +203,6 @@ def history():
         "history.html",
         entries=entries,
         users=users,
-        api_url=api_url,
         page=page,
         total_pages=total_pages,
     )

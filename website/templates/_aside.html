@@ -14,15 +14,34 @@
 
   <div class="flex-1"></div>
 
-  <div class="bottom-4 left-4 w-full">
+  <div class="mb-4 p-3 bg-base-100 rounded-md text-sm">
+    <p class="font-bold mb-1"><i class="iconoir-info-circle"></i> A propos</p>
+    <p class="mb-2">Projet open-source. Contributions bienvenues !</p>
+    <a href="https://github.com/hagatopaxi/atp2osm-import" class="link link-primary text-xs" target="_blank" rel="noopener">
+      <i class="iconoir-github"></i> GitHub
+    </a>
+    <p class="mt-1 text-xs opacity-60">Licence GPL-3.0</p>
+  </div>
+
+  <div class="w-full">
     {% if 'user' in session %}
-    <p class="mb-2 text-sm">En tant que {{ session['user']['name'] }}</p>
-    <button class="btn btn-outline btn-error w-full rounded-full" onclick="logout()"><i class="iconoir-log-out"></i>
-      Deconnexion
-    </button>
+    <div class="flex items-center gap-3 p-3 bg-base-100 rounded-md">
+      <div class="avatar placeholder">
+        <div class="bg-primary text-primary-content w-10 rounded-full flex items-center justify-center">
+          <span class="text-lg leading-none">{{ session['user']['name'][0] | upper }}</span>
+        </div>
+      </div>
+      <div class="flex-1 min-w-0">
+        <a href="{{ api_url }}/user/{{ session['user']['name'] }}" class="text-sm font-semibold truncate link link-hover tooltip tooltip-top" data-tip="{{ session['user']['name'] }}" target="_blank" rel="noopener">{{ session['user']['name'] }}</a>
+        <p class="text-xs opacity-60">OpenStreetMap</p>
+      </div>
+      <button class="btn btn-ghost btn-sm btn-square text-error" onclick="logout()" title="Deconnexion">
+        <i class="iconoir-log-out text-xl"></i>
+      </button>
+    </div>
     {% else %}
-    <button class="btn bg-accent w-full rounded-full" onclick="login()"><i class="iconoir-log-in"></i>Connectez
-      vous
+    <button class="btn btn-primary w-full rounded-full" onclick="login()">
+      <i class="iconoir-log-in"></i> Se connecter avec OSM
     </button>
     {% endif %}
   </div>
