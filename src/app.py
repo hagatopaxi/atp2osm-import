@@ -212,10 +212,15 @@ def brands_validate(brand_wikidata):
     if len(changes) == 0:
         osmdb = get_osmdb()
         with osmdb.cursor() as cursor:
+            brand_name = cursor.execute(
+                "SELECT brand FROM atp_fr WHERE brand_wikidata = %s LIMIT 1",
+                (brand_wikidata,),
+            ).fetchone()
+            brand_name = brand_name[0] if brand_name else None
             cursor.execute(
-                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count)
-                   VALUES (%s, %s, 'success', 0)""",
-                (brand_wikidata, session["user"]["osm_id"]),
+                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, brand_name)
+                   VALUES (%s, %s, 'success', 0, %s)""",
+                (brand_wikidata, session["user"]["osm_id"], brand_name),
             )
             osmdb.commit()
         return render_template("brands/:brand_wikidata/empty.html")
