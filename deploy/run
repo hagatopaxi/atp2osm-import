@@ -79,6 +79,8 @@ EnvironmentFile=$PROJECT_DIR/.env
 WorkingDirectory=$PROJECT_DIR
 StandardOutput=journal
 StandardError=journal
+MemoryMax=2G
+MemorySwapMax=512M
 EOF
 
 # systemd timer — every Monday at 04:00

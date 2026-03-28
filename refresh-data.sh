@@ -22,9 +22,16 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 # ---------- 1. Download OSM PBF ----------
 OSM_PBF="$PROJECT_DIR/data/france-latest.osm.pbf"
 mkdir -p "$PROJECT_DIR/data"
-log "Step 1a/3 — Downloading OSM PBF..."
-curl -fSL --retry 3 -o "$OSM_PBF" "$GEOFABRIK_URL"
-log "Download complete"
+if [ -f "$OSM_PBF" ]; then
+  log "Step 1a/3 — OSM PBF already exists, skipping download"
+else
+  log "Step 1a/3 — Downloading OSM PBF..."
+  # Remove partial file if download fails
+  trap 'rm -f "$OSM_PBF"' ERR
+  curl -fSL --retry 3 -o "$OSM_PBF" "$GEOFABRIK_URL"
+  trap - ERR
+  log "Download complete"
+fi
 
 # ---------- 1b. Import OSM PBF via osm2pgsql container ----------
 log "Step 1b/3 — Importing OSM PBF into PostGIS..."
@@ -41,8 +48,7 @@ podman run --rm \
       -U "${OSM_DB_USER}" \
       -H "${OSM_DB_HOST}" \
       -P "${OSM_DB_PORT}" \
-      --slim \
-      --drop \
+      --cache=1500 \
       "/data/france-latest.osm.pbf"
 rm -f "$OSM_PBF"
 log "osm2pgsql import complete"
