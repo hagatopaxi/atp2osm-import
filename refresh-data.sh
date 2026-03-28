@@ -40,7 +40,7 @@ log "osm2pgsql import complete"
 # ---------- 2. Remove stale ATP data so setup.py re-downloads ----------
 log "Step 2/3 — Clearing old ATP data..."
 mkdir -p "$ATP_DIR"
-rm -f "$ATP_DIR/latest.parquet" "$ATP_DIR/spriders.json"
+rm -f "$ATP_DIR/latest.parquet" "$ATP_DIR/spiders.json"
 
 # ---------- 3. Run setup.py inside the app container ----------
 log "Step 3/3 — Running setup.py (ATP import + materialized view refresh)..."

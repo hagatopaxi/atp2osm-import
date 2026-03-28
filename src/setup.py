@@ -19,7 +19,7 @@ def download_latest_atp_data():
     atp_dir = Path("./data/atp")
     parquet_path = atp_dir / "latest.parquet"
     stats_path = atp_dir / "stats.json"
-    spiders_path = atp_dir / "spriders.json"
+    spiders_path = atp_dir / "spiders.json"
 
     if Config.force_atp_dl():
         logger.info("Forcing download of latest ATP data")
