@@ -60,11 +60,11 @@ systemctl --user enable "$CONTAINER_SERVICE"
 systemctl --user start "$CONTAINER_SERVICE"
 
 echo "--> [6/6] Installing weekly data refresh timer..."
-# Copy the refresh script
+# Copy the refresh script and osm2pgsql lua style
 REFRESH_DIR="$PROJECT_DIR/bin"
 mkdir -p "$REFRESH_DIR"
-git --git-dir="$GIT_DIR" archive "$COMMIT" -- refresh-data.sh | tar -x -C "$WORK_DIR"
-cp "$WORK_DIR/refresh-data.sh" "$REFRESH_DIR/refresh-data.sh"
+git --git-dir="$GIT_DIR" archive "$COMMIT" -- refresh-data.sh osm2pgsql/ | tar -x -C "$PROJECT_DIR"
+cp "$PROJECT_DIR/refresh-data.sh" "$REFRESH_DIR/refresh-data.sh"
 chmod +x "$REFRESH_DIR/refresh-data.sh"
 
 # systemd service for the weekly refresh job

@@ -11,38 +11,44 @@ ATP_DIR="$PROJECT_DIR/data/atp"
 
 GEOFABRIK_URL="https://download.geofabrik.de/europe/france-latest.osm.pbf"
 LUA_STYLE="$PROJECT_DIR/osm2pgsql/generic.lua"
+OSM2PGSQL_IMAGE="docker.io/iboates/osm2pgsql:latest"
+
+# Derive container name the same way deploy/run does
+PROJECT_NAME=$(basename "$PROJECT_DIR")
+CONTAINER_NAME="${PROJECT_NAME//./-}"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
-# ---------- 1. Download + import OSM PBF in one pass via stdin ----------
+# ---------- 1. Download + import OSM PBF via osm2pgsql container ----------
 log "Step 1/3 — Downloading and importing OSM PBF into PostGIS..."
-curl -fSL --retry 3 "$GEOFABRIK_URL" \
-  | osm2pgsql \
-    --output flex \
-    -S "$LUA_STYLE" \
-    -d "${OSM_DB_NAME}" \
-    -U "${OSM_DB_USER}" \
-    -H "${OSM_DB_HOST}" \
-    -P "${OSM_DB_PORT}" \
-    --drop \
-    -
+podman run --rm \
+    --network host \
+    -v "$PROJECT_DIR/osm2pgsql:/osm2pgsql:ro,Z" \
+    -e PGPASSWORD="${OSM_DB_PASSWORD}" \
+    "$OSM2PGSQL_IMAGE" \
+    osm2pgsql \
+      --output flex \
+      -S "/osm2pgsql/generic.lua" \
+      -d "${OSM_DB_NAME}" \
+      -U "${OSM_DB_USER}" \
+      -H "${OSM_DB_HOST}" \
+      -P "${OSM_DB_PORT}" \
+      --drop \
+      "$GEOFABRIK_URL"
 log "osm2pgsql import complete"
 
 # ---------- 2. Remove stale ATP data so setup.py re-downloads ----------
 log "Step 2/3 — Clearing old ATP data..."
+mkdir -p "$ATP_DIR"
 rm -f "$ATP_DIR/latest.parquet" "$ATP_DIR/spriders.json"
 
-# ---------- 3. Run setup.py (ATP download + import + mv_places refresh) ----------
+# ---------- 3. Run setup.py inside the app container ----------
 log "Step 3/3 — Running setup.py (ATP import + materialized view refresh)..."
-cd "$PROJECT_DIR"
-
-# setup.py needs FORCE_OSM_SETUP=1 to recreate mv_places after osm2pgsql re-import
-export FORCE_OSM_SETUP=1
-export FORCE_ATP_SETUP=1
-
-# Use uv from the container image or system
-if command -v uv &>/dev/null; then
-  uv run --env-file "$PROJECT_DIR/.env" python -c "
+podman exec \
+  -e FORCE_OSM_SETUP=1 \
+  -e FORCE_ATP_SETUP=1 \
+  "$CONTAINER_NAME" \
+  uv run --no-sync python -c "
 import psycopg, os
 from src.setup import setup_atp2osm_db
 conn = psycopg.connect(
@@ -55,9 +61,5 @@ conn = psycopg.connect(
 setup_atp2osm_db(conn)
 conn.close()
 "
-else
-  echo "ERROR: uv not found in PATH" >&2
-  exit 1
-fi
 
 log "Data refresh complete"
