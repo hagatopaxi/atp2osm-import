@@ -40,6 +40,7 @@ if podman container exists "$CONTAINER_NAME"; then
 fi
 
 echo "--> [4/6] Starting new container..."
+mkdir -p "$PROJECT_DIR/data" "$PROJECT_DIR/logs"
 podman run -d \
   --name "$CONTAINER_NAME" \
   --env-file "$PROJECT_DIR/.env" \
