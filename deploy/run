@@ -1,0 +1,103 @@
+#!/bin/bash
+set -euo pipefail
+
+# GIT_DIR is always a subdirectory of the project root:
+# projects/atp2osm-import/repo.git  →  PROJECT_DIR = projects/atp2osm-import
+PROJECT_DIR="$(cd "$(dirname "$GIT_DIR")"/.. && pwd)"
+PROJECT_NAME=$(basename "$PROJECT_DIR")
+if [ -z "$PROJECT_NAME" ] || [ "$PROJECT_NAME" = "." ]; then
+  echo "ERROR: could not resolve project name from PROJECT_DIR='$PROJECT_DIR'" >&2
+  exit 1
+fi
+CONTAINER_NAME="${PROJECT_NAME//./-}"
+IMAGE_NAME="$CONTAINER_NAME"
+
+# Read PORT from the project's .env file (falls back to 8000)
+PORT=$(grep -E '^PORT=' "$PROJECT_DIR/.env" 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]' || true)
+PORT="${PORT:-8000}"
+
+echo ""
+echo "==> Deploying $PROJECT_NAME"
+
+# Export a clean snapshot of HEAD into a temp directory.
+WORK_DIR=$(mktemp -d)
+trap 'rm -rf "$WORK_DIR"' EXIT
+
+COMMIT="${GIT_COMMIT:-HEAD}"
+echo "--> [1/6] Extracting $COMMIT..."
+git --git-dir="$GIT_DIR" archive "$COMMIT" | tar -x -C "$WORK_DIR"
+
+echo "--> [2/6] Building image..."
+podman build --build-arg PORT="$PORT" --tag "$IMAGE_NAME:latest" "$WORK_DIR"
+
+echo "--> [3/6] Stopping old container..."
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+CONTAINER_SERVICE="container-${CONTAINER_NAME}.service"
+systemctl --user stop "$CONTAINER_SERVICE" 2>/dev/null || true
+if podman container exists "$CONTAINER_NAME"; then
+  podman stop "$CONTAINER_NAME"
+  podman rm   "$CONTAINER_NAME"
+fi
+
+echo "--> [4/6] Starting new container..."
+podman run -d \
+  --name "$CONTAINER_NAME" \
+  --env-file "$PROJECT_DIR/.env" \
+  -p "127.0.0.1:${PORT}:${PORT}" \
+  -v "${PROJECT_DIR}/data:/app/data:Z" \
+  -v "${PROJECT_DIR}/logs:/app/logs:Z" \
+  "$IMAGE_NAME:latest"
+
+echo "--> [5/6] Registering app systemd service..."
+SYSTEMD_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+mkdir -p "$SYSTEMD_DIR"
+podman generate systemd --new --name "$CONTAINER_NAME" \
+  > "$SYSTEMD_DIR/$CONTAINER_SERVICE"
+loginctl enable-linger "$USER"
+systemctl --user daemon-reload
+systemctl --user enable "$CONTAINER_SERVICE"
+systemctl --user start "$CONTAINER_SERVICE"
+
+echo "--> [6/6] Installing weekly data refresh timer..."
+# Copy the refresh script
+REFRESH_DIR="$PROJECT_DIR/bin"
+mkdir -p "$REFRESH_DIR"
+git --git-dir="$GIT_DIR" archive "$COMMIT" -- refresh-data.sh | tar -x -C "$WORK_DIR"
+cp "$WORK_DIR/refresh-data.sh" "$REFRESH_DIR/refresh-data.sh"
+chmod +x "$REFRESH_DIR/refresh-data.sh"
+
+# systemd service for the weekly refresh job
+cat > "$SYSTEMD_DIR/${PROJECT_NAME}-refresh.service" <<EOF
+[Unit]
+Description=Weekly ATP + OSM data refresh for $PROJECT_NAME
+
+[Service]
+Type=oneshot
+ExecStart=$REFRESH_DIR/refresh-data.sh
+EnvironmentFile=$PROJECT_DIR/.env
+WorkingDirectory=$PROJECT_DIR
+StandardOutput=journal
+StandardError=journal
+EOF
+
+# systemd timer — every Monday at 04:00
+cat > "$SYSTEMD_DIR/${PROJECT_NAME}-refresh.timer" <<EOF
+[Unit]
+Description=Weekly timer for $PROJECT_NAME data refresh
+
+[Timer]
+OnCalendar=Mon *-*-* 04:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl --user daemon-reload
+systemctl --user enable --now "${PROJECT_NAME}-refresh.timer"
+
+echo ""
+echo "==> Done — $PROJECT_NAME is live on port $PORT"
+echo "    Data volume: $PROJECT_DIR/data"
+echo "    Logs volume: $PROJECT_DIR/logs"
+echo "    Refresh timer: systemctl --user status ${PROJECT_NAME}-refresh.timer"
