@@ -19,11 +19,19 @@ CONTAINER_NAME="${PROJECT_NAME//./-}"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 
-# ---------- 1. Download + import OSM PBF via osm2pgsql container ----------
-log "Step 1/3 — Downloading and importing OSM PBF into PostGIS..."
+# ---------- 1. Download OSM PBF ----------
+OSM_PBF="$PROJECT_DIR/data/france-latest.osm.pbf"
+mkdir -p "$PROJECT_DIR/data"
+log "Step 1a/3 — Downloading OSM PBF..."
+curl -fSL --retry 3 -o "$OSM_PBF" "$GEOFABRIK_URL"
+log "Download complete"
+
+# ---------- 1b. Import OSM PBF via osm2pgsql container ----------
+log "Step 1b/3 — Importing OSM PBF into PostGIS..."
 podman run --rm \
     --network host \
     -v "$PROJECT_DIR/osm2pgsql:/osm2pgsql:ro,Z" \
+    -v "$PROJECT_DIR/data:/data:Z" \
     -e PGPASSWORD="${OSM_DB_PASSWORD}" \
     "$OSM2PGSQL_IMAGE" \
     osm2pgsql \
@@ -33,8 +41,10 @@ podman run --rm \
       -U "${OSM_DB_USER}" \
       -H "${OSM_DB_HOST}" \
       -P "${OSM_DB_PORT}" \
+      --slim \
       --drop \
-      "$GEOFABRIK_URL"
+      "/data/france-latest.osm.pbf"
+rm -f "$OSM_PBF"
 log "osm2pgsql import complete"
 
 # ---------- 2. Remove stale ATP data so setup.py re-downloads ----------
