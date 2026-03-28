@@ -84,7 +84,9 @@ scope = ["write_api", "read_prefs"]
 
 env = os.getenv("APP_ENV")
 if env is None:
-    raise ValueError("APP_ENV environment variable is required (DEVELOPMENT or PRODUCTION)")
+    raise ValueError(
+        "APP_ENV environment variable is required (DEVELOPMENT or PRODUCTION)"
+    )
 env = env.upper()
 if env not in ("DEVELOPMENT", "PRODUCTION"):
     raise ValueError(f"APP_ENV must be DEVELOPMENT or PRODUCTION, got '{env}'")
@@ -424,6 +426,6 @@ def not_found_error(error):
     return render_template("errors/404.html"), 404
 
 
-# Default port:
 if __name__ == "__main__":
-    app.run()
+    port = int(os.getenv("PORT", 5000))
+    app.run(port=port)

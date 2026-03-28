@@ -12,7 +12,7 @@ fi
 CONTAINER_NAME="${PROJECT_NAME//./-}"
 IMAGE_NAME="$CONTAINER_NAME"
 
-# Read PORT from the project's .env file (falls back to 8000)
+# Read PORT from .env for the host port binding (falls back to 8000)
 PORT=$(grep -E '^PORT=' "$PROJECT_DIR/.env" 2>/dev/null | cut -d'=' -f2 | tr -d '[:space:]' || true)
 PORT="${PORT:-8000}"
 
@@ -28,7 +28,7 @@ echo "--> [1/6] Extracting $COMMIT..."
 git --git-dir="$GIT_DIR" archive "$COMMIT" | tar -x -C "$WORK_DIR"
 
 echo "--> [2/6] Building image..."
-podman build --build-arg PORT="$PORT" --tag "$IMAGE_NAME:latest" "$WORK_DIR"
+podman build --tag "$IMAGE_NAME:latest" "$WORK_DIR"
 
 echo "--> [3/6] Stopping old container..."
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
