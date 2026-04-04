@@ -43,8 +43,8 @@ echo "--> [4/6] Starting new container..."
 mkdir -p "$PROJECT_DIR/data" "$PROJECT_DIR/logs"
 podman run -d \
   --name "$CONTAINER_NAME" \
+  --network host \
   --env-file "$PROJECT_DIR/.env" \
-  -p "127.0.0.1:${PORT}:${PORT}" \
   -v "${PROJECT_DIR}/data:/app/data:Z" \
   -v "${PROJECT_DIR}/logs:/app/logs:Z" \
   "$IMAGE_NAME:latest"

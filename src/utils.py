@@ -131,6 +131,10 @@ def download_large_file(
                         last_report = now
 
             # ----- final summary -------------------------------------------------
+            if written == 0:
+                dest_path.unlink(missing_ok=True)
+                raise ValueError(f"Downloaded file is empty (0 bytes): {url}")
+
             total_elapsed = time.time() - start
             avg_speed = written / total_elapsed if total_elapsed > 0 else 0
             if show_percent:
@@ -144,8 +148,9 @@ def download_large_file(
                     f"{total_elapsed:.1f}s ({avg_speed / 1024:,.1f} KiB/s)."
                 )
 
-    except requests.exceptions.RequestException as exc:
-        logger.info(f"Error downloading the file: {exc}")
+    except requests.exceptions.RequestException:
+        dest_path.unlink(missing_ok=True)
+        raise
 
 
 def get_rand_items(arr: list, n: int) -> list:
