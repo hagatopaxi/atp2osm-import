@@ -22,11 +22,11 @@ def _get_last_import_date(osmdb, import_type):
         return row[0] if row else None
 
 
-def _record_import(osmdb, import_type, date):
+def _record_import(osmdb, import_type, date, status):
     with osmdb.cursor() as cursor:
         cursor.execute(
-            "INSERT INTO data_imports (type, date) VALUES (%s, %s)",
-            (import_type, date),
+            "INSERT INTO data_imports (type, date, status) VALUES (%s, %s, %s)",
+            (import_type, date, status),
         )
         osmdb.commit()
 
@@ -36,7 +36,9 @@ def import_atp_data(osmdb):
     try:
         last_date = _get_last_import_date(osmdb, "atp")
 
-        response = requests.get("https://data.alltheplaces.xyz/runs/history.json", timeout=30)
+        response = requests.get(
+            "https://data.alltheplaces.xyz/runs/history.json", timeout=30
+        )
         response.raise_for_status()
         runs = list(reversed(response.json()))
 
@@ -51,7 +53,8 @@ def import_atp_data(osmdb):
             end_time_raw = run.get("end_time")
             end_time = (
                 datetime.fromisoformat(end_time_raw.replace("Z", "+00:00"))
-                if end_time_raw else None
+                if end_time_raw
+                else None
             )
             parquet_url = run.get("parquet_url")
             stats_url = run.get("stats_url")
@@ -81,7 +84,9 @@ def import_atp_data(osmdb):
                 logger.info(f"Downloaded ATP run {run_id}")
                 break
             except Exception as exc:
-                logger.warning(f"Failed to download ATP run {run_id}: {exc}, trying previous...")
+                logger.warning(
+                    f"Failed to download ATP run {run_id}: {exc}, trying previous..."
+                )
                 delete_file_if_exists(parquet_path)
                 delete_file_if_exists(stats_path)
 
@@ -174,7 +179,9 @@ def import_atp_data(osmdb):
             """)
             osmdb.commit()
 
-            logger.info("Creating new atp_spiders table from stats json and parquet data")
+            logger.info(
+                "Creating new atp_spiders table from stats json and parquet data"
+            )
             duckdb.sql("""
                 CREATE TABLE IF NOT EXISTS pg.atp_spiders AS
                 SELECT *
@@ -182,12 +189,15 @@ def import_atp_data(osmdb):
                 WHERE spider IN (SELECT distinct(spider_id) FROM pg.atp_fr)
             """)
 
-        if used_end_time is not None:
-            _record_import(osmdb, "atp", used_end_time)
-            logger.info(f"Recorded ATP import date: {used_end_time.date()}")
+        _record_import(osmdb, "atp", used_end_time, status="success")
+        logger.info(f"Recorded ATP import date: {used_end_time.date()}")
 
     except Exception:
         logger.exception("import_atp_data failed")
+        try:
+            _record_import(osmdb, "atp", date=None, status="error")
+        except Exception:
+            pass
         raise
 
 
@@ -285,14 +295,17 @@ def import_osm_data(osmdb, skip_mv=False, osm_date=None):
 
             osmdb.commit()
 
-        if osm_date is not None:
-            _record_import(osmdb, "osm", osm_date)
-            logger.info(f"OSM DB completely setup (data date: {osm_date.date()})")
-        else:
-            logger.info("OSM DB completely setup")
+        _record_import(osmdb, "osm", osm_date, status="success")
+        logger.info(
+            f"OSM DB completely setup (data date: {osm_date.date() if osm_date else 'unknown'})"
+        )
 
     except Exception:
         logger.exception("import_osm_data failed")
+        try:
+            _record_import(osmdb, "osm", date=None, status="error")
+        except Exception:
+            pass
         raise
 
 

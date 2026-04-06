@@ -45,4 +45,39 @@ endblock %}
         <i class="iconoir-double-check"></i> Commencer à importer !
     </a>
 </section>
+
+<section class="mt-8 max-w-3xl">
+    <h2 class="text-lg font-semibold mb-3">État des données</h2>
+    <div class="grid grid-cols-2 gap-4">
+        {% for type, label in [("osm", "OpenStreetMap"), ("atp", "All The Places")] %}
+        {% set row = data_imports.get(type) %}
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h3 class="card-title text-sm font-mono">{{ label }}</h3>
+                {% if row %}
+                    {% if row.status == "error" %}
+                        <div class="badge badge-error badge-sm">Erreur</div>
+                    {% else %}
+                        <div class="badge badge-success badge-sm">OK</div>
+                    {% endif %}
+                    <p class="text-sm mt-1">
+                        <span class="text-base-content/60">Source :</span>
+                        {% if row.date %}
+                            {{ row.date.strftime("%d/%m/%Y") }}
+                        {% else %}
+                            <span class="text-error">inconnue</span>
+                        {% endif %}
+                    </p>
+                    <p class="text-sm">
+                        <span class="text-base-content/60">Dernière vérification :</span>
+                        {{ row.created_at.strftime("%d/%m/%Y à %H:%M") }}
+                    </p>
+                {% else %}
+                    <p class="text-sm text-base-content/60">Aucune donnée importée</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
 {% endblock %}

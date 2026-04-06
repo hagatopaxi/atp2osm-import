@@ -153,7 +153,13 @@ def home():
                 COUNT(DISTINCT brand_wikidata) FILTER (WHERE status = 'success') AS brands_imported
             FROM import_history
         """).fetchone()
-    return render_template("home.html", stats=stats)
+        data_imports = cursor.execute("""
+            SELECT DISTINCT ON (type) type, date, status, created_at
+            FROM data_imports
+            ORDER BY type, created_at DESC
+        """).fetchall()
+    data_imports = {row["type"]: row for row in data_imports}
+    return render_template("home.html", stats=stats, data_imports=data_imports)
 
 
 HISTORY_PER_PAGE = 20
