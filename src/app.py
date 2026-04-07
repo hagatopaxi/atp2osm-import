@@ -22,6 +22,7 @@ from flask import (
     redirect,
 )
 from flask_caching import Cache
+from werkzeug.middleware.proxy_fix import ProxyFix
 from staticmap import StaticMap, CircleMarker
 from math import ceil
 from requests_oauthlib import OAuth2Session
@@ -39,7 +40,8 @@ CACHE_DIR = PROJECT_ROOT / ".cache"
 STATIC_DIR = PROJECT_ROOT / "static"
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
-app.secret_key = os.urandom(24)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
 
 app.config["CACHE_TYPE"] = "FileSystemCache"
 app.config["CACHE_DIR"] = CACHE_DIR
@@ -113,6 +115,7 @@ env = env.upper()
 if env not in ("DEVELOPMENT", "PRODUCTION"):
     raise ValueError(f"APP_ENV must be DEVELOPMENT or PRODUCTION, got '{env}'")
 logger.warning("*** Running in %s mode (OSM API: %s) ***", env, api_url)
+logger.warning(f"App Version: {os.getenv('APP_VERSION', 'unknown')}")
 
 # Save token in memory, indexed by osm user's id
 token_store = {}
@@ -442,10 +445,16 @@ def todo_delete(entry_id):
     return Response(status=204)
 
 
+def get_oauth_redirect_uri():
+    base_url = os.getenv("APP_BASE_URL", "").rstrip("/")
+    if base_url:
+        return f"{base_url}/oauth-callback"
+    return url_for("oauth_callback", _external=True)
+
+
 @app.route("/login", methods=["POST"])
 def login():
-
-    redirect_uri = url_for("oauth_callback", _external=True)
+    redirect_uri = get_oauth_redirect_uri()
 
     osm = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=scope)
     authorization_url, state = osm.authorization_url(authorization_base_url)
@@ -459,18 +468,29 @@ def oauth_callback():
     if "error" in request.args:
         return "Authentication failed: " + request.args["error"], 401
 
+    logger.warning(request.args.get("state"))
+    logger.warning(session.get("oauth_state"))
+
     # Validate state
     if request.args.get("state") != session.get("oauth_state"):
         return "Invalid state parameter", 401
 
-    redirect_uri = url_for("oauth_callback", _external=True)
+    redirect_uri = get_oauth_redirect_uri()
 
     osm = OAuth2Session(
         client_id, redirect_uri=redirect_uri, state=session["oauth_state"]
     )
 
+    authorization_response = request.url
+    if redirect_uri.startswith("https://") and authorization_response.startswith(
+        "http://"
+    ):
+        authorization_response = "https://" + authorization_response[7:]
     token = osm.fetch_token(
-        token_url, client_secret=client_secret, authorization_response=request.url
+        token_url,
+        client_secret=client_secret,
+        authorization_response=authorization_response,
+        headers={"User-Agent": f"atp2osm-import/{os.getenv('APP_VERSION')}"},
     )
     user_detail_url = f"{api_url}/api/0.6/user/details.json"
     response = osm.get(user_detail_url)
