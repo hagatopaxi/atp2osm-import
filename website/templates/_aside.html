@@ -2,25 +2,28 @@
   <div class="text-xl font-bold mb-4 font-mono">atp2osm</div>
   <ul class="menu p-0 w-full gap-2">
     <li>
-      <a class="bg-white align-start hover:bg-base-300" href="/"><i class="iconoir-home"></i>Home</a>
+      <a class="bg-white align-start hover:bg-base-300 shadow-sm" href="/"><i class="iconoir-home"></i>Home</a>
     </li>
     <li>
-      <a class="bg-white align-start hover:bg-base-300" href="/brands"><i class="iconoir-archery"></i>Marques</a>
+      <a class="bg-white align-start hover:bg-base-300 shadow-sm" href="/brands"><i
+          class="iconoir-archery"></i>Marques</a>
     </li>
     <li>
-      <a class="bg-white align-start hover:bg-base-300" href="/history"><i class="iconoir-clock"></i>Historique</a>
+      <a class="bg-white align-start hover:bg-base-300 shadow-sm" href="/history"><i
+          class="iconoir-clock"></i>Historique</a>
     </li>
     <li>
-      <a class="bg-white align-start hover:bg-base-300" href="/todo"><i class="iconoir-list"></i>TODO</a>
+      <a class="bg-white align-start hover:bg-base-300 shadow-sm" href="/todo"><i class="iconoir-list"></i>TODO</a>
     </li>
   </ul>
 
   <div class="flex-1"></div>
 
-  <div class="mb-4 p-3 bg-base-100 rounded-md text-sm">
+  <div class="mb-4 p-3 bg-base-100 rounded-md text-sm shadow-sm">
     <p class="font-bold mb-1"><i class="iconoir-info-circle"></i> A propos</p>
     <p class="mb-2">Projet open-source. Contributions bienvenues !</p>
-    <a href="https://github.com/hagatopaxi/atp2osm-import" class="link link-primary text-xs" target="_blank" rel="noopener">
+    <a href="https://github.com/hagatopaxi/atp2osm-import" class="link link-primary text-xs" target="_blank"
+      rel="noopener">
       <i class="iconoir-github"></i> GitHub
     </a>
     <p class="mt-1 text-xs opacity-60">Licence GPL-3.0</p>
@@ -28,14 +31,16 @@
 
   <div class="w-full">
     {% if 'user' in session %}
-    <div class="flex items-center gap-3 p-3 bg-base-100 rounded-md">
+    <div class="flex items-center gap-3 p-3 bg-base-100 rounded-md shadow-sm">
       <div class="avatar placeholder">
         <div class="bg-primary text-primary-content w-10 rounded-full flex items-center justify-center">
           <span class="text-lg leading-none">{{ session['user']['name'][0] | upper }}</span>
         </div>
       </div>
       <div class="flex-1 min-w-0">
-        <a href="{{ api_url }}/user/{{ session['user']['name'] }}" class="text-sm font-semibold truncate link link-hover tooltip tooltip-top" data-tip="{{ session['user']['name'] }}" target="_blank" rel="noopener">{{ session['user']['name'] }}</a>
+        <a href="{{ api_url }}/user/{{ session['user']['name'] }}"
+          class="text-sm font-semibold truncate link link-hover tooltip tooltip-top"
+          data-tip="{{ session['user']['name'] }}" target="_blank" rel="noopener">{{ session['user']['name'] }}</a>
         <p class="text-xs opacity-60">OpenStreetMap</p>
       </div>
       <button class="btn btn-ghost btn-sm btn-square text-error" onclick="logout()" title="Deconnexion">

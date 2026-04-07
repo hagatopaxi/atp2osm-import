@@ -396,6 +396,10 @@ def todo_add():
         except psycopg.errors.UniqueViolation:
             osmdb.rollback()
             return {"error": "Cette marque est déjà dans la liste"}, 409
+        except Exception:
+            osmdb.rollback()
+            logger.exception("Failed to insert todo brand")
+            return {"error": "Une erreur est survenue, veuillez réessayer."}, 500
     return Response(status=201)
 
 

@@ -1,3 +1,14 @@
+function showToast(message, type = 'error') {
+  const container = document.createElement('div');
+  container.className = 'toast toast-end toast-bottom z-50';
+  const alert = document.createElement('div');
+  alert.className = `alert alert-${type} text-sm shadow-md`;
+  alert.textContent = message;
+  container.appendChild(alert);
+  document.body.appendChild(container);
+  setTimeout(() => container.remove(), 4000);
+}
+
 async function checkDuplicate() {
   const wikidata = document.getElementById('input-wikidata').value.trim();
   const name = document.getElementById('input-name').value.trim();
@@ -31,9 +42,6 @@ async function addEntry(event) {
   const brand_name = document.getElementById('input-name').value.trim();
   const estimationRaw = document.getElementById('input-estimation').value.trim();
   const estimation = estimationRaw !== '' ? parseInt(estimationRaw, 10) : null;
-  const errorBox = document.getElementById('form-error');
-
-  errorBox.classList.add('hidden');
 
   const res = await fetch('/todo', {
     method: 'POST',
@@ -44,14 +52,21 @@ async function addEntry(event) {
   if (res.status === 201) {
     window.location.reload();
   } else {
-    const data = await res.json();
-    errorBox.textContent = data.error || 'Erreur lors de l\'ajout.';
-    errorBox.classList.remove('hidden');
+    let message = 'Une erreur est survenue, veuillez réessayer.';
+    try {
+      const data = await res.json();
+      if (data.error) message = data.error;
+    } catch (_) {}
+    showToast(message);
   }
 }
 
 async function deleteEntry(id) {
   if (!confirm('Supprimer cette entrée ?')) return;
-  await fetch(`/todo/${id}`, { method: 'DELETE' });
-  window.location.reload();
+  const res = await fetch(`/todo/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    window.location.reload();
+  } else {
+    showToast(res.status === 403 ? 'Vous ne pouvez supprimer que vos propres entrées.' : 'Erreur lors de la suppression.');
+  }
 }

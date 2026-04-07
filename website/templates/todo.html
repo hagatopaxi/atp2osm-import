@@ -1,7 +1,8 @@
 {% extends '_base.html' %}
 
-{% block title %}Marques à importer (TODO){% endblock %}
-{% block subtitle %}Liste des marques identifiées à importer dans OpenStreetMap.{% endblock %}
+{% block title %}Marques à importer{% endblock %}
+{% block subtitle %}Liste des marques identifiées pour lesquelles aucun spiders AllThePlaces n'existe. Cette liste
+permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquantes.{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/todo.js"></script>
@@ -10,7 +11,6 @@
 {% block content %}
 <div class="flex flex-col gap-4">
 
-  {% if 'user' in session %}
   <div class="card bg-base-100 shadow-sm">
     <div class="card-body p-4">
       <h2 class="card-title text-base">Ajouter une marque</h2>
@@ -19,32 +19,39 @@
           <label class="form-control flex-1 min-w-48">
             <div class="label"><span class="label-text">Code Wikidata</span></div>
             <input id="input-wikidata" type="text" placeholder="ex: Q123456" class="input input-bordered"
-              onblur="checkDuplicate()" />
+              onblur="checkDuplicate()" {% if 'user' not in session %}disabled{% endif %} />
           </label>
           <label class="form-control flex-1 min-w-48">
             <div class="label"><span class="label-text">Nom de la marque</span></div>
             <input id="input-name" type="text" placeholder="ex: Carrefour" class="input input-bordered"
-              onblur="checkDuplicate()" />
+              onblur="checkDuplicate()" {% if 'user' not in session %}disabled{% endif %} />
           </label>
           <label class="form-control flex-1 min-w-48">
             <div class="label"><span class="label-text">Estimation nb. POIs (optionnel)</span></div>
-            <input id="input-estimation" type="number" min="0" placeholder="ex: 200" class="input input-bordered" />
+            <input id="input-estimation" type="number" min="0" placeholder="ex: 200" class="input input-bordered"
+              {% if 'user' not in session %}disabled{% endif %} />
           </label>
         </div>
         <div id="duplicate-warning" class="alert alert-warning hidden py-2 text-sm">
           <i class="iconoir-warning-triangle"></i>
           <span id="duplicate-warning-text"></span>
         </div>
-        <div id="form-error" class="alert alert-error hidden py-2 text-sm"></div>
-        <div>
+<div>
+          {% if 'user' in session %}
           <button type="submit" class="btn btn-primary btn-sm">
             <i class="iconoir-plus"></i> Ajouter
           </button>
+          {% else %}
+          <div class="tooltip" data-tip="Vous devez vous connecter pour ajouter une marque">
+            <button type="button" disabled class="btn btn-primary btn-sm">
+              <i class="iconoir-plus"></i> Ajouter
+            </button>
+          </div>
+          {% endif %}
         </div>
       </form>
     </div>
   </div>
-  {% endif %}
 
   {% if entries|length == 0 %}
   <p class="text-base-content/60">Aucune marque dans la liste pour le moment.</p>
@@ -73,7 +80,8 @@
           <td>
             {% set display_name = users.get(entry.osm_user_id) %}
             {% if display_name %}
-            <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank" rel="noopener">{{ display_name }}</a>
+            <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank" rel="noopener">{{ display_name
+              }}</a>
             {% else %}
             {{ entry.osm_user_id }}
             {% endif %}
@@ -81,7 +89,7 @@
           <td class="whitespace-nowrap">{{ entry.created_at.strftime('%Y-%m-%d') }}</td>
           {% if 'user' in session %}
           <td>
-            <button class="btn btn-ghost btn-xs text-error" onclick="deleteEntry({{ entry.id }})">
+            <button class="btn btn-ghost btn-sm btn-square text-error" onclick="deleteEntry({{ entry.id }})">
               <i class="iconoir-trash"></i>
             </button>
           </td>
