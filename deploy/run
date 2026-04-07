@@ -28,7 +28,8 @@ echo "--> [1/6] Extracting $COMMIT..."
 git --git-dir="$GIT_DIR" archive "$COMMIT" | tar -x -C "$WORK_DIR"
 
 echo "--> [2/6] Building image..."
-podman build --tag "$IMAGE_NAME:latest" "$WORK_DIR"
+GIT_SHORT=$(git --git-dir="$GIT_DIR" rev-parse --short=6 "$COMMIT")
+podman build --build-arg "GIT_COMMIT=$GIT_SHORT" --tag "$IMAGE_NAME:latest" "$WORK_DIR"
 
 echo "--> [3/6] Stopping old container..."
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"

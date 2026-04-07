@@ -1,6 +1,7 @@
 import logging
 import pathlib
 import os
+import subprocess
 import psycopg
 import datetime
 import json
@@ -75,6 +76,27 @@ def run_startup_tasks():
 run_startup_tasks()
 
 
+def _get_version():
+    if v := os.getenv("APP_VERSION"):
+        return v
+    try:
+        hash = (
+            subprocess.check_output(
+                ["git", "rev-parse", "--short=6", "HEAD"],
+                cwd=PROJECT_ROOT,
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
+        return f"Alpha-{hash}"
+    except Exception:
+        return "Alpha"
+
+
+APP_VERSION = _get_version()
+
+
 client_id = os.getenv("OSM_OAUTH_CLIENT_ID")
 client_secret = os.getenv("OSM_OAUTH_CLIENT_SECRET")
 api_url = os.getenv("OSM_API_HOST").strip("/")
@@ -130,7 +152,7 @@ def auth_required(f):
 
 @app.context_processor
 def inject_globals():
-    return {"api_url": api_url}
+    return {"api_url": api_url, "app_version": APP_VERSION}
 
 
 @app.teardown_appcontext

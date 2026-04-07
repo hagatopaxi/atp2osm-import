@@ -14,6 +14,9 @@ COPY website/ website/
 COPY static/ static/
 COPY migrations/ migrations/
 
+ARG GIT_COMMIT=unknown
+ENV APP_VERSION=Alpha-${GIT_COMMIT}
+
 ARG PORT=8000
 ENV PORT=${PORT}
 EXPOSE ${PORT}
