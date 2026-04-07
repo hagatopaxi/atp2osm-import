@@ -1,0 +1,97 @@
+{% extends '_base.html' %}
+
+{% block title %}Marques à importer (TODO){% endblock %}
+{% block subtitle %}Liste des marques identifiées à importer dans OpenStreetMap.{% endblock %}
+
+{% block custom_js %}
+<script src="/static/js/todo.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-4">
+
+  {% if 'user' in session %}
+  <div class="card bg-base-100 shadow-sm">
+    <div class="card-body p-4">
+      <h2 class="card-title text-base">Ajouter une marque</h2>
+      <form id="add-form" onsubmit="addEntry(event)" class="flex flex-col gap-3">
+        <div class="flex flex-wrap gap-3">
+          <label class="form-control flex-1 min-w-48">
+            <div class="label"><span class="label-text">Code Wikidata</span></div>
+            <input id="input-wikidata" type="text" placeholder="ex: Q123456" class="input input-bordered"
+              onblur="checkDuplicate()" />
+          </label>
+          <label class="form-control flex-1 min-w-48">
+            <div class="label"><span class="label-text">Nom de la marque</span></div>
+            <input id="input-name" type="text" placeholder="ex: Carrefour" class="input input-bordered"
+              onblur="checkDuplicate()" />
+          </label>
+          <label class="form-control flex-1 min-w-48">
+            <div class="label"><span class="label-text">Estimation nb. POIs (optionnel)</span></div>
+            <input id="input-estimation" type="number" min="0" placeholder="ex: 200" class="input input-bordered" />
+          </label>
+        </div>
+        <div id="duplicate-warning" class="alert alert-warning hidden py-2 text-sm">
+          <i class="iconoir-warning-triangle"></i>
+          <span id="duplicate-warning-text"></span>
+        </div>
+        <div id="form-error" class="alert alert-error hidden py-2 text-sm"></div>
+        <div>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="iconoir-plus"></i> Ajouter
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if entries|length == 0 %}
+  <p class="text-base-content/60">Aucune marque dans la liste pour le moment.</p>
+  {% else %}
+  <div class="overflow-x-auto">
+    <table class="table table-zebra w-full">
+      <thead>
+        <tr>
+          <th>Wikidata</th>
+          <th>Nom</th>
+          <th>Estimation</th>
+          <th>Ajouté par</th>
+          <th>Date</th>
+          {% if 'user' in session %}<th></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in entries %}
+        <tr>
+          <td>
+            <a class="link font-mono text-sm" href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
+              target="_blank" rel="noopener">{{ entry.brand_wikidata }}</a>
+          </td>
+          <td>{{ entry.brand_name }}</td>
+          <td>{{ entry.estimation if entry.estimation else '—' }}</td>
+          <td>
+            {% set display_name = users.get(entry.osm_user_id) %}
+            {% if display_name %}
+            <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank" rel="noopener">{{ display_name }}</a>
+            {% else %}
+            {{ entry.osm_user_id }}
+            {% endif %}
+          </td>
+          <td class="whitespace-nowrap">{{ entry.created_at.strftime('%Y-%m-%d') }}</td>
+          {% if 'user' in session %}
+          <td>
+            <button class="btn btn-ghost btn-xs text-error" onclick="deleteEntry({{ entry.id }})">
+              <i class="iconoir-trash"></i>
+            </button>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
