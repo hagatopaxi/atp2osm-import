@@ -221,7 +221,7 @@ def history():
 def brands():
     osmdb = get_osmdb()
     metadata = get_all(osmdb)
-    return render_template("brands.html", metadata=metadata)
+    return render_template("brands.html", metadata=metadata, total_brands=len(metadata))
 
 
 @app.route("/brands/<brand_wikidata>/validate")

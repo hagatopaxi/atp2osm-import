@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 
 {% block title %}Liste des marques à importer dans Open Street Map{% endblock %}
-{% block subtitle %}Les données sont issues de la base All The Places.{% endblock %}
+{% block subtitle %}{{ total_brands }} marque{{ 's' if total_brands > 1 }} — données issues de la base All The Places.{% endblock %}
 
 {% block content %}
 <table class="table table-compact bg-base-100 rounded-2">

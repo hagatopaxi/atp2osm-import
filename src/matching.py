@@ -67,64 +67,21 @@ def get_filtered(
 
 def get_all(osmdb):
     query = """
-        WITH matched_poi AS (
-            WITH joined_poi AS (
-                SELECT
-                    atp.brand as atp_brand,
-                    atp.brand_wikidata as atp_brand_wikidata,
-                    ST_X(ST_Centroid(ST_Transform(osm.geom, 4326))) AS lon,
-                    ST_Y(ST_Centroid(ST_Transform(osm.geom, 4326))) AS lat,
-                    atp.opening_hours as atp_opening_hours,
-                    atp.phone as atp_phone,
-                    atp.email as atp_email,
-                    atp.website as atp_website,
-                    atp.country as atp_country,
-                    atp.postcode as atp_postcode,
-                    atp.city as atp_city,
-                    count(*) FILTER (WHERE osm.node_type = 'node') OVER (PARTITION BY atp.id) AS pt_cnt,
-                    count(*) FILTER (WHERE osm.node_type = 'relation') OVER (PARTITION BY atp.id) AS poly_cnt
-                FROM
-                    mv_places osm
-                INNER JOIN atp_fr atp ON
-                    ST_DWithin(
-                        geom_9794,
-                        ST_Transform(ST_GeomFromGeoJSON(atp.geom), 9794),
-                        500
-                    )
-                WHERE
-                    atp.source_type != 'api' AND
-                    (
-                        osm.brand_wikidata = atp.brand_wikidata
-                        OR LOWER(osm.brand) = LOWER(atp.brand)
-                        OR LOWER(osm.name) = LOWER(atp."name")
-                        OR LOWER(osm.email) = LOWER(atp.email)
-                        OR LOWER(REGEXP_REPLACE(osm.website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(atp.website, '^https?://', '', 'i'))
-                        OR REGEXP_REPLACE(REGEXP_REPLACE(osm.phone, '^\+33', '0'), '\s+', '', 'g') = REGEXP_REPLACE(REGEXP_REPLACE(atp.phone, '^\+33', '0'), '\s+', '', 'g')
-                    )
-            )
-            SELECT *
-            FROM joined_poi
-            WHERE pt_cnt <= 1 AND poly_cnt <= 1
-        )
-        -- New aggregation query
         SELECT
-            atp_brand AS brand,
-            atp_brand_wikidata AS brand_wikidata,
-            COUNT(*) AS total,
+            mvb.brand AS brand,
+            mvb.brand_wikidata AS brand_wikidata,
+            mvb.total AS total,
             ih.last_import,
             ih.last_status
-        FROM
-            matched_poi
+        FROM mv_places_brand mvb
         LEFT JOIN (
             SELECT DISTINCT ON (brand_wikidata)
-                brand_wikidata AS ih_brand_wikidata,
+                brand_wikidata,
                 import_date AS last_import,
-                status AS last_status
+                status      AS last_status
             FROM import_history
             ORDER BY brand_wikidata, import_date DESC
-        ) ih ON ih.ih_brand_wikidata = atp_brand_wikidata
-        GROUP BY
-            atp_brand, atp_brand_wikidata, ih.last_import, ih.last_status
+        ) ih ON ih.brand_wikidata = mvb.brand_wikidata
         ORDER BY
             last_import ASC NULLS FIRST,
             total DESC;
@@ -196,30 +153,99 @@ def get_changes(cursor: Cursor):
 
 
 DEPARTEMENT_NAMES = {
-    1: "Ain", 2: "Aisne", 3: "Allier", 4: "Alpes-de-Haute-Provence",
-    5: "Hautes-Alpes", 6: "Alpes-Maritimes", 7: "Ardèche", 8: "Ardennes",
-    9: "Ariège", 10: "Aube", 11: "Aude", 12: "Aveyron",
-    13: "Bouches-du-Rhône", 14: "Calvados", 15: "Cantal", 16: "Charente",
-    17: "Charente-Maritime", 18: "Cher", 19: "Corrèze",
-    21: "Côte-d'Or", 22: "Côtes-d'Armor", 23: "Creuse", 24: "Dordogne",
-    25: "Doubs", 26: "Drôme", 27: "Eure", 28: "Eure-et-Loir",
-    29: "Finistère", 30: "Gard", 31: "Haute-Garonne", 32: "Gers",
-    33: "Gironde", 34: "Hérault", 35: "Ille-et-Vilaine", 36: "Indre",
-    37: "Indre-et-Loire", 38: "Isère", 39: "Jura", 40: "Landes",
-    41: "Loir-et-Cher", 42: "Loire", 43: "Haute-Loire", 44: "Loire-Atlantique",
-    45: "Loiret", 46: "Lot", 47: "Lot-et-Garonne", 48: "Lozère",
-    49: "Maine-et-Loire", 50: "Manche", 51: "Marne", 52: "Haute-Marne",
-    53: "Mayenne", 54: "Meurthe-et-Moselle", 55: "Meuse", 56: "Morbihan",
-    57: "Moselle", 58: "Nièvre", 59: "Nord", 60: "Oise",
-    61: "Orne", 62: "Pas-de-Calais", 63: "Puy-de-Dôme", 64: "Pyrénées-Atlantiques",
-    65: "Hautes-Pyrénées", 66: "Pyrénées-Orientales", 67: "Bas-Rhin", 68: "Haut-Rhin",
-    69: "Rhône", 70: "Haute-Saône", 71: "Saône-et-Loire", 72: "Sarthe",
-    73: "Savoie", 74: "Haute-Savoie", 75: "Paris", 76: "Seine-Maritime",
-    77: "Seine-et-Marne", 78: "Yvelines", 79: "Deux-Sèvres", 80: "Somme",
-    81: "Tarn", 82: "Tarn-et-Garonne", 83: "Var", 84: "Vaucluse",
-    85: "Vendée", 86: "Vienne", 87: "Haute-Vienne", 88: "Vosges",
-    89: "Yonne", 90: "Territoire de Belfort", 91: "Essonne",
-    92: "Hauts-de-Seine", 93: "Seine-Saint-Denis", 94: "Val-de-Marne",
+    1: "Ain",
+    2: "Aisne",
+    3: "Allier",
+    4: "Alpes-de-Haute-Provence",
+    5: "Hautes-Alpes",
+    6: "Alpes-Maritimes",
+    7: "Ardèche",
+    8: "Ardennes",
+    9: "Ariège",
+    10: "Aube",
+    11: "Aude",
+    12: "Aveyron",
+    13: "Bouches-du-Rhône",
+    14: "Calvados",
+    15: "Cantal",
+    16: "Charente",
+    17: "Charente-Maritime",
+    18: "Cher",
+    19: "Corrèze",
+    21: "Côte-d'Or",
+    22: "Côtes-d'Armor",
+    23: "Creuse",
+    24: "Dordogne",
+    25: "Doubs",
+    26: "Drôme",
+    27: "Eure",
+    28: "Eure-et-Loir",
+    29: "Finistère",
+    30: "Gard",
+    31: "Haute-Garonne",
+    32: "Gers",
+    33: "Gironde",
+    34: "Hérault",
+    35: "Ille-et-Vilaine",
+    36: "Indre",
+    37: "Indre-et-Loire",
+    38: "Isère",
+    39: "Jura",
+    40: "Landes",
+    41: "Loir-et-Cher",
+    42: "Loire",
+    43: "Haute-Loire",
+    44: "Loire-Atlantique",
+    45: "Loiret",
+    46: "Lot",
+    47: "Lot-et-Garonne",
+    48: "Lozère",
+    49: "Maine-et-Loire",
+    50: "Manche",
+    51: "Marne",
+    52: "Haute-Marne",
+    53: "Mayenne",
+    54: "Meurthe-et-Moselle",
+    55: "Meuse",
+    56: "Morbihan",
+    57: "Moselle",
+    58: "Nièvre",
+    59: "Nord",
+    60: "Oise",
+    61: "Orne",
+    62: "Pas-de-Calais",
+    63: "Puy-de-Dôme",
+    64: "Pyrénées-Atlantiques",
+    65: "Hautes-Pyrénées",
+    66: "Pyrénées-Orientales",
+    67: "Bas-Rhin",
+    68: "Haut-Rhin",
+    69: "Rhône",
+    70: "Haute-Saône",
+    71: "Saône-et-Loire",
+    72: "Sarthe",
+    73: "Savoie",
+    74: "Haute-Savoie",
+    75: "Paris",
+    76: "Seine-Maritime",
+    77: "Seine-et-Marne",
+    78: "Yvelines",
+    79: "Deux-Sèvres",
+    80: "Somme",
+    81: "Tarn",
+    82: "Tarn-et-Garonne",
+    83: "Var",
+    84: "Vaucluse",
+    85: "Vendée",
+    86: "Vienne",
+    87: "Haute-Vienne",
+    88: "Vosges",
+    89: "Yonne",
+    90: "Territoire de Belfort",
+    91: "Essonne",
+    92: "Hauts-de-Seine",
+    93: "Seine-Saint-Denis",
+    94: "Val-de-Marne",
     95: "Val-d'Oise",
 }
 
