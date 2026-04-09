@@ -338,25 +338,38 @@ def upload_changes(brand_wikidata):
     changes = get_changes_by_brand_wikidata(brand_wikidata)
     osm_session = OAuth2Session(token=session["token"])
     bulk_upload = BulkUpload(changes, session=osm_session)
-    bulk_upload.upload()
+    errors = bulk_upload.upload()
     bulk_upload.save_log_file()
 
     osmdb = get_osmdb()
     with osmdb.cursor() as cursor:
-        cursor.execute(
-            """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, changeset_ids, brand_name)
-               VALUES (%s, %s, 'success', %s, %s, %s)""",
-            (
-                brand_wikidata,
-                session["user"]["osm_id"],
-                len(changes),
-                bulk_upload.changesets,
-                bulk_upload.brand_name,
-            ),
-        )
-        osmdb.commit()
-
-    return Response(status=200)
+        if errors:
+            cursor.execute(
+                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, brand_name)
+                   VALUES (%s, %s, 'error', %s, %s)""",
+                (
+                    brand_wikidata,
+                    session["user"]["osm_id"],
+                    "; ".join(errors),
+                    bulk_upload.brand_name,
+                ),
+            )
+            osmdb.commit()
+            return Response(json.dumps({"errors": errors}), status=422, mimetype="application/json")
+        else:
+            cursor.execute(
+                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, changeset_ids, brand_name)
+                   VALUES (%s, %s, 'success', %s, %s, %s)""",
+                (
+                    brand_wikidata,
+                    session["user"]["osm_id"],
+                    len(changes),
+                    bulk_upload.changesets,
+                    bulk_upload.brand_name,
+                ),
+            )
+            osmdb.commit()
+            return Response(status=200)
 
 
 @app.route("/todo")

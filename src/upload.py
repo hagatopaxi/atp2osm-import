@@ -47,11 +47,13 @@ class BulkUpload:
         logger.debug(f"Logs for the run saved into {save_path}")
         return save_path
 
-    def upload(self):
+    def upload(self) -> list[str]:
+        """Upload all changes. Returns a list of error messages; empty list means full success."""
         if len(self.changes) == 0:
-            return
+            return []
 
         changes_by_dpt = self._sorted_by_dpt()
+        errors = []
 
         for dpt, dpt_changes in changes_by_dpt.items():
             try:
@@ -95,16 +97,22 @@ class BulkUpload:
                     # Add to changeset list to save it in logs
                     self.changesets.append(changeset)
             except ApiError as error:
-                logger.error(f"OSM API error for changeset upload: {error.status}")
+                msg = f"OSM API error for dept {dpt}: HTTP {error.status}"
+                logger.error(msg)
+                errors.append(msg)
             except Exception as unknown:
-                logger.error(f"Unknown error {unknown}")
+                msg = f"Unknown error for dept {dpt}: {unknown}"
+                logger.error(msg)
+                errors.append(msg)
+
+        return errors
 
     def _sorted_by_dpt(self):
         sorted_changes = {}
         for change in self.changes:
             dpt = change["departement_number"]
             if dpt in sorted_changes:
-                sorted_changes[dpt] = change
+                sorted_changes[dpt].append(change)
             else:
                 sorted_changes[dpt] = [change]
 
