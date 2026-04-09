@@ -199,6 +199,7 @@ def fetch_osm_users(user_ids):
         resp = requests.get(
             f"{api_url}/api/0.6/users.json?users={ids_param}",
             timeout=5,
+            headers={"User-Agent": f"atp2osm-import/{APP_VERSION}"},
         )
         resp.raise_for_status()
         data = resp.json()
