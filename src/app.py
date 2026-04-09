@@ -468,9 +468,6 @@ def oauth_callback():
     if "error" in request.args:
         return "Authentication failed: " + request.args["error"], 401
 
-    logger.warning(request.args.get("state"))
-    logger.warning(session.get("oauth_state"))
-
     # Validate state
     if request.args.get("state") != session.get("oauth_state"):
         return "Invalid state parameter", 401
@@ -516,7 +513,7 @@ def logout():
     # clean the session
     session.clear()
 
-    return Response(200)
+    return Response(status=204)
 
 
 @app.route("/staticmap/<long>/<lat>")
