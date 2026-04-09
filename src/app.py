@@ -117,9 +117,6 @@ if env not in ("DEVELOPMENT", "PRODUCTION"):
 logger.warning("*** Running in %s mode (OSM API: %s) ***", env, api_url)
 logger.warning(f"App Version: {os.getenv('APP_VERSION', 'unknown')}")
 
-# Save token in memory, indexed by osm user's id
-token_store = {}
-
 
 def get_osmdb():
     if "osmdb" not in g:
@@ -145,10 +142,12 @@ def get_changes_by_brand_wikidata(brand_wikidata):
 def auth_required(f):
     @functools.wraps(f)
     def decorator(*args, **kwargs):
-        if "user" in session:
-            return f(*args, **kwargs)
-        else:
+        if "user" not in session:
             return abort(403)
+        if "token" not in session:
+            session.clear()
+            return redirect("/?session_expired=1")
+        return f(*args, **kwargs)
 
     return decorator
 
@@ -337,7 +336,7 @@ def report_error(brand_wikidata):
 @auth_required
 def upload_changes(brand_wikidata):
     changes = get_changes_by_brand_wikidata(brand_wikidata)
-    osm_session = OAuth2Session(token=token_store[session["user"]["osm_id"]])
+    osm_session = OAuth2Session(token=session["token"])
     bulk_upload = BulkUpload(changes, session=osm_session)
     bulk_upload.upload()
     bulk_upload.save_log_file()
@@ -494,10 +493,9 @@ def oauth_callback():
     response = osm.get(user_detail_url)
     res_json = response.json()
     user = {"osm_id": res_json["user"]["id"], "name": res_json["user"]["display_name"]}
-    token_store[user["osm_id"]] = token
-
     del session["oauth_state"]
     session["user"] = user
+    session["token"] = dict(token)
 
     return redirect("/")
 
@@ -505,12 +503,6 @@ def oauth_callback():
 @app.route("/logout", methods=["POST"])
 @auth_required
 def logout():
-    user_id = session["user"]["osm_id"]
-
-    # remove the saved token
-    if user_id in token_store:
-        del token_store[session["user"]["osm_id"]]
-
     # clean the session
     session.clear()
 
