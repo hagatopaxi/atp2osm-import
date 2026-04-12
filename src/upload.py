@@ -19,8 +19,8 @@ class BulkUpload:
 
     def __init__(self, changes: list, session: OAuth2Session):
         self.changes = changes
-        self.brand_name = changes[0]["tag"]["brand"]
-        self.brand_wikidata = changes[0]["tag"]["brand:wikidata"]
+        self.brand_name = changes[0]["atp_brand"]
+        self.brand_wikidata = changes[0]["tag"].get("brand:wikidata") or "unknown"
         self.changesets = []
 
         self.is_dev = os.getenv("APP_ENV").upper() == "DEVELOPMENT"

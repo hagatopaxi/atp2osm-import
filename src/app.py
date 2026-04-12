@@ -274,10 +274,10 @@ def brands_validate(brand_wikidata):
     # Check at least 5 items
     min_to_check = max(ceil(len(changes) / 100), 5)
     items = get_rand_items(changes, n=min_to_check)
-    brand = items[0]["tag"]["brand"]
+    brand = items[0]["atp_brand"]
     for idx, item in enumerate(items):
         item["title"] = (
-            f"{item['tag']['name'] if 'name' in item['tag'] else brand} - {item['postcode']}"
+            f"{item['tag'].get('name') or item['atp_brand']} - {item['postcode']}"
         )
         item["new_tags_keys"] = [
             key for key in item["tag"] if key not in item["old_tag"]

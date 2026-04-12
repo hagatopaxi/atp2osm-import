@@ -328,8 +328,8 @@ def create_mv_places_brand(osmdb):
                         OR (atp.phone    IS NOT NULL AND osm.phone    IS NULL)
                         OR (atp.website  IS NOT NULL AND osm.website  IS NULL)
                     ) AS is_importable,
-                    count(*) FILTER (WHERE osm.node_type = 'node')     OVER (PARTITION BY atp.id) AS pt_cnt,
-                    count(*) FILTER (WHERE osm.node_type = 'relation') OVER (PARTITION BY atp.id) AS poly_cnt
+                    count(*) FILTER (WHERE osm.node_type = 'node')                          OVER (PARTITION BY atp.id) AS pt_cnt,
+                    count(*) FILTER (WHERE osm.node_type IN ('way', 'relation'))            OVER (PARTITION BY atp.id) AS poly_cnt
                 FROM mv_places osm
                 INNER JOIN atp_fr atp ON
                     ST_DWithin(osm.geom_9794, ST_Transform(ST_GeomFromGeoJSON(atp.geom), 9794), 500)

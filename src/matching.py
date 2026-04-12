@@ -23,8 +23,8 @@ def get_filtered(
             atp.country as atp_country,
             atp.city as atp_city,
             atp.source_uri as atp_source_uri,
-            count(*) FILTER (WHERE osm.node_type = 'node') OVER (PARTITION BY atp.id) AS pt_cnt, 
-            count(*) FILTER (WHERE osm.node_type = 'relation') OVER (PARTITION BY atp.id) AS poly_cnt
+            count(*) FILTER (WHERE osm.node_type = 'node')                 OVER (PARTITION BY atp.id) AS pt_cnt,
+            count(*) FILTER (WHERE osm.node_type IN ('way', 'relation'))   OVER (PARTITION BY atp.id) AS poly_cnt
         FROM
             mv_places osm
         INNER JOIN atp_fr atp ON
@@ -117,9 +117,16 @@ def apply_on_node(atp_osm_match: dict) -> dict:
     if new_tags == atp_osm_match["tags"]:
         return None
 
+    # osm2pgsql's define_area_table stores relation IDs as negative values to
+    # distinguish them from way IDs in the shared area_id column. Negate to
+    # recover the real OSM ID before passing it to the API or the UI.
+    osm_id = atp_osm_match["osm_id"]
+    if osm_id < 0:
+        osm_id = -osm_id
+
     return {
         # Values for bulk upload
-        "id": atp_osm_match["osm_id"],
+        "id": osm_id,
         "node_type": atp_osm_match["node_type"],
         "version": atp_osm_match["version"],
         "tag": new_tags,
@@ -127,6 +134,7 @@ def apply_on_node(atp_osm_match: dict) -> dict:
         "lon": atp_osm_match["lon"],
         "lat": atp_osm_match["lat"],
         # Values only for atp2osm render
+        "atp_brand": atp_osm_match["brand"],
         "source_uri": atp_osm_match["source_uri"],
         "postcode": atp_osm_match["postcode"],
         "old_tag": atp_osm_match["tags"],
