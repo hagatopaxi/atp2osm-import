@@ -78,7 +78,7 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
             </div>
 
             <div class="flex flex-col gap-4 w-full">
-                <a href="{{ api_url }}/node/{{item['id']}}" target="_blank" title="Ouvrir dans OSM">
+                <a href="{{ api_url }}/{{ item['node_type'] }}/{{item['id']}}" target="_blank" title="Ouvrir dans OSM">
                     <img class="rounded-lg border-base-200 border-2 shadow-md"
                         src="/staticmap/{{item['lon']}}/{{item['lat']}}" alt="Carte de {{item['title']}}"
                         style="width: 100%; height: auto;" />
