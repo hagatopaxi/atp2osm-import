@@ -9,8 +9,7 @@ set -euo pipefail
 #   --skip-pbf    Skip OSM PBF download and osm2pgsql import (debug only)
 #   --skip-mv     Skip mv_places materialized view recreation in setup.py
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ATP_DIR="$PROJECT_DIR/data/atp"
 
 GEOFABRIK_URL="https://download.geofabrik.de/europe/france-latest.osm.pbf"
@@ -27,7 +26,7 @@ GEOFABRIK_TS=""
 for arg in "$@"; do
     case "$arg" in
         --skip-pbf) SKIP_PBF=1 ;;
-        --skip-mv) SKIP_MV=1 ;;
+        --skip-mv)  SKIP_MV=1 ;;
         *) echo "Unknown argument: $arg" >&2; exit 1 ;;
     esac
 done
@@ -41,7 +40,7 @@ if [ "$SKIP_PBF" -eq 1 ]; then
   log "Step 1/2 — Skipping OSM PBF download and import (--skip-pbf)"
 else
   log "Step 1a/2 — Checking Geofabrik OSM timestamp..."
-  GEOFABRIK_TS=$(curl -fsSL --retry 3 "$GEOFABRIK_STATE_URL" | grep '^timestamp=' | cut -d= -f2- | sed 's/\\://g')
+  GEOFABRIK_TS=$(curl -fsSL --retry 3 "$GEOFABRIK_STATE_URL" | grep '^timestamp=' | cut -d= -f2- | sed 's/\\:/:/g')
   LAST_OSM_DATE=$(PGPASSWORD="${OSM_DB_PASSWORD}" psql \
       -h "${OSM_DB_HOST}" -p "${OSM_DB_PORT}" -U "${OSM_DB_USER}" -d "${OSM_DB_NAME}" \
       -t -A -c "SELECT date FROM data_imports WHERE type='osm' ORDER BY date DESC LIMIT 1;" \
@@ -55,7 +54,7 @@ else
   else
     [ -n "$GEOFABRIK_TS" ] && log "New OSM data available (source: $GEOFABRIK_TS)"
 
-    OSM_PBF="$PROJECT_DIR/data/france-latest.osm.pbf"
+    OSM_PBF="$PROJECT_DIR/data/osm/france-latest.osm.pbf"
     mkdir -p "$PROJECT_DIR/data"
     if [ -f "$OSM_PBF" ]; then
       log "Step 1b/2 — OSM PBF already exists, skipping download"
@@ -81,7 +80,7 @@ else
           -U "${OSM_DB_USER}" \
           -H "${OSM_DB_HOST}" \
           -P "${OSM_DB_PORT}" \
-          "/data/france-latest.osm.pbf"
+          "/data/osm/france-latest.osm.pbf"
     rm -f "$OSM_PBF"
     log "osm2pgsql import complete"
   fi
@@ -94,10 +93,8 @@ else
   log "Step 2/2 — Running setup.py (ATP import + materialized view refresh)..."
 fi
 
-podman exec \
-  --workdir /app \
-  "$CONTAINER_NAME" \
-  uv run --no-sync python -c "
+PYTHON_CMD="uv run --no-sync python"
+PYTHON_SCRIPT="
 import logging, psycopg, os
 
 logging.basicConfig(
@@ -122,5 +119,13 @@ try:
 finally:
     conn.close()
 "
+
+if podman container exists "$CONTAINER_NAME" 2>/dev/null; then
+  podman exec --workdir /app "$CONTAINER_NAME" $PYTHON_CMD -c "$PYTHON_SCRIPT"
+else
+  log "Container '$CONTAINER_NAME' not running, executing locally..."
+  cd "$PROJECT_DIR"
+  $PYTHON_CMD -c "$PYTHON_SCRIPT"
+fi
 
 log "Data refresh complete"

@@ -240,6 +240,7 @@ def import_osm_data(osmdb, skip_mv=False, osm_date=None):
                     COALESCE(tags->>'phone', tags->>'contact:phone')     AS phone,
                     COALESCE(tags->>'email', tags->>'contact:email')     AS email,
                     version,
+                    NULL::jsonb                                          AS members,
                     ST_Transform(geom, 9794)                             AS geom_9794,
                     geom
                 FROM points
@@ -248,7 +249,7 @@ def import_osm_data(osmdb, skip_mv=False, osm_date=None):
 
                 SELECT
                     area_id                                              AS osm_id,
-                    'relation'                                           AS node_type,
+                    CASE osm_type WHEN 'W' THEN 'way' ELSE 'relation' END AS node_type,
                     tags                                                 AS tags,
                     tags->>'name'                                        AS name,
                     tags->>'brand:wikidata'                              AS brand_wikidata,
@@ -260,6 +261,7 @@ def import_osm_data(osmdb, skip_mv=False, osm_date=None):
                     COALESCE(tags->>'phone', tags->>'contact:phone')     AS phone,
                     COALESCE(tags->>'email', tags->>'contact:email')     AS email,
                     version,
+                    members,
                     ST_Transform(geom, 9794)                             AS geom_9794,
                     geom
                 FROM polygons;

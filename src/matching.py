@@ -123,6 +123,7 @@ def apply_on_node(atp_osm_match: dict) -> dict:
         "node_type": atp_osm_match["node_type"],
         "version": atp_osm_match["version"],
         "tag": new_tags,
+        "members": atp_osm_match.get("members"),
         "lon": atp_osm_match["lon"],
         "lat": atp_osm_match["lat"],
         # Values only for atp2osm render

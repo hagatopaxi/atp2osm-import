@@ -71,28 +71,56 @@ class BulkUpload:
                     )
 
                     if self.is_dev:
-                        logger.warning("DEV mode: skipping ChangesetUpload for changeset %s", changeset)
+                        logger.warning(
+                            "DEV mode: skipping ChangesetUpload for changeset %s",
+                            changeset,
+                        )
                     else:
                         changingNodes = []
-                        changingRelations = []
                         for poi in dpt_changes:
                             poi["changeset"] = changeset
 
                             if poi["node_type"] == "node":
                                 changingNodes.append(poi)
+                            elif poi["node_type"] == "way":
+                                self.api.WayUpdate(
+                                    {
+                                        "id": poi["id"],
+                                        "version": poi["version"],
+                                        "changeset": changeset,
+                                        "tag": poi["tag"],
+                                        "nd": poi["members"],
+                                    }
+                                )
+                            elif poi["node_type"] == "relation":
+                                type_map = {"n": "node", "w": "way", "r": "relation"}
+                                self.api.RelationUpdate(
+                                    {
+                                        "id": poi["id"],
+                                        "version": poi["version"],
+                                        "changeset": changeset,
+                                        "tag": poi["tag"],
+                                        "member": [
+                                            {
+                                                "type": type_map[m["type"]],
+                                                "ref": m["ref"],
+                                                "role": m["role"],
+                                            }
+                                            for m in (poi["members"] or [])
+                                        ],
+                                    }
+                                )
 
-                            if poi["node_type"] == "relation":
-                                changingRelations.append(poi)
-                        self.api.ChangesetUpload(
-                            [
-                                {"type": "node", "action": "modify", "data": changingNodes},
-                                {
-                                    "type": "relation",
-                                    "action": "modify",
-                                    "data": changingRelations,
-                                },
-                            ]
-                        )
+                        if changingNodes:
+                            self.api.ChangesetUpload(
+                                [
+                                    {
+                                        "type": "node",
+                                        "action": "modify",
+                                        "data": changingNodes,
+                                    }
+                                ]
+                            )
 
                     # Add to changeset list to save it in logs
                     self.changesets.append(changeset)

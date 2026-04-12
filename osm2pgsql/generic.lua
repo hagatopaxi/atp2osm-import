@@ -9,7 +9,9 @@ tables.points = osm2pgsql.define_node_table('points', {
 })
 
 tables.polygons = osm2pgsql.define_area_table('polygons', {
+    { column = 'osm_type', type = 'text', not_null = true },
     { column = 'tags', type = 'jsonb' },
+    { column = 'members', type = 'jsonb' },
     { column = 'geom', type = 'geometry', projection = srid, not_null = true },
     { column = 'version', type = 'int' },
 })
@@ -18,36 +20,63 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
 -- https://wiki.openstreetmap.org/wiki/Map_features
 local function is_definitely_not_a_place(tags)
     if tags["aerialway"] then return true end
-    if tags["barrier"] then return true end	
+    if tags["aeroway"] then return true end
+    if tags["barrier"] then return true end
+    if tags["bicycle_road"] then return true end
     if tags["boundary"] then return true end
+    if tags["busway"] then return true end
+    if tags["cycleway"] then return true end
     if tags["emergency"] then return true end
+    if tags["geological"] then return true end
+    if tags["footway"] then return true end
     if tags["highway"] then return true end
     if tags["lifeguard"] then return true end
-    if tags["geological"] then return true end
+    if tags["man_made"] then return true end
     if tags["military"] then return true end
+    if tags["natural"] then return true end
+    if tags["parking"] then return true end
     if tags["place"] then return true end
     if tags["power"] then return true end
+    if tags["railway"] then return true end
+    if tags["route"] then return true end
+    if tags["sidewalk"] then return true end
     if tags["telecom"] then return true end
     if tags["water"] then return true end
+    if tags["waterway"] then return true end
+    
+    if tags["bicycle_road"] then return true end
 
-    if tags["building"] == 'industrial' then return true end	
-    if tags["building"] == 'warehouse' then return true end	
-    if tags["building"] == 'bridge' then return true end	
-    if tags["building"] == 'digester' then return true end	
-    if tags["building"] == 'tech_cab' then return true end	
-    if tags["building"] == 'transformer_tower' then return true end	
-    if tags["building"] == 'water_tower' then return true end	
-    if tags["building"] == 'storage_tank' then return true end	
+    if tags["building"] == 'apartments' then return true end
+    if tags["building"] == 'barracks' then return true end
+    if tags["building"] == 'bridge' then return true end
+    if tags["building"] == 'dormitory' then return true end
+    if tags["building"] == 'digester' then return true end
+    if tags["building"] == 'house' then return true end
+    if tags["building"] == 'houseboat' then return true end
+    if tags["building"] == 'industrial' then return true end
+    if tags["building"] == 'ger' then return true end
+    if tags["building"] == 'residential' then return true end
+    if tags["building"] == 'semidetached_house' then return true end
+    if tags["building"] == 'static_caravan' then return true end
+    if tags["building"] == 'stilt_house' then return true end
+    if tags["building"] == 'storage_tank' then return true end
+    if tags["building"] == 'tech_cab' then return true end
+    if tags["building"] == 'terrace' then return true end
+    if tags["building"] == 'tree_house' then return true end
+    if tags["building"] == 'transformer_tower' then return true end
+    if tags["building"] == 'water_tower' then return true end
+    if tags["building"] == 'warehouse' then return true end
+    if tags["building"] == 'yes' then return true end
 
-    if tags["landuse"] == 'industrial' then return true end	
-    if tags["landuse"] == 'construction' then return true end	
-    if tags["landuse"] == 'aquaculture' then return true end	
-    if tags["landuse"] == 'farmyard' then return true end	
-    if tags["landuse"] == 'flowerbed' then return true end	
-    if tags["landuse"] == 'farmyard' then return true end	
-    if tags["landuse"] == 'depot' then return true end	
-    if tags["landuse"] == 'quarry' then return true end	
-    if tags["landuse"] == 'railway' then return true end	
+    if tags["landuse"] == 'industrial' then return true end
+    if tags["landuse"] == 'construction' then return true end
+    if tags["landuse"] == 'aquaculture' then return true end
+    if tags["landuse"] == 'farmyard' then return true end
+    if tags["landuse"] == 'flowerbed' then return true end
+    if tags["landuse"] == 'farmyard' then return true end
+    if tags["landuse"] == 'depot' then return true end
+    if tags["landuse"] == 'quarry' then return true end
+    if tags["landuse"] == 'railway' then return true end
 
     if tags["railway"] and tags["railway"] ~= 'halt' then return true end
     if tags["railway"] and tags["railway"] ~= 'stop_position' then return true end
@@ -59,6 +88,21 @@ local function is_definitely_not_a_place(tags)
 
     return false
 end 
+
+function osm2pgsql.process_way(object)
+    local tags = object.tags
+    if is_definitely_not_a_place(tags) then return end
+
+    if object.is_closed then
+        tables.polygons:insert({
+            osm_type = 'W',
+            tags = object.tags,
+            members = object.nodes,
+            geom = object:as_polygon(),
+            version = object.version,
+        })
+    end
+end
 
 function osm2pgsql.process_node(object)
     local tags = object.tags
@@ -79,7 +123,9 @@ function osm2pgsql.process_relation(object)
 
     if relation_type == 'multipolygon' then
         tables.polygons:insert({
+            osm_type = 'R',
             tags = object.tags,
+            members = object.members,
             geom = object:as_multipolygon(),
             version = object.version,
         })
