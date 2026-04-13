@@ -7,6 +7,7 @@ import datetime
 import json
 import functools
 import requests
+import locale
 
 from io import BytesIO
 from psycopg.rows import dict_row
@@ -42,6 +43,8 @@ STATIC_DIR = PROJECT_ROOT / "static"
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
+
+locale.setlocale(locale.LC_TIME, "fr_FR.UTF-8")
 
 app.config["CACHE_TYPE"] = "FileSystemCache"
 app.config["CACHE_DIR"] = CACHE_DIR

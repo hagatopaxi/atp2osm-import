@@ -55,7 +55,7 @@ else
     [ -n "$GEOFABRIK_TS" ] && log "New OSM data available (source: $GEOFABRIK_TS)"
 
     OSM_PBF="$PROJECT_DIR/data/osm/france-latest.osm.pbf"
-    mkdir -p "$PROJECT_DIR/data"
+    mkdir -p "$PROJECT_DIR/data/osm"
     if [ -f "$OSM_PBF" ]; then
       log "Step 1b/2 — OSM PBF already exists, skipping download"
     else

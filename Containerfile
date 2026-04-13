@@ -1,5 +1,9 @@
 FROM docker.io/library/python:3.11-slim
 
+RUN apt-get update && apt-get install -y --no-install-recommends locales \
+    && locale-gen fr_FR.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
