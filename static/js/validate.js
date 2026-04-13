@@ -1,6 +1,15 @@
 let currentInvalidItemId = null;
 let invalidations = [];
 
+function markSourceChecked(itemId) {
+    document.querySelectorAll(`[data-validate-btn="${itemId}"]`).forEach((btn) => {
+        btn.removeAttribute("disabled");
+    });
+    const warning = document.querySelector(`[data-source-warning="${itemId}"]`);
+    if (warning) warning.remove();
+}
+
+
 function extractWikidata(url) {
   const parts = url.split("/");
   return parts.find((part) => /^Q\d+$/.test(part));
