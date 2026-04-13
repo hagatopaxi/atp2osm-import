@@ -334,8 +334,7 @@ def create_mv_places_brand(osmdb):
                 INNER JOIN atp_fr atp ON
                     ST_DWithin(osm.geom_9794, ST_Transform(ST_GeomFromGeoJSON(atp.geom), 9794), 500)
                 WHERE
-                    atp.source_type != 'api'
-                    AND (
+                    (
                         osm.brand_wikidata = atp.brand_wikidata
                         OR LOWER(osm.brand) = LOWER(atp.brand)
                         OR LOWER(osm.name)  = LOWER(atp."name")

@@ -82,9 +82,10 @@ def get_all(osmdb):
             FROM import_history
             ORDER BY brand_wikidata, import_date DESC
         ) ih ON ih.brand_wikidata = mvb.brand_wikidata
-        WHERE ih.last_import IS NULL
+        WHERE (mvb.brand IS NOT NULL OR mvb.brand_wikidata IS NOT NULL)
+          AND (ih.last_import IS NULL
            OR ih.last_status != 'success'
-           OR ih.last_import < NOW() - INTERVAL '3 months'
+           OR ih.last_import < NOW() - INTERVAL '3 months')
         ORDER BY
             last_import ASC NULLS FIRST,
             total DESC;
@@ -139,6 +140,7 @@ def apply_on_node(atp_osm_match: dict) -> dict:
         # Values only for atp2osm render
         "atp_brand": atp_osm_match["brand"],
         "source_uri": atp_osm_match["source_uri"],
+        "source_type": atp_osm_match["source_type"],
         "postcode": atp_osm_match["postcode"],
         "old_tag": atp_osm_match["tags"],
         "departement_number": atp_osm_match["departement_number"],
