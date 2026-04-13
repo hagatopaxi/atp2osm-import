@@ -1,7 +1,8 @@
 {% extends '_base.html' %}
 
 {% block title %}Liste des marques à importer dans Open Street Map{% endblock %}
-{% block subtitle %}{{ total_brands }} marque{{ 's' if total_brands > 1 }} — données issues de la base All The Places.{% endblock %}
+{% block subtitle %}{{ total_brands }} marque{{ 's' if total_brands > 1 }} — données issues de la base All The Places.{%
+endblock %}
 
 {% block content %}
 <table class="table table-compact bg-base-100 rounded-2">
@@ -10,6 +11,7 @@
             <th>Code Wikidata</th>
             <th>Nom</th>
             <th>Correspondances</th>
+            <th>Status</th>
             <th>Dernier import</th>
             <th>Actions</th>
         </tr>
@@ -30,6 +32,16 @@
             </td>
 
             <td>
+                {% if row["last_status"] == 'success' %}
+                <span class="badge badge-warning">Import ancien</span>
+                {% elif row["last_status"] == 'error' %}
+                <span class="badge badge-error">Erreur</span>
+                {% else %}
+                <span class="badge badge-ghost">—</span>
+                {% endif %}
+            </td>
+
+            <td>
                 {% if row["last_import"] %}
                 {{ row["last_import"].strftime('%-d %B %Y') }}
                 {% else %}
@@ -40,17 +52,16 @@
             <td>
                 <div class="opacity-0 group-hover:opacity-100 transition-opacity">
                     {% if row["total"] > 25 %}
-                        {% set tooltip = "Import trop important pour la version Alpha" %}
+                    {% set tooltip = "Import trop important pour la version Alpha" %}
                     {% elif 'user' not in session %}
-                        {% set tooltip = "Vous devez vous connecter" %}
+                    {% set tooltip = "Vous devez vous connecter" %}
                     {% endif %}
                     {% set disabled = tooltip is defined %}
                     <div class="{{ 'tooltip' if disabled }}" {{ ('data-tip="' + tooltip + '"') | safe if disabled }}>
-                        <a {% if not disabled %}href="/brands/{{ row['brand_wikidata'] }}/validate"{% endif %}
-                           {{ 'disabled' if disabled }}
-                           class="btn {{ 'btn-accent' if not disabled }} btn-sm rounded-md">
-                            <i class="iconoir-double-check"></i>
-                            Importer
+                        <a {% if not disabled %}href="/brands/{{ row[' brand_wikidata'] }}/validate"{% endif %}
+                        {{ 'disabled' if disabled }} class="btn {{ 'btn-accent' if not disabled }} btn-sm rounded-md">
+                        <i class="iconoir-double-check"></i>
+                        Importer
                         </a>
                     </div>
                 </div>
