@@ -82,7 +82,7 @@ def get_all(osmdb):
             FROM import_history
             ORDER BY brand_wikidata, import_date DESC
         ) ih ON ih.brand_wikidata = mvb.brand_wikidata
-        WHERE (mvb.brand IS NOT NULL OR mvb.brand_wikidata IS NOT NULL)
+        WHERE (mvb.brand IS NOT NULL AND mvb.brand_wikidata IS NOT NULL)
           AND (ih.last_import IS NULL
            OR ih.last_status != 'success'
            OR ih.last_import < NOW() - INTERVAL '3 months')
