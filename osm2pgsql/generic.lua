@@ -119,7 +119,7 @@ function osm2pgsql.process_relation(object)
     local tags = object.tags
     if is_definitely_not_a_place(tags) then return end
     
-    local relation_type = object:grab_tag('type')
+    local relation_type = object.tags['type']
 
     if relation_type == 'multipolygon' then
         tables.polygons:insert({
