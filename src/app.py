@@ -44,7 +44,10 @@ app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
 
-locale.setlocale(locale.LC_TIME, "fr_FR.UTF-8")
+try:
+    locale.setlocale(locale.LC_TIME, "fr_FR.utf8")
+except locale.Error:
+    logging.warning("French locale (fr_FR.UTF-8) not available — date formatting will use system default")
 
 app.config["CACHE_TYPE"] = "FileSystemCache"
 app.config["CACHE_DIR"] = CACHE_DIR
