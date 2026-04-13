@@ -3,6 +3,7 @@ import os
 import logging
 import json
 import datetime
+import xml.etree.ElementTree as ET
 
 from pathlib import Path
 from requests_oauthlib import OAuth2Session
@@ -70,19 +71,17 @@ class BulkUpload:
                         f"{os.getenv('OSM_API_HOST').rstrip('/')}/changeset/{changeset}"
                     )
 
-                    if self.is_dev:
-                        logger.warning(
-                            "DEV mode: skipping ChangesetUpload for changeset %s",
-                            changeset,
-                        )
-                    else:
-                        changingNodes = []
-                        for poi in dpt_changes:
-                            poi["changeset"] = changeset
+                    changingNodes = []
+                    for poi in dpt_changes:
+                        poi["changeset"] = changeset
 
-                            if poi["node_type"] == "node":
-                                changingNodes.append(poi)
-                            elif poi["node_type"] == "way":
+                        if poi["node_type"] == "node":
+                            changingNodes.append(poi)
+                        elif poi["node_type"] == "way":
+                            # DEV: the dev OSM instance returns 404 on node/way lookups
+                            # because it does not mirror production data, so uploads are skipped.
+                            # Uncomment the _write_osc call below to inspect generated OSC files.
+                            if not self.is_dev:
                                 self.api.WayUpdate(
                                     {
                                         "id": poi["id"],
@@ -92,35 +91,49 @@ class BulkUpload:
                                         "nd": poi["members"],
                                     }
                                 )
-                            elif poi["node_type"] == "relation":
-                                type_map = {"n": "node", "w": "way", "r": "relation"}
-                                self.api.RelationUpdate(
+                            # if self.is_dev:
+                            #     self._write_osc(changeset, "way", poi["id"], "modify", {
+                            #         "id": poi["id"], "version": poi["version"],
+                            #         "changeset": changeset, "tag": poi["tag"], "nd": poi["members"],
+                            #     })
+                        elif poi["node_type"] == "relation":
+                            type_map = {"n": "node", "w": "way", "r": "relation"}
+                            relation_data = {
+                                "id": poi["id"],
+                                "version": poi["version"],
+                                "changeset": changeset,
+                                "tag": poi["tag"],
+                                "member": [
                                     {
-                                        "id": poi["id"],
-                                        "version": poi["version"],
-                                        "changeset": changeset,
-                                        "tag": poi["tag"],
-                                        "member": [
-                                            {
-                                                "type": type_map[m["type"]],
-                                                "ref": m["ref"],
-                                                "role": m["role"],
-                                            }
-                                            for m in (poi["members"] or [])
-                                        ],
+                                        "type": type_map[m["type"]],
+                                        "ref": m["ref"],
+                                        "role": m["role"],
                                     }
-                                )
+                                    for m in (poi["members"] or [])
+                                ],
+                            }
+                            if not self.is_dev:
+                                self.api.RelationUpdate(relation_data)
+                            # Uncomment to inspect relation OSC output in dev:
+                            # if self.is_dev:
+                            #     self._write_osc(changeset, "relation", poi["id"], "modify", relation_data)
 
-                        if changingNodes:
-                            self.api.ChangesetUpload(
-                                [
-                                    {
-                                        "type": "node",
-                                        "action": "modify",
-                                        "data": changingNodes,
-                                    }
-                                ]
-                            )
+                    # DEV: the dev OSM instance returns 404 on node lookups because it does
+                    # not mirror production data, so node uploads are skipped.
+                    # Uncomment the _write_osc loop below to inspect generated OSC files.
+                    if changingNodes and not self.is_dev:
+                        self.api.ChangesetUpload(
+                            [
+                                {
+                                    "type": "node",
+                                    "action": "modify",
+                                    "data": changingNodes,
+                                }
+                            ]
+                        )
+                    # if self.is_dev:
+                    #     for node in changingNodes:
+                    #         self._write_osc(changeset, "node", node["id"], "modify", node)
 
                     # Add to changeset list to save it in logs
                     self.changesets.append(changeset)
@@ -134,6 +147,60 @@ class BulkUpload:
                 errors.append(msg)
 
         return errors
+
+    def _write_osc(
+        self,
+        changeset: int,
+        element_type: str,
+        element_id: int,
+        action: str,
+        data: dict,
+    ) -> None:
+        osc_dir = Path("./data/atp2osm/changesets")
+        osc_dir.mkdir(parents=True, exist_ok=True)
+        osc_path = osc_dir / f"{changeset}_{element_type}_{element_id}.osc"
+
+        root = ET.Element("osmChange", version="0.6")
+        action_el = ET.SubElement(root, action)
+        el = ET.SubElement(
+            action_el,
+            element_type,
+            {
+                "id": str(element_id),
+                "version": str(data.get("version", "")),
+                "changeset": str(changeset),
+            },
+        )
+
+        if element_type == "node":
+            if "lat" in data:
+                el.set("lat", str(data["lat"]))
+            if "lon" in data:
+                el.set("lon", str(data["lon"]))
+        elif element_type == "way":
+            for ref in data.get("nd") or []:
+                ET.SubElement(el, "nd", ref=str(ref))
+        elif element_type == "relation":
+            for member in data.get("member") or []:
+                ET.SubElement(
+                    el,
+                    "member",
+                    {
+                        "type": member["type"],
+                        "ref": str(member["ref"]),
+                        "role": member.get("role", ""),
+                    },
+                )
+
+        for k, v in (data.get("tag") or {}).items():
+            ET.SubElement(el, "tag", k=k, v=str(v))
+
+        tree = ET.ElementTree(root)
+        ET.indent(tree, space="  ")
+        with open(osc_path, "wb") as f:
+            tree.write(f, encoding="utf-8", xml_declaration=True)
+
+        logger.debug(f"DEV: OSC written to {osc_path}")
 
     def _sorted_by_dpt(self):
         sorted_changes = {}

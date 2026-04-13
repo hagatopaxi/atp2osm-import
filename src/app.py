@@ -157,7 +157,7 @@ def auth_required(f):
 
 @app.context_processor
 def inject_globals():
-    return {"api_url": api_url, "app_version": APP_VERSION}
+    return {"api_url": api_url, "app_version": APP_VERSION, "is_dev": env == "DEVELOPMENT"}
 
 
 @app.teardown_appcontext
