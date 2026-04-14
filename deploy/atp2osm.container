@@ -1,0 +1,18 @@
+[Unit]
+Description=${PROJECT_NAME} container
+After=network.target
+
+[Container]
+Image=${IMAGE_NAME}:latest
+ContainerName=${CONTAINER_NAME}
+Network=host
+EnvironmentFile=${PROJECT_DIR}/.env
+Volume=${PROJECT_DIR}/data:/app/data:Z
+Volume=${PROJECT_DIR}/logs:/app/logs:Z
+
+[Service]
+Restart=on-failure
+TimeoutStartSec=30
+
+[Install]
+WantedBy=default.target

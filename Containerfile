@@ -19,6 +19,7 @@ COPY static/ static/
 COPY migrations/ migrations/
 
 ARG GIT_COMMIT=unknown
+LABEL git-commit=${GIT_COMMIT}
 ENV APP_VERSION=Alpha-${GIT_COMMIT}
 
 ARG PORT=8000
