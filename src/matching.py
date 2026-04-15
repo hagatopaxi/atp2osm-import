@@ -139,6 +139,8 @@ def apply_on_node(atp_osm_match: dict) -> dict:
         "lat": atp_osm_match["lat"],
         # Values only for atp2osm render
         "atp_brand": atp_osm_match["brand"],
+        "atp_id": atp_osm_match["id"],
+        "spider_id": atp_osm_match.get("spider_id"),
         "source_uri": atp_osm_match["source_uri"],
         "source_type": atp_osm_match["source_type"],
         "postcode": atp_osm_match["postcode"],

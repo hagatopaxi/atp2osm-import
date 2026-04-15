@@ -2,13 +2,14 @@ let currentInvalidItemId = null;
 let invalidations = [];
 
 function markSourceChecked(itemId) {
-    document.querySelectorAll(`[data-validate-btn="${itemId}"]`).forEach((btn) => {
-        btn.removeAttribute("disabled");
+  document
+    .querySelectorAll(`[data-validate-btn="${itemId}"]`)
+    .forEach((btn) => {
+      btn.removeAttribute("disabled");
     });
-    const warning = document.querySelector(`[data-source-warning="${itemId}"]`);
-    if (warning) warning.remove();
+  const warning = document.querySelector(`[data-source-warning="${itemId}"]`);
+  if (warning) warning.remove();
 }
-
 
 function extractWikidata(url) {
   const parts = url.split("/");
@@ -37,7 +38,7 @@ function checkAllValidated() {
   const allValidated = Array.from(cards).every((card) =>
     card.classList.contains("validated"),
   );
-
+  console.log(cards, allValidated, nextStepButton);
   if (nextStepButton) {
     if (allValidated) {
       nextStepButton.removeAttribute("disabled");
@@ -47,7 +48,8 @@ function checkAllValidated() {
         nextStepButton.classList.remove("btn-primary");
         nextStepButton.classList.add("btn-error");
         nextStepButton.addEventListener("click", () => {
-          const brandName = document.querySelector("[data-brand-name]")?.dataset.brandName;
+          const brandName =
+            document.querySelector("[data-brand-name]")?.dataset.brandName;
           sessionStorage.setItem(
             "invalidations",
             JSON.stringify(invalidations),
@@ -73,7 +75,7 @@ function publishComment() {
   const nodeType = collapse ? collapse.dataset.nodeType : null;
 
   invalidations.push({
-    osm_id: currentInvalidItemId,
+    osm_id: collapse ? parseInt(collapse.dataset.osmId) : null,
     osm_type: nodeType,
     title,
     comment,
