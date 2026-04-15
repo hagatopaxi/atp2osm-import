@@ -320,6 +320,8 @@ def create_mv_places_brand(osmdb):
             CREATE MATERIALIZED VIEW mv_places_brand AS
             WITH joined_poi AS (
                 SELECT
+                    osm.osm_id,
+                    osm.node_type,
                     atp.brand       AS atp_brand,
                     atp.brand_wikidata AS atp_brand_wikidata,
                     (
@@ -328,6 +330,7 @@ def create_mv_places_brand(osmdb):
                         OR (atp.phone    IS NOT NULL AND osm.phone    IS NULL)
                         OR (atp.website  IS NOT NULL AND osm.website  IS NULL)
                     ) AS is_importable,
+                    ST_Distance(osm.geom_9794, ST_Transform(ST_GeomFromGeoJSON(atp.geom), 9794)) AS atp_distance,
                     count(*) FILTER (WHERE osm.node_type = 'node')                          OVER (PARTITION BY atp.id) AS pt_cnt,
                     count(*) FILTER (WHERE osm.node_type IN ('way', 'relation'))            OVER (PARTITION BY atp.id) AS poly_cnt
                 FROM mv_places osm
@@ -342,14 +345,19 @@ def create_mv_places_brand(osmdb):
                         OR LOWER(REGEXP_REPLACE(osm.website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(atp.website, '^https?://', '', 'i'))
                         OR REGEXP_REPLACE(REGEXP_REPLACE(osm.phone, '^\+33', '0'), '\s+', '', 'g') = REGEXP_REPLACE(REGEXP_REPLACE(atp.phone, '^\+33', '0'), '\s+', '', 'g')
                     )
+            ),
+            deduped AS (
+                SELECT DISTINCT ON (osm_id, node_type) *
+                FROM joined_poi
+                WHERE pt_cnt <= 1 AND poly_cnt <= 1 AND is_importable
+                ORDER BY osm_id, node_type, atp_distance
             )
             SELECT
-                atp_brand       AS brand,
+                STRING_AGG(DISTINCT atp_brand, ' / ' ORDER BY atp_brand) AS brand,
                 atp_brand_wikidata AS brand_wikidata,
-                COUNT(*)        AS total
-            FROM joined_poi
-            WHERE pt_cnt <= 1 AND poly_cnt <= 1 AND is_importable
-            GROUP BY atp_brand, atp_brand_wikidata;
+                COUNT(*)           AS total
+            FROM deduped
+            GROUP BY atp_brand_wikidata;
         """)
         osmdb.commit()
 

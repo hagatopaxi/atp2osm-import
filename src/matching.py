@@ -23,6 +23,7 @@ def get_filtered(
             atp.country as atp_country,
             atp.city as atp_city,
             atp.source_uri as atp_source_uri,
+            ST_Distance(geom_9794, ST_Transform(ST_GeomFromGeoJSON(atp.geom), 9794)) AS atp_distance,
             count(*) FILTER (WHERE osm.node_type = 'node')                 OVER (PARTITION BY atp.id) AS pt_cnt,
             count(*) FILTER (WHERE osm.node_type IN ('way', 'relation'))   OVER (PARTITION BY atp.id) AS poly_cnt
         FROM
@@ -35,7 +36,7 @@ def get_filtered(
             )
         WHERE
             {where_options} AND
-            ( 
+            (
                 osm.brand_wikidata = atp.brand_wikidata
                 OR LOWER(osm.brand) = LOWER(atp.brand)
                 OR LOWER(osm.name) = LOWER(atp."name")
@@ -44,9 +45,10 @@ def get_filtered(
                 OR REGEXP_REPLACE(REGEXP_REPLACE(osm.phone, '^\+33', '0'), '\s+', '', 'g') = REGEXP_REPLACE(REGEXP_REPLACE(atp.phone, '^\+33', '0'), '\s+', '', 'g')
             )
         )
-        SELECT *
+        SELECT DISTINCT ON (osm_id, node_type) *
         FROM joined_poi
         WHERE pt_cnt <= 1 AND poly_cnt <= 1
+        ORDER BY osm_id, node_type, atp_distance
     """
     options = []
     params = []
@@ -158,8 +160,14 @@ def add_result(nodes_by_brand, brand_wikidata, res):
 
 def get_changes(cursor: Cursor):
     changes = []
+    # seen = set()
 
     for atp_osm_match in cursor:
+        # key = (atp_osm_match["osm_id"], atp_osm_match["node_type"])
+        # if key in seen:
+        #     continue
+        # seen.add(key)
+
         res = apply_on_node(atp_osm_match)
         if res is None:
             continue
