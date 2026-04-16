@@ -97,9 +97,9 @@ def _get_version():
             .decode()
             .strip()
         )
-        return f"Alpha-{hash}"
+        return f"Beta-{hash}"
     except Exception:
-        return "Alpha"
+        return "Beta"
 
 
 APP_VERSION = _get_version()

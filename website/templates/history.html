@@ -25,9 +25,7 @@
             <tr>
                 <td class="whitespace-nowrap">{{ entry.import_date.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>
-                    <a class="link" href="/brands/{{ entry.brand_wikidata }}/validate">
                         {{ entry.brand_name if entry.brand_name else entry.brand_wikidata }}
-                    </a>
                     <span class="text-xs text-base-content/50">{{ entry.brand_wikidata }}</span>
                 </td>
                 <td>
