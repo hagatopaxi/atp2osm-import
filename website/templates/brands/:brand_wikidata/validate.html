@@ -45,23 +45,25 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
         saisie et recommencez</a>
 
     {% for item in items %}
-    <div class="card bg-base-100 border-base-300 gap-4 border shadow-md p-4" data-item-id="{{item['node_type']}}-{{item['id']}}"
-        data-osm-id="{{item['id']}}" data-node-type="{{item['node_type']}}">
+    <div class="card bg-base-100 border-base-300 gap-4 border shadow-md p-4"
+        data-item-id="{{item['node_type']}}-{{item['id']}}" data-osm-id="{{item['id']}}"
+        data-node-type="{{item['node_type']}}">
         <div class="title font-semibold">
             {{ loop.index }} - {{ item["title"] }}
         </div>
         <div class="content grid grid-cols-2 gap-2">
-            {% set needs_source = item['source_uri'] != None %}
+            {% set needs_source = item['source_uri'] != None and item['source_type'] != 'api' %}
             <div class="flex flex-col gap-2">
-                {% if item['source_uri'] %}
+                {% if item['source_type'] == 'api' %}
+                <div role="alert" class="alert alert-info alert-soft">
+                    <i class="iconoir-database-check"></i>
+                    <span>Les données proviennent directement d'une API officielle.</span>
+                </div>
+                {% elif item['source_uri'] %}
                 <a class="btn btn-accent btn-sm" href="{{ item['source_uri'] }}" target="_blank"
                     onclick="markSourceChecked(`{{ item['node_type'] }}-{{ item['id'] }}`)">
                     Ouvrir la source de donnée <i class="iconoir-open-new-window ml-1"></i>
                 </a>
-                {% else %}
-                <p class="text-xs text-base-content/50">
-                    <i class="iconoir-info-circle"></i> Aucune source disponible pour ce point d'intérêt.
-                </p>
                 {% endif %}
 
                 {{ render_tag("brand", "Nom de la marque", "iconoir-shop", item) }}
@@ -79,8 +81,10 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
                 {{ render_tag('opening_hours', "Horaires", "iconoir-clock", item) }}
 
                 <div class="text-xs text-base-content/50 mt-1 flex flex-col gap-0.5">
-                    <span><i class="iconoir-database"></i> <strong class="font-mono">ATP</strong> <code>{{ item['spider_id'] }}/{{ item['atp_id'] }}</code></span>
-                    <span><i class="iconoir-database"></i> <strong class="font-mono">OSM</strong> <code>{{ item['node_type'] }}/{{ item['id'] }}</code></span>
+                    <span><i class="iconoir-database"></i> <strong class="font-mono">ATP</strong>
+                        <code>{{ item['spider_id'] }}/{{ item['atp_id'] }}</code></span>
+                    <span><i class="iconoir-database"></i> <strong class="font-mono">OSM</strong>
+                        <code>{{ item['node_type'] }}/{{ item['id'] }}</code></span>
                 </div>
 
             </div>
@@ -95,16 +99,19 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
                 <div class="flex flex-col gap-1 self-end">
                     <div class="flex gap-2">
                         <button class="btn btn-error btn-sm flex-1" {{ 'disabled' if needs_source }}
-                            data-validate-btn="{{ item['node_type'] }}-{{ item['id'] }}" onclick="invalidateData(`{{ item['node_type'] }}-{{ item['id'] }}`)">
+                            data-validate-btn="{{ item['node_type'] }}-{{ item['id'] }}"
+                            onclick="invalidateData(`{{ item['node_type'] }}-{{ item['id'] }}`)">
                             Invalider <i class="iconoir-prohibition"></i>
                         </button>
                         <button class="btn btn-success btn-sm flex-1" {{ 'disabled' if needs_source }}
-                            data-validate-btn="{{ item['node_type'] }}-{{ item['id'] }}" onclick="validateData(`{{ item['node_type'] }}-{{ item['id'] }}`)">
+                            data-validate-btn="{{ item['node_type'] }}-{{ item['id'] }}"
+                            onclick="validateData(`{{ item['node_type'] }}-{{ item['id'] }}`)">
                             Valider <i class="iconoir-check"></i>
                         </button>
                     </div>
                     {% if needs_source %}
-                    <p class="text-xs text-warning text-right" data-source-warning="{{ item['node_type'] }}-{{ item['id'] }}">
+                    <p class="text-xs text-warning text-right"
+                        data-source-warning="{{ item['node_type'] }}-{{ item['id'] }}">
                         <i class="iconoir-info-circle"></i> Vérifiez la source avant de valider.
                     </p>
                     {% endif %}
