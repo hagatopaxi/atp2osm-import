@@ -60,8 +60,8 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
     <table class="table table-zebra w-full">
       <thead>
         <tr>
-          <th>Wikidata</th>
           <th>Nom</th>
+          <th>Wikidata</th>
           <th>Estimation</th>
           <th>Ajouté par</th>
           <th>Date</th>
@@ -71,6 +71,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
       <tbody>
         {% for entry in entries %}
         <tr>
+          <td>{{ entry.brand_name }}</td>
           <td>
             {% if entry.brand_wikidata %}
             <a class="link font-mono text-sm" href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
@@ -79,7 +80,6 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
             —
             {% endif %}
           </td>
-          <td>{{ entry.brand_name }}</td>
           <td>{{ entry.estimation if entry.estimation else '—' }}</td>
           <td>
             {% set display_name = users.get(entry.osm_user_id) %}
