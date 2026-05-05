@@ -387,7 +387,8 @@ def todo():
         ).fetchall()
     user_ids = list({e["osm_user_id"] for e in entries})
     users = fetch_osm_users(user_ids)
-    return render_template("todo.html", entries=entries, users=users)
+    current_user_id = session["user"]["osm_id"] if "user" in session else None
+    return render_template("todo.html", entries=entries, users=users, current_user_id=current_user_id)
 
 
 @app.route("/todo/check")
@@ -417,7 +418,7 @@ def todo_check():
 @auth_required
 def todo_add():
     data = request.get_json()
-    brand_wikidata = (data.get("brand_wikidata") or "").strip()
+    brand_wikidata = (data.get("brand_wikidata") or "").strip() or None
     brand_name = (data.get("brand_name") or "").strip()
     estimation = data.get("estimation")
     if estimation is not None:
@@ -425,8 +426,8 @@ def todo_add():
             estimation = int(estimation)
         except (ValueError, TypeError):
             return {"error": "estimation doit être un entier"}, 400
-    if not brand_wikidata or not brand_name:
-        return {"error": "brand_wikidata et brand_name sont requis"}, 400
+    if not brand_name:
+        return {"error": "brand_name est requis"}, 400
     osm_user_id = session["user"]["osm_id"]
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
