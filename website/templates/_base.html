@@ -5,36 +5,34 @@
     <meta charset="UTF-8">
     <title>atp2osm{% if is_dev %} - DEV{% endif %}</title>
 
-    <!-- Tailwind + DaisyUI (CDN) -->
     <link href="/static/lib/daisyui-5.css" rel="stylesheet" type="text/css" />
     <script src="/static/lib/tailiwind-4.js"></script>
-
     <link rel="stylesheet" href="/static/lib/iconoir.css" type="text/css" />
+    <link rel="stylesheet" href="/static/css/app.css" type="text/css" />
 
-    <!-- Optional custom CSS (if you created one) -->
     {% block custom_css %}
     {% endblock %}
 
     <script src="/static/js/auth.js"></script>
-    <!-- Optional custom JS (if you created one) -->
     {% block custom_js %}
     {% endblock %}
 </head>
 
-<body class="flex h-screen w-screen bg-base-300 flex gap-2 p-2">
+<body class="flex h-screen w-screen bg-base-300 gap-2 p-2">
+    <input type="checkbox" id="sidebar-toggle" class="hidden" checked />
     {% include '_aside.html' %}
 
     <main class="flex flex-col bg-base-200 rounded-md flex-grow p-3 overflow-x-auto gap-2">
         <div class="mb-4">
             <h1 class="text-xl font-bold mb-4 font-mono flex items-center"><i class="iconoir-nav-arrow-right"></i>{%
-                block
-                title %}{%
-                endblock %}</h1>
+                block title %}{% endblock %}</h1>
             <p class="text-sm text-gray-500 w-2/3">{% block subtitle %}{% endblock %}</p>
         </div>
 
-        {%block content %}{% endblock %}
+        {% block content %}{% endblock %}
     </main>
+
+    <script src="/static/js/sidebar.js"></script>
 </body>
 
 </html>

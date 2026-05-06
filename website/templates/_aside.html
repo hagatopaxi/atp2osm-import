@@ -1,27 +1,37 @@
-<div class="w-64 shrink-0 bg-base-200 p-3 rounded-md flex flex-col">
-  <div class="text-xl font-bold mb-4 font-mono flex items-center gap-2">atp2osm{% if is_dev %}<span
-      class="badge badge-warning badge-sm">DEV</span>{% endif %}</div>
+<aside id="sidebar" class="bg-base-200 rounded-md p-3 flex flex-col">
+
+  <div class="flex items-center justify-between mb-4">
+    <div class="sidebar-hide text-xl font-bold font-mono flex items-center gap-2 whitespace-nowrap overflow-hidden">
+      atp2osm{% if is_dev %}<span class="badge badge-warning badge-sm">DEV</span>{% endif %}
+    </div>
+    <label for="sidebar-toggle" class="btn btn-ghost btn-sm btn-square shrink-0" title="Basculer la barre latérale">
+      <i class="iconoir-sidebar-collapse sidebar-collapse-icon"></i>
+      <i class="iconoir-sidebar-expand sidebar-expand-icon"></i>
+    </label>
+  </div>
+
   <ul class="menu p-0 w-full gap-2">
     <li>
-      <a class="bg-white align-start hover:bg-base-300 shadow-sm" href="/"><i class="iconoir-home"></i>Accueil</a>
+      <a class="bg-white hover:bg-base-300 shadow-sm" href="/"><i class="iconoir-home"></i><span
+          class="sidebar-hide whitespace-nowrap">Accueil</span></a>
     </li>
     <li>
-      <a class="bg-white align-start hover:bg-base-300 shadow-sm" href="/brands"><i class="iconoir-archery"></i>Marques
-        à importer</a>
+      <a class="bg-white hover:bg-base-300 shadow-sm" href="/brands"><i class="iconoir-archery"></i><span
+          class="sidebar-hide whitespace-nowrap">Marques à importer</span></a>
     </li>
     <li>
-      <a class="bg-white align-start hover:bg-base-300 shadow-sm" href="/history"><i
-          class="iconoir-clock"></i>Historique des imports</a>
+      <a class="bg-white hover:bg-base-300 shadow-sm" href="/history"><i class="iconoir-clock"></i><span
+          class="sidebar-hide whitespace-nowrap">Historique des imports</span></a>
     </li>
     <li>
-      <a class="bg-white align-start hover:bg-base-300 shadow-sm" href="/todo"><i class="iconoir-list"></i>Marques
-        manquantes</a>
+      <a class="bg-white hover:bg-base-300 shadow-sm" href="/todo"><i class="iconoir-list"></i><span
+          class="sidebar-hide whitespace-nowrap">Marques manquantes</span></a>
     </li>
   </ul>
 
   <div class="flex-1"></div>
 
-  <div class="mb-4 p-3 bg-base-100 rounded-md text-sm shadow-sm">
+  <div class="mb-4 p-3 bg-base-100 rounded-md text-sm shadow-sm sidebar-hide">
     <p class="font-bold mb-1"><i class="iconoir-info-circle"></i> A propos</p>
     <p class="mb-2">Projet open-source. Contributions bienvenues !</p>
     <a href="https://github.com/hagatopaxi/atp2osm-import" class="link link-primary text-xs" target="_blank"
@@ -35,25 +45,29 @@
   <div class="w-full">
     {% if 'user' in session %}
     <div class="flex items-center gap-3 p-3 bg-base-100 rounded-md shadow-sm">
-      <div class="avatar placeholder">
-        <div class="bg-primary text-primary-content w-10 rounded-full flex items-center justify-center">
-          <span class="text-lg leading-none">{{ session['user']['name'][0] | upper }}</span>
+      <div class="avatar placeholder shrink-0">
+        <div class="bg-primary text-primary-content w-8 rounded-full flex items-center justify-center">
+          <span class="text-base leading-none">{{ session['user']['name'][0] | upper }}</span>
         </div>
       </div>
-      <div class="flex-1 min-w-0">
+      <div class="flex-1 min-w-0 sidebar-hide">
         <a href="{{ api_url }}/user/{{ session['user']['name'] }}"
           class="text-sm font-semibold truncate link link-hover tooltip tooltip-top"
           data-tip="{{ session['user']['name'] }}" target="_blank" rel="noopener">{{ session['user']['name'] }}</a>
         <p class="text-xs opacity-60">OpenStreetMap</p>
       </div>
-      <button class="btn btn-ghost btn-sm btn-square text-error" onclick="logout()" title="Deconnexion">
+      <button class="btn btn-ghost btn-sm btn-square text-error sidebar-hide" onclick="logout()" title="Deconnexion">
         <i class="iconoir-log-out text-xl"></i>
       </button>
     </div>
     {% else %}
-    <button class="btn btn-primary w-full rounded-full" onclick="login()">
+    <button class="btn btn-primary w-full rounded-full sidebar-hide" onclick="login()">
       <i class="iconoir-log-in"></i> Se connecter avec OSM
+    </button>
+    <button class="btn btn-primary btn-circle sidebar-show" onclick="login()" title="Se connecter avec OSM">
+      <i class="iconoir-log-in"></i>
     </button>
     {% endif %}
   </div>
-</div>
+
+</aside>

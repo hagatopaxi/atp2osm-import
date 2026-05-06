@@ -1,0 +1,39 @@
+/* Sidebar width */
+#sidebar {
+    width: 256px;
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: width 300ms ease;
+}
+body:has(#sidebar-toggle:not(:checked)) #sidebar {
+    width: 64px;
+}
+
+/* Content visibility based on sidebar state */
+body:has(#sidebar-toggle:not(:checked)) .sidebar-hide {
+    display: none;
+}
+body:has(#sidebar-toggle:checked) .sidebar-show {
+    display: none;
+}
+
+/* Toggle icon swap */
+body:has(#sidebar-toggle:checked) .sidebar-expand-icon {
+    display: none;
+}
+body:has(#sidebar-toggle:not(:checked)) .sidebar-collapse-icon {
+    display: none;
+}
+
+/* Icon-only menu items when collapsed */
+body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
+    justify-content: center;
+    padding-inline: 0;
+}
+#sidebar .menu a i {
+    font-size: 1rem;
+}
+#sidebar .sidebar-collapse-icon,
+#sidebar .sidebar-expand-icon {
+    font-size: 1.5rem;
+}
