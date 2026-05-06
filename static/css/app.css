@@ -25,6 +25,12 @@ body:has(#sidebar-toggle:not(:checked)) .sidebar-collapse-icon {
     display: none;
 }
 
+/* User avatar when collapsed */
+body:has(#sidebar-toggle:not(:checked)) .sidebar-user-section {
+    padding: 6px 4px;
+    justify-content: center;
+}
+
 /* Icon-only menu items when collapsed */
 body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
     justify-content: center;
