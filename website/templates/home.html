@@ -1,21 +1,74 @@
 {% extends '_base.html' %}
 
-{% block title %}Enrichir OpenStreetMap avec les données AllThePlaces{% endblock %}
-{% block subtitle %}Importez automatiquement les données de points d'intérêt depuis AllThePlaces vers OpenStreetMap.{%
-endblock %}
+{% block meta_description %}atp2osm enrichit OpenStreetMap avec les données AllThePlaces pour la France : horaires d'ouverture, téléphone, site web, email. Import semi-automatique validé par les contributeurs OSM.{% endblock %} 
+{% block og_title %}atp2osm — Enrichir OpenStreetMap avec les données AllThePlaces{% endblock %} 
+{% block og_description %}Outil d'import collaboratif des points d'intérêt AllThePlaces dans OpenStreetMap pour la France.{% endblock %} 
+
+{% block structured_data %}
+<script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "atp2osm",
+        "description": "Outil d'import semi-automatique des données AllThePlaces (ATP) dans OpenStreetMap pour les points d'intérêt français. Correspondance spatiale et validation collaborative des tags.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Any",
+        "inLanguage": "fr",
+        "isAccessibleForFree": true,
+        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+        "url": "{{ request.host_url }}",
+        "author": {
+            "@type": "Person",
+            "name": "Gwenaël Léger"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "EUR"
+        }
+    }
+</script>
+{% endblock %} 
+
+{% block title %}Enrichir OpenStreetMap avec les données AllThePlaces{% endblock %} 
+{% block subtitle %}Importez automatiquement les données de points d'intérêt depuis AllThePlaces vers OpenStreetMap.{% endblock%} 
 
 {% block content %}
 <section class="max-w-3xl">
     <p class="text-base leading-relaxed mb-4">
-        <strong>atp2osm</strong> est un outil qui rapproche les points d'intérêt (POI) de la base
-        <a href="https://alltheplaces.xyz" class="link link-primary" target="_blank" rel="noopener">All The Places</a>
+        <strong>atp2osm</strong> est un outil qui rapproche les points d'intérêt
+        (POI) de la base
+        <a
+            href="https://alltheplaces.xyz"
+            class="link link-primary"
+            target="_blank"
+            rel="noopener"
+            >All The Places</a
+        >
         avec les objets existants dans
-        <a href="https://www.openstreetmap.org" class="link link-primary" target="_blank"
-            rel="noopener">OpenStreetMap</a>.
+        <a
+            href="https://www.openstreetmap.org"
+            class="link link-primary"
+            target="_blank"
+            rel="noopener"
+            >OpenStreetMap</a
+        >.
     </p>
     <p class="text-base leading-relaxed mb-6">
-        Pour chaque marque, l'outil identifie les correspondances par proximité géographique et par attributs
-        (nom, marque, téléphone, email, site web), puis propose les mises à jour de tags à valider avant import.
+        Pour chaque marque, l'outil identifie les correspondances par proximité
+        géographique et par attributs (nom, marque, téléphone, email, site web),
+        puis propose les mises à jour de tags à valider avant import.
+    </p>
+    <p>
+        Pour voir la progression des imports dans votre région vous pouvez aller
+        visualiser le résultat sur le site suivant :
+        <a
+            class="link link-primary"
+            href="https://nicofredo.github.io/osm_pois_completude_viewer/main.html"
+            target="_blank"
+            rel="noopener"
+            >https://nicofredo.github.io/osm_pois_completude_viewer/main.html</a
+        >
     </p>
 </section>
 
@@ -49,31 +102,33 @@ endblock %}
 <section class="mt-8 max-w-3xl">
     <h2 class="text-lg font-semibold mb-3">État des données</h2>
     <div class="grid grid-cols-2 gap-4">
-        {% for type, label in [("osm", "OpenStreetMap"), ("atp", "All The Places")] %}
-        {% set row = data_imports.get(type) %}
+        {% for type, label in [("osm", "OpenStreetMap"), ("atp", "All The
+        Places")] %} {% set row = data_imports.get(type) %}
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body">
                 <h3 class="card-title text-sm font-mono">{{ label }}</h3>
-                {% if row %}
-                    {% if row.status == "error" %}
-                        <div class="badge badge-error badge-sm">Erreur</div>
-                    {% else %}
-                        <div class="badge badge-success badge-sm">OK</div>
-                    {% endif %}
-                    <p class="text-sm mt-1">
-                        <span class="text-base-content/60">Source :</span>
-                        {% if row.date %}
-                            {{ row.date.strftime("%d/%m/%Y") }}
-                        {% else %}
-                            <span class="text-error">inconnue</span>
-                        {% endif %}
-                    </p>
-                    <p class="text-sm">
-                        <span class="text-base-content/60">Dernière vérification :</span>
-                        {{ row.created_at.strftime("%d/%m/%Y") }}
-                    </p>
+                {% if row %} {% if row.status == "error" %}
+                <div class="badge badge-error badge-sm">Erreur</div>
                 {% else %}
-                    <p class="text-sm text-base-content/60">Aucune donnée importée</p>
+                <div class="badge badge-success badge-sm">OK</div>
+                {% endif %}
+                <p class="text-sm mt-1">
+                    <span class="text-base-content/60">Source :</span>
+                    {% if row.date %} {{ row.date.strftime("%d/%m/%Y") }} {%
+                    else %}
+                    <span class="text-error">inconnue</span>
+                    {% endif %}
+                </p>
+                <p class="text-sm">
+                    <span class="text-base-content/60"
+                        >Dernière vérification :</span
+                    >
+                    {{ row.created_at.strftime("%d/%m/%Y") }}
+                </p>
+                {% else %}
+                <p class="text-sm text-base-content/60">
+                    Aucune donnée importée
+                </p>
                 {% endif %}
             </div>
         </div>

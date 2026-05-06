@@ -1,5 +1,21 @@
 {% extends '_base.html' %}
 
+{% block meta_description %}Liste des marques françaises absentes d'AllThePlaces. Contribuez en signalant les enseignes manquantes pour enrichir OpenStreetMap.{% endblock %}
+{% block og_title %}Marques manquantes dans AllThePlaces — atp2osm{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "{{ request.host_url }}" },
+    { "@type": "ListItem", "position": 2, "name": "Marques manquantes" }
+  ]
+}
+</script>
+{% endblock %}
+
 {% block title %}Marques à importer{% endblock %}
 {% block subtitle %}Liste des marques identifiées pour lesquelles aucun spiders AllThePlaces n'existe. Cette liste
 permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquantes.{% endblock %}

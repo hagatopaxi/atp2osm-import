@@ -1,5 +1,21 @@
 {% extends '_base.html' %}
 
+{% block meta_description %}Liste des {{ total_brands }} marques disponibles à l'import dans OpenStreetMap via atp2osm. Données issues d'AllThePlaces, validées par les contributeurs OSM.{% endblock %}
+{% block og_title %}Marques à importer — atp2osm{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "{{ request.host_url }}" },
+    { "@type": "ListItem", "position": 2, "name": "Marques à importer" }
+  ]
+}
+</script>
+{% endblock %}
+
 {% block title %}Liste des marques à importer dans Open Street Map{% endblock %}
 {% block subtitle %}{{ total_brands }} marque{{ 's' if total_brands > 1 }} — données issues de la base All The Places.{%
 endblock %}

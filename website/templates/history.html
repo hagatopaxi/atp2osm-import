@@ -1,5 +1,21 @@
 {% extends '_base.html' %}
 
+{% block meta_description %}Historique des imports AllThePlaces vers OpenStreetMap réalisés via atp2osm : marques importées, dates et statuts.{% endblock %}
+{% block og_title %}Historique des imports — atp2osm{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "{{ request.host_url }}" },
+    { "@type": "ListItem", "position": 2, "name": "Historique des imports" }
+  ]
+}
+</script>
+{% endblock %}
+
 {% block title %}Historique des imports{% endblock %}
 {% block subtitle %}Liste de toutes les importations effectuées ou signalées comme erronées.{% endblock %}
 
