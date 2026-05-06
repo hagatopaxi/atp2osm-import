@@ -33,6 +33,52 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
 #sidebar .menu a i {
     font-size: 1rem;
 }
+
+/* Map clickable affordance */
+.map-container {
+    cursor: pointer;
+}
+
+.map-hover-overlay {
+    position: absolute;
+    inset: 0;
+    background: transparent;
+    transition: background 250ms ease;
+}
+
+.map-container:hover .map-hover-overlay {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.map-badge {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: background 250ms ease, transform 250ms ease;
+    animation: map-badge-breathe 3s ease-in-out infinite;
+}
+
+@keyframes map-badge-breathe {
+    0%, 100% { opacity: 0.75; }
+    50%       { opacity: 1; }
+}
+
+.map-container:hover .map-badge {
+    background: var(--color-primary);
+    transform: scale(1.06);
+    animation: none;
+    opacity: 1;
+}
 #sidebar .sidebar-collapse-icon,
 #sidebar .sidebar-expand-icon {
     font-size: 1.5rem;

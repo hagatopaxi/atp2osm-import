@@ -90,11 +90,16 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
             </div>
 
             <div class="flex flex-col gap-4 w-full">
-                <a href="{{ api_url }}/{{ item['node_type'] }}/{{item['id']}}" target="_blank" title="Ouvrir dans OSM">
-                    <img class="rounded-lg border-base-200 border-2 shadow-md"
-                        src="/staticmap/{{item['lon']}}/{{item['lat']}}" alt="Carte de {{item['title']}}"
-                        style="width: 100%; height: auto;" />
-                </a>
+                <div class="map-container rounded-lg overflow-hidden shadow-md border-base-200 border-2">
+                    <a href="{{ api_url }}/{{ item['node_type'] }}/{{item['id']}}" target="_blank" class="block relative">
+                        <img class="w-full block"
+                            src="/staticmap/{{item['lon']}}/{{item['lat']}}" alt="Carte de {{item['title']}}" />
+                        <div class="map-hover-overlay"></div>
+                        <span class="map-badge">
+                            <i class="iconoir-open-new-window"></i> Voir dans OSM
+                        </span>
+                    </a>
+                </div>
 
                 <div class="flex flex-col gap-1 self-end">
                     <div class="flex gap-2">
