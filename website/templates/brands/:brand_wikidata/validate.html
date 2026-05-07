@@ -14,7 +14,7 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
 <div class="flex items-start">
     <i class="{{icon}} mr-2 mt-1"></i>
     <div>
-        <strong>{{label}} :</strong>
+        <strong>{{label}} :</strong>{% if key == 'opening_hours' %}<span class="tooltip tooltip-right align-middle" data-tip="Valeur insérée dans OSM : {{ item['tag']['opening_hours'] }}"><i class="iconoir-info-circle text-info text-xs cursor-help ml-1"></i></span>{% endif %}
 
         {% if key == 'website' %}
         <p class="{{'text-success' if key in item['new_tags_keys']}}"><a href="{{ item['tag'][key] }}" target="_blank"
@@ -23,11 +23,9 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
                 }}</a></p>
         {% elif key == 'opening_hours' %}
         <div class="{{'text-success' if key in item['new_tags_keys']}}">
-            {% set opening_hours = item["tag"]["opening_hours"].split(';') %}
-            {% for item in opening_hours %}
-            <p>
-                {{ item }}
-            </p>
+            {% set opening_hours_parts = item["tag"]["opening_hours"].split(';') %}
+            {% for part in opening_hours_parts %}
+            <p>{{ part }}</p>
             {% endfor %}
         </div>
         {% else %}
