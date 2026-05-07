@@ -153,6 +153,28 @@ def download_large_file(
         raise
 
 
+def fetch_osm_users(user_ids):
+    """Batch fetch user display names from the OSM API."""
+    from src.config import api_url, APP_VERSION
+    if not user_ids:
+        return {}
+    ids_param = ",".join(str(uid) for uid in user_ids)
+    try:
+        resp = requests.get(
+            f"{api_url}/api/0.6/users.json?users={ids_param}",
+            timeout=5,
+            headers={"User-Agent": f"atp2osm-import/{APP_VERSION}"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return {
+            u["user"]["id"]: u["user"]["display_name"] for u in data.get("users", [])
+        }
+    except Exception:
+        logger.exception("Failed to fetch OSM user details")
+        return {}
+
+
 def get_rand_items(arr: list, n: int) -> list:
     """
     Returns a new array which contains n random items.
