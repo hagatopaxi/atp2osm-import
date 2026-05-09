@@ -1,5 +1,5 @@
 [project]
-name = "atp2osm-import"
+name = "atp2osm"
 version = "0.1.0"
 description = "Import ATP FR data into OSM"
 readme = "README.md"

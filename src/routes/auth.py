@@ -70,7 +70,7 @@ def oauth_callback():
         token_url,
         client_secret=client_secret,
         authorization_response=authorization_response,
-        headers={"User-Agent": f"atp2osm-import/{os.getenv('APP_VERSION')}"},
+        headers={"User-Agent": f"atp2osm/{os.getenv('APP_VERSION')}"},
     )
     user_detail_url = f"{api_url}/api/0.6/user/details.json"
     response = osm.get(user_detail_url)

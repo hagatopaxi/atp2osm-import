@@ -61,7 +61,7 @@ class BulkUpload:
                 with self.api.Changeset(
                     {
                         "comment": f"Importation des données ATP (dép. {dpt}; {self.brand_name})",
-                        "created_by": "atp2osm-import",
+                        "created_by": "atp2osm",
                         "source": "https://alltheplaces.xyz",
                         "wiki": "https://wiki.openstreetmap.org/wiki/Automated_edits/atp2osm_bot",
                         "bot": "yes",
