@@ -153,15 +153,17 @@ def upload_changes(brand_wikidata):
                 json.dumps({"errors": errors}), status=422, mimetype="application/json"
             )
         else:
+            stats = get_stats(changes)
             cursor.execute(
-                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, changeset_ids, brand_name)
-                   VALUES (%s, %s, 'success', %s, %s, %s)""",
+                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, changeset_ids, brand_name, tags_count)
+                   VALUES (%s, %s, 'success', %s, %s, %s, %s)""",
                 (
                     brand_wikidata,
                     session["user"]["osm_id"],
                     len(changes),
                     bulk_upload.changesets,
                     bulk_upload.brand_name,
+                    json.dumps(stats["by_tag"]),
                 ),
             )
             osmdb.commit()
