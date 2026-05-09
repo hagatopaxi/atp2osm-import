@@ -1,13 +1,13 @@
-import osmapi
-import os
-import logging
-import json
 import datetime
+import json
+import logging
+import os
 import xml.etree.ElementTree as ET
-
 from pathlib import Path
-from requests_oauthlib import OAuth2Session
+
+import osmapi
 from osmapi.errors import ApiError
+from requests_oauthlib import OAuth2Session
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class BulkUpload:
                         "comment": f"Importation des données ATP (dép. {dpt}; {self.brand_name})",
                         "created_by": "atp2osm",
                         "source": "https://alltheplaces.xyz",
-                        "wiki": "https://wiki.openstreetmap.org/wiki/Automated_edits/atp2osm_bot",
+                        "wiki": "https://wiki.openstreetmap.org/wiki/atp2osm",
                         "bot": "yes",
                     }
                 ) as changeset:
