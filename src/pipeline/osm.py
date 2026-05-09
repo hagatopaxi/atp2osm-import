@@ -105,6 +105,7 @@ def setup_mv_places():
         last_date = last_import_date(conn, "osm")
         if last_date and last_date >= geofabrik_ts:
             logger.info("OSM views already up-to-date (%s), skipping", last_date.date())
+            record_import(conn, "osm", last_date, "skipped")
             return
 
         try:

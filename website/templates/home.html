@@ -93,6 +93,18 @@
     </div>
 </div>
 
+<div class="grid grid-cols-4 gap-4 max-w-3xl mt-4">
+    {% for key, label in [("opening_hours_added", "Horaires"), ("phone_added", "Téléphone"), ("website_added", "Site web"), ("email_added", "Email")] %}
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body items-center text-center">
+            <h2 class="card-title font-mono text-sm">{{ label }}</h2>
+            <p class="text-3xl font-bold">{{ stats[key] }}</p>
+            <p class="text-xs text-base-content/50">tags ajoutés</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
 <section class="mt-6">
     <a href="/brands" class="btn btn-primary">
         <i class="iconoir-double-check"></i> Commencer à importer !

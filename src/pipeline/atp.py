@@ -46,6 +46,7 @@ def import_atp():
                 continue
             if last_date is not None and end_time is not None and end_time <= last_date:
                 logger.info("ATP already up-to-date (run %s, %s), skipping", run_id, end_time.date())
+                record_import(conn, "atp", last_date, "skipped")
                 return
 
             try:
