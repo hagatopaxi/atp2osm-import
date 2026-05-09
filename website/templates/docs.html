@@ -1,0 +1,198 @@
+{% extends '_base.html' %}
+
+{% block page_title %}Documentation{% endblock %}
+{% block title %}Documentation{% endblock %}
+{% block subtitle %}Comment fonctionne atp2osm et comment contribuer.{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl flex flex-col gap-8">
+
+    <section>
+        <h2 class="text-lg font-semibold mb-3">Résumé</h2>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body gap-2">
+                    <h3 class="font-semibold text-success text-sm flex items-center gap-1"><i class="iconoir-check-circle"></i> Ce qui est fait</h3>
+                    <ul class="text-sm text-base-content/80 flex flex-col gap-1">
+                        <li>Ajout des tags <span class="font-mono text-xs">opening_hours</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span>, <span class="font-mono text-xs">email</span> manquants</li>
+                        <li>Correspondance sur nœuds, ways et relations</li>
+                        <li>Regroupement des imports par département</li>
+                        <li>Traçabilité complète dans l'historique</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body gap-2">
+                    <h3 class="font-semibold text-error text-sm flex items-center gap-1"><i class="iconoir-xmark-circle"></i> Ce qui n'est pas fait</h3>
+                    <ul class="text-sm text-base-content/80 flex flex-col gap-1">
+                        <li>Création de nouveaux nœuds OSM</li>
+                        <li>Modification ou suppression de tags existants</li>
+                        <li>Modification de la géométrie</li>
+                        <li>Import sans validation humaine</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-lg font-semibold mb-3">Principe général</h2>
+        <p class="text-sm text-base-content/80 leading-relaxed mb-3">
+            <strong>atp2osm</strong> est un outil d'enrichissement d'OpenStreetMap à partir des données
+            <a href="https://alltheplaces.xyz" target="_blank" rel="noopener" class="link link-primary">All The Places</a>
+            (ATP). ATP collecte automatiquement les informations des points d'intérêt (horaires, téléphone, site web, email)
+            directement depuis les sites officiels des enseignes.
+        </p>
+        <p class="text-sm text-base-content/80 leading-relaxed">
+            L'outil compare ces données avec les nœuds OSM existants, identifie les tags manquants,
+            et vous permet de valider puis d'importer ces enrichissements directement dans OSM via votre compte.
+            <strong>Aucun nœud n'est créé ou supprimé</strong> — seuls des tags manquants sont ajoutés.
+        </p>
+    </section>
+
+    <section>
+        <h2 class="text-lg font-semibold mb-3">Le processus en détail</h2>
+        <ul class="steps steps-vertical text-sm">
+            <li class="step step-primary">
+                <div class="text-left ml-3">
+                    <p class="font-semibold">Collecte des données ATP</p>
+                    <p class="text-base-content/70">Chaque semaine, les dernières données ATP sont téléchargées depuis alltheplaces.xyz. Elles contiennent les POIs français avec leurs attributs extraits des sites officiels des enseignes.</p>
+                </div>
+            </li>
+            <li class="step step-primary">
+                <div class="text-left ml-3">
+                    <p class="font-semibold">Mise à jour des données OSM</p>
+                    <p class="text-base-content/70">En parallèle, les données OSM de France métropolitaine sont importées dans la base locale via osm2pgsql.</p>
+                </div>
+            </li>
+            <li class="step step-primary">
+                <div class="text-left ml-3">
+                    <p class="font-semibold">Correspondance spatiale et attributaire</p>
+                    <p class="text-base-content/70">
+                        Chaque POI ATP est mis en correspondance avec les nœuds OSM dans un rayon de <strong>500 m</strong>,
+                        en vérifiant au moins un attribut commun parmi :
+                        <span class="font-mono text-xs">brand:wikidata</span>,
+                        <span class="font-mono text-xs">brand</span>,
+                        <span class="font-mono text-xs">name</span>,
+                        <span class="font-mono text-xs">phone</span>,
+                        <span class="font-mono text-xs">website</span>,
+                        <span class="font-mono text-xs">email</span>.
+                        Les correspondances ambiguës (plusieurs nœuds OSM pour un même POI ATP) sont écartées.
+                    </p>
+                </div>
+            </li>
+            <li class="step step-primary">
+                <div class="text-left ml-3">
+                    <p class="font-semibold">Calcul des tags manquants</p>
+                    <p class="text-base-content/70">Pour chaque correspondance retenue, l'outil calcule quels tags sont présents dans ATP mais absents dans OSM. Seuls les tags manquants sont proposés — <strong>les tags existants ne sont jamais modifiés.</strong></p>
+                </div>
+            </li>
+            <li class="step">
+                <div class="text-left ml-3">
+                    <p class="font-semibold">Validation et import</p>
+                    <p class="text-base-content/70">Vous vérifiez les changements proposés pour une marque, puis vous déclenchez l'import. Les modifications sont envoyées à l'API OSM via votre compte, groupées par département.</p>
+                </div>
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2 class="text-lg font-semibold mb-3">Comment contribuer</h2>
+        <ol class="flex flex-col gap-4 text-sm">
+            <li class="flex gap-3">
+                <span class="badge badge-primary badge-sm mt-0.5 shrink-0">1</span>
+                <div>
+                    <p class="font-semibold">Connectez-vous avec votre compte OSM</p>
+                    <p class="text-base-content/70">Utilisez le bouton de connexion en bas du menu. Vos imports seront enregistrés sous votre nom dans l'historique OSM des changesets.</p>
+                </div>
+            </li>
+            <li class="flex gap-3">
+                <span class="badge badge-primary badge-sm mt-0.5 shrink-0">2</span>
+                <div>
+                    <p class="font-semibold">Choisissez une marque</p>
+                    <p class="text-base-content/70">La page <a href="/brands" class="link link-primary">Marques à importer</a> liste toutes les enseignes pour lesquelles des enrichissements sont disponibles, avec le nombre de nœuds concernés.</p>
+                </div>
+            </li>
+            <li class="flex gap-3">
+                <span class="badge badge-primary badge-sm mt-0.5 shrink-0">3</span>
+                <div>
+                    <p class="font-semibold">Vérifiez les correspondances</p>
+                    <p class="text-base-content/70">
+                        Pour chaque nœud, vérifiez que la correspondance ATP ↔ OSM est correcte : position géographique,
+                        nom de l'établissement, tags proposés. En cas de doute, consultez la source ATP ou la fiche OSM avant de valider.
+                    </p>
+                </div>
+            </li>
+            <li class="flex gap-3">
+                <span class="badge badge-primary badge-sm mt-0.5 shrink-0">4</span>
+                <div>
+                    <p class="font-semibold">Importez</p>
+                    <p class="text-base-content/70">Si les données vous semblent correctes, lancez l'import. Les changesets sont créés automatiquement sur OSM, un par département. L'opération est irréversible — assurez-vous d'avoir vérifié les données.</p>
+                </div>
+            </li>
+        </ol>
+    </section>
+
+    <section>
+        <h2 class="text-lg font-semibold mb-3">Validation des marques</h2>
+        <div role="alert" class="alert alert-warning mb-4">
+            <i class="iconoir-warning-triangle text-xl shrink-0"></i>
+            <p class="text-sm">Seul <strong>1 % des éléments</strong> sont validés manuellement, sélectionnés aléatoirement.</p>
+        </div>
+        <p class="text-sm text-base-content/80 leading-relaxed mb-3">
+            Avant de valider, assurez-vous que les éléments vérifiés sont représentatifs : testez plusieurs établissements
+            dans des régions différentes, vérifiez les cas limites (horaires spéciaux, numéros de téléphone mal formatés,
+            URLs redirigées…). Si le moindre doute persiste sur la qualité du spider, signalez une erreur plutôt que de valider.
+        </p>
+    </section>
+
+    <section>
+        <h2 class="text-lg font-semibold mb-3">Licences</h2>
+        <div class="flex flex-col gap-3 text-sm">
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body gap-1 py-3">
+                    <h3 class="font-semibold">OpenStreetMap</h3>
+                    <p class="text-base-content/70">Les données OSM sont publiées sous licence <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener" class="link link-primary">ODbL 1.0</a> (Open Database License). Toute contribution via cet outil est soumise aux <a href="https://osmfoundation.org/wiki/Licence/Contributor_Terms" target="_blank" rel="noopener" class="link link-primary">Contributor Terms</a> d'OpenStreetMap.</p>
+                </div>
+            </div>
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body gap-1 py-3">
+                    <h3 class="font-semibold">All The Places</h3>
+                    <p class="text-base-content/70">Les données ATP sont publiées sous licence <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener" class="link link-primary">CC0 1.0</a> (domaine public). Leur utilisation est libre sans restriction.</p>
+                </div>
+            </div>
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body gap-1 py-3">
+                    <h3 class="font-semibold">atp2osm</h3>
+                    <p class="text-base-content/70">Le code source de cet outil est publié sous licence <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener" class="link link-primary">GPL-3.0</a>. Les contributions sont les bienvenues sur <a href="https://github.com/hagatopaxi/atp2osm-import" target="_blank" rel="noopener" class="link link-primary">GitHub</a>.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="text-lg font-semibold mb-3">Ressources</h2>
+        <ul class="flex flex-col gap-2 text-sm">
+            <li>
+                <a href="https://alltheplaces.xyz" target="_blank" rel="noopener" class="link link-primary">
+                    <i class="iconoir-open-in-browser"></i> All The Places
+                </a>
+                — source des données POI
+            </li>
+            <li>
+                <a href="https://wiki.openstreetmap.org/wiki/Automated_edits/atp2osm_bot" target="_blank" rel="noopener" class="link link-primary">
+                    <i class="iconoir-open-in-browser"></i> Page wiki OSM
+                </a>
+                — documentation des imports automatisés
+            </li>
+            <li>
+                <a href="https://github.com/hagatopaxi/atp2osm-import" target="_blank" rel="noopener" class="link link-primary">
+                    <i class="iconoir-github"></i> Code source
+                </a>
+                — contributions bienvenues
+            </li>
+        </ul>
+    </section>
+
+</div>
+{% endblock %}
