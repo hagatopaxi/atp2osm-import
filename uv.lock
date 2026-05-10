@@ -16,7 +16,7 @@ wheels = [
 ]
 
 [[package]]
-name = "atp2osm-import"
+name = "atp2osm"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
