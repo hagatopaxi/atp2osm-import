@@ -1,0 +1,66 @@
+<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="none" version="1.1">
+  <g>
+    <g>
+      <g>
+        <g class="fills">
+          <path d="M5.5,16C5.5,16,0,11,0,6C0,3,2,0,5.5,0C9,0,11,3,11,6C11,11,5.5,16,5.5,16L5.5,16" style="fill: rgb(255, 241, 0); fill-opacity: 1;"/>
+        </g>
+        <g class="strokes">
+          <g class="inner-stroke-shape">
+            <defs>
+              <clipPath id="v4-clip-pin1"><path d="M5.5,16C5.5,16,0,11,0,6C0,3,2,0,5.5,0C9,0,11,3,11,6C11,11,5.5,16,5.5,16L5.5,16" id="v4-pin1-s"/></clipPath>
+            </defs>
+            <use href="#v4-pin1-s" clip-path="url(#v4-clip-pin1)" style="fill: none; stroke-width: 1.5; stroke: rgb(153, 102, 0); stroke-opacity: 1;"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g style="mix-blend-mode: multiply;">
+      <g>
+        <g class="fills">
+          <path d="M10.5,16C10.5,16,5,11,5,6C5,3,7,0,10.5,0C14,0,16,3,16,6C16,11,10.5,16,10.5,16L10.5,16" style="fill: rgb(0, 240, 255); fill-opacity: 1;"/>
+        </g>
+        <g class="strokes">
+          <g class="inner-stroke-shape">
+            <defs>
+              <clipPath id="v4-clip-pin2"><path d="M10.5,16C10.5,16,5,11,5,6C5,3,7,0,10.5,0C14,0,16,3,16,6C16,11,10.5,16,10.5,16L10.5,16" id="v4-pin2-s"/></clipPath>
+            </defs>
+            <use href="#v4-pin2-s" clip-path="url(#v4-clip-pin2)" style="fill: none; stroke-width: 1.5; stroke: rgb(0, 102, 128); stroke-opacity: 1;"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    <g>
+      <g class="fills">
+        <ellipse cx="5.5" cy="6" rx="1" ry="1" style="fill: rgb(255, 255, 255); fill-opacity: 1;"/>
+      </g>
+      <g class="strokes">
+        <g class="outer-stroke-shape">
+          <defs>
+            <mask id="v4-mask-hole1" maskUnits="userSpaceOnUse">
+              <ellipse cx="5.5" cy="6" rx="1" ry="1" id="v4-hole1-s" style="fill: none; stroke: white; stroke-width: 1.5;"/>
+              <ellipse cx="5.5" cy="6" rx="1" ry="1" style="fill: black;"/>
+            </mask>
+          </defs>
+          <ellipse cx="5.5" cy="6" rx="1" ry="1" mask="url(#v4-mask-hole1)" style="fill: none; stroke-width: 1.5; stroke: rgb(68, 68, 68); stroke-opacity: 1;"/>
+        </g>
+      </g>
+    </g>
+    <g>
+      <g class="fills">
+        <ellipse cx="10.5" cy="6" rx="1" ry="1" style="fill: rgb(255, 255, 255); fill-opacity: 1;"/>
+      </g>
+      <g class="strokes">
+        <g class="outer-stroke-shape">
+          <defs>
+            <mask id="v4-mask-hole2" maskUnits="userSpaceOnUse">
+              <ellipse cx="10.5" cy="6" rx="1" ry="1" id="v4-hole2-s" style="fill: none; stroke: white; stroke-width: 1.5;"/>
+              <ellipse cx="10.5" cy="6" rx="1" ry="1" style="fill: black;"/>
+            </mask>
+          </defs>
+          <ellipse cx="10.5" cy="6" rx="1" ry="1" mask="url(#v4-mask-hole2)" style="fill: none; stroke-width: 1.5; stroke: rgb(68, 68, 68); stroke-opacity: 1;"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
