@@ -58,7 +58,7 @@ class BulkUpload:
 
         for dpt, dpt_changes in changes_by_dpt.items():
             try:
-                with self.api.Changeset(
+                changeset = self.api.ChangesetCreate(
                     {
                         "comment": f"Importation des données ATP (dép. {dpt}; {self.brand_name})",
                         "created_by": "atp2osm",
@@ -66,85 +66,97 @@ class BulkUpload:
                         "wiki": "https://wiki.openstreetmap.org/wiki/atp2osm",
                         "bot": "yes",
                     }
-                ) as changeset:
-                    logger.debug(
-                        f"{os.getenv('OSM_API_HOST').rstrip('/')}/changeset/{changeset}"
-                    )
+                )
+                logger.debug(
+                    f"{os.getenv('OSM_API_HOST').rstrip('/')}/changeset/{changeset}"
+                )
 
-                    changingNodes = []
-                    for poi in dpt_changes:
-                        poi["changeset"] = changeset
+                changingNodes = []
+                for poi in dpt_changes:
+                    poi["changeset"] = changeset
 
-                        if poi["node_type"] == "node":
-                            changingNodes.append(poi)
-                        elif poi["node_type"] == "way":
-                            # DEV: the dev OSM instance returns 404 on node/way lookups
-                            # because it does not mirror production data, so uploads are skipped.
-                            # Uncomment the _write_osc call below to inspect generated OSC files.
-                            if not self.is_dev:
-                                self.api.WayUpdate(
-                                    {
-                                        "id": poi["id"],
-                                        "version": poi["version"],
-                                        "changeset": changeset,
-                                        "tag": poi["tag"],
-                                        "nd": poi["members"],
-                                    }
-                                )
-                            # if self.is_dev:
-                            #     self._write_osc(changeset, "way", poi["id"], "modify", {
-                            #         "id": poi["id"], "version": poi["version"],
-                            #         "changeset": changeset, "tag": poi["tag"], "nd": poi["members"],
-                            #     })
-                        elif poi["node_type"] == "relation":
-                            type_map = {"n": "node", "w": "way", "r": "relation"}
-                            relation_data = {
-                                "id": poi["id"],
-                                "version": poi["version"],
-                                "changeset": changeset,
-                                "tag": poi["tag"],
-                                "member": [
-                                    {
-                                        "type": type_map[m["type"]],
-                                        "ref": m["ref"],
-                                        "role": m["role"],
-                                    }
-                                    for m in (poi["members"] or [])
-                                ],
-                            }
-                            if not self.is_dev:
-                                self.api.RelationUpdate(relation_data)
-                            # Uncomment to inspect relation OSC output in dev:
-                            # if self.is_dev:
-                            #     self._write_osc(changeset, "relation", poi["id"], "modify", relation_data)
-
-                    # DEV: the dev OSM instance returns 404 on node lookups because it does
-                    # not mirror production data, so node uploads are skipped.
-                    # Uncomment the _write_osc loop below to inspect generated OSC files.
-                    if changingNodes and not self.is_dev:
-                        self.api.ChangesetUpload(
-                            [
+                    if poi["node_type"] == "node":
+                        changingNodes.append(poi)
+                    elif poi["node_type"] == "way":
+                        # DEV: the dev OSM instance returns 404 on node/way lookups
+                        # because it does not mirror production data, so uploads are skipped.
+                        # Uncomment the _write_osc call below to inspect generated OSC files.
+                        if not self.is_dev:
+                            self.api.WayUpdate(
                                 {
-                                    "type": "node",
-                                    "action": "modify",
-                                    "data": changingNodes,
+                                    "id": poi["id"],
+                                    "version": poi["version"],
+                                    "changeset": changeset,
+                                    "tag": poi["tag"],
+                                    "nd": poi["members"],
                                 }
-                            ]
-                        )
-                    # if self.is_dev:
-                    #     for node in changingNodes:
-                    #         self._write_osc(changeset, "node", node["id"], "modify", node)
+                            )
+                        # if self.is_dev:
+                        #     self._write_osc(changeset, "way", poi["id"], "modify", {
+                        #         "id": poi["id"], "version": poi["version"],
+                        #         "changeset": changeset, "tag": poi["tag"], "nd": poi["members"],
+                        #     })
+                    elif poi["node_type"] == "relation":
+                        type_map = {"n": "node", "w": "way", "r": "relation"}
+                        relation_data = {
+                            "id": poi["id"],
+                            "version": poi["version"],
+                            "changeset": changeset,
+                            "tag": poi["tag"],
+                            "member": [
+                                {
+                                    "type": type_map[m["type"]],
+                                    "ref": m["ref"],
+                                    "role": m["role"],
+                                }
+                                for m in (poi["members"] or [])
+                            ],
+                        }
+                        if not self.is_dev:
+                            self.api.RelationUpdate(relation_data)
+                        # Uncomment to inspect relation OSC output in dev:
+                        # if self.is_dev:
+                        #     self._write_osc(changeset, "relation", poi["id"], "modify", relation_data)
 
-                    # Add to changeset list to save it in logs
-                    self.changesets.append(changeset)
+                # DEV: the dev OSM instance returns 404 on node lookups because it does
+                # not mirror production data, so node uploads are skipped.
+                # Uncomment the _write_osc loop below to inspect generated OSC files.
+                if changingNodes and not self.is_dev:
+                    self.api.ChangesetUpload(
+                        [
+                            {
+                                "type": "node",
+                                "action": "modify",
+                                "data": changingNodes,
+                            }
+                        ]
+                    )
+                # if self.is_dev:
+                #     for node in changingNodes:
+                #         self._write_osc(changeset, "node", node["id"], "modify", node)
+
+                self.api.ChangesetClose()
+                self.changesets.append(changeset)
             except ApiError as error:
                 msg = f"OSM API error for dept {dpt}: HTTP {error.status}"
                 logger.error(msg)
+                logger.error(error.reason)
                 errors.append(msg)
             except Exception as unknown:
                 msg = f"Unknown error for dept {dpt}: {unknown}"
                 logger.error(msg)
+                logger.error(unknown)
                 errors.append(msg)
+            finally:
+                # Ensure osmapi's internal changeset state is reset even if an
+                # exception occurred mid-upload (osmapi's Changeset context manager
+                # does not do this, causing all subsequent departments to fail with
+                # "Changeset already opened").
+                if self.api._CurrentChangesetId:
+                    try:
+                        self.api.ChangesetClose()
+                    except Exception:
+                        self.api._CurrentChangesetId = 0
 
         return errors
 
