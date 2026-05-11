@@ -85,9 +85,12 @@ def get_all(osmdb):
             ORDER BY brand_wikidata, import_date DESC
         ) ih ON ih.brand_wikidata = mvb.brand_wikidata
         WHERE (mvb.brand IS NOT NULL AND mvb.brand_wikidata IS NOT NULL)
-          AND (ih.last_import IS NULL
-           OR ih.last_status != 'success'
-           OR ih.last_import < NOW() - INTERVAL '3 months')
+          AND (
+            ih.last_import IS NULL
+            OR ih.last_status = 'error'
+            OR (ih.last_status = 'partial' AND ih.last_import < NOW() - INTERVAL '2 weeks')
+            OR (ih.last_status = 'success' AND ih.last_import < NOW() - INTERVAL '3 months')
+          )
         ORDER BY
             last_import ASC NULLS FIRST,
             total DESC;

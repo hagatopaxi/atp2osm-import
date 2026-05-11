@@ -13,16 +13,29 @@ async function confirm_import() {
   button_cancel.setAttribute("disabled", true);
   const wikidata = extractWikidata(window.location.href);
   const response = await fetch(`/brands/${wikidata}/upload`, { method: "POST" });
+  const warning = document.getElementById("warning");
+  const warningIcon = warning.querySelector("i");
+  const warningText = warning.querySelector("span");
   if (!response.ok) {
     const data = await response.json();
     loading.classList.add("hidden");
     button_validate.removeAttribute("disabled");
     button_cancel.removeAttribute("disabled");
-    const warning = document.getElementById("warning");
-    warning.innerHTML = `<i class="iconoir-warning-circle"></i><span>Erreur lors de l'importation : ${data.errors.join(", ")}<br>Vous pouvez réessayer ultérieurement.</span>`;
+    warningIcon.className = "iconoir-warning-circle";
+    warningText.textContent = `Erreur lors de l'importation : ${data.errors.join(", ")} — Vous pouvez réessayer ultérieurement.`;
     warning.classList.remove("alert-warning");
     warning.classList.add("alert-error");
     return;
+  }
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    const data = await response.json();
+    if (data.partial) {
+      loading.classList.add("hidden");
+      warningText.textContent = `Import partiel : certains départements n'ont pas pu être importés (${data.errors.join(", ")}). Redirection dans quelques secondes…`;
+      setTimeout(() => { window.location.href = "/brands"; }, 4000);
+      return;
+    }
   }
   window.location.href = "/brands";
 }
