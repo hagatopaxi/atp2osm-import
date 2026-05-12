@@ -58,7 +58,7 @@ class BulkUpload:
 
         for dpt, dpt_changes in changes_by_dpt.items():
             try:
-                changeset = self.api.ChangesetCreate(
+                changeset = self.api.changeset_create(
                     {
                         "comment": f"Importation des données ATP (dép. {dpt}; {self.brand_name})",
                         "created_by": "atp2osm",
@@ -82,15 +82,13 @@ class BulkUpload:
                         # because it does not mirror production data, so uploads are skipped.
                         # Uncomment the _write_osc call below to inspect generated OSC files.
                         if not self.is_dev:
-                            self.api.WayUpdate(
-                                {
-                                    "id": poi["id"],
-                                    "version": poi["version"],
-                                    "changeset": changeset,
-                                    "tag": poi["tag"],
-                                    "nd": poi["members"],
-                                }
-                            )
+                            self.api.way_update({
+                                "id": poi["id"],
+                                "version": poi["version"],
+                                "changeset": changeset,
+                                "tag": poi["tag"],
+                                "nd": poi["members"],
+                            })
                         # if self.is_dev:
                         #     self._write_osc(changeset, "way", poi["id"], "modify", {
                         #         "id": poi["id"], "version": poi["version"],
@@ -113,7 +111,7 @@ class BulkUpload:
                             ],
                         }
                         if not self.is_dev:
-                            self.api.RelationUpdate(relation_data)
+                            self.api.relation_update(relation_data)
                         # Uncomment to inspect relation OSC output in dev:
                         # if self.is_dev:
                         #     self._write_osc(changeset, "relation", poi["id"], "modify", relation_data)
@@ -122,41 +120,34 @@ class BulkUpload:
                 # not mirror production data, so node uploads are skipped.
                 # Uncomment the _write_osc loop below to inspect generated OSC files.
                 if changingNodes and not self.is_dev:
-                    self.api.ChangesetUpload(
-                        [
-                            {
-                                "type": "node",
-                                "action": "modify",
-                                "data": changingNodes,
-                            }
-                        ]
+                    self.api.changeset_upload(
+                        [{"type": "node", "action": "modify", "data": changingNodes}]
                     )
                 # if self.is_dev:
                 #     for node in changingNodes:
                 #         self._write_osc(changeset, "node", node["id"], "modify", node)
 
-                self.api.ChangesetClose()
+                self.api.changeset_close()
                 self.changesets.append(changeset)
             except ApiError as error:
-                msg = f"OSM API error for dept {dpt}: HTTP {error.status}"
+                payload = error.payload.decode("utf-8", errors="replace") if isinstance(error.payload, bytes) else str(error.payload)
+                msg = f"OSM API error for dept {dpt}: HTTP {error.status} — {payload}"
                 logger.error(msg)
-                logger.error(error.reason)
                 errors.append(msg)
             except Exception as unknown:
                 msg = f"Unknown error for dept {dpt}: {unknown}"
                 logger.error(msg)
-                logger.error(unknown)
                 errors.append(msg)
             finally:
                 # Ensure osmapi's internal changeset state is reset even if an
                 # exception occurred mid-upload (osmapi's Changeset context manager
                 # does not do this, causing all subsequent departments to fail with
                 # "Changeset already opened").
-                if self.api._CurrentChangesetId:
+                if self.api._current_changeset_id:
                     try:
-                        self.api.ChangesetClose()
+                        self.api.changeset_close()
                     except Exception:
-                        self.api._CurrentChangesetId = 0
+                        self.api._current_changeset_id = 0
 
         return errors
 

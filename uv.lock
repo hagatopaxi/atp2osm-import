@@ -50,7 +50,7 @@ requires-dist = [
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "logging", specifier = ">=0.4.9.6" },
-    { name = "osmapi", specifier = ">=4.3.0" },
+    { name = "osmapi", specifier = ">=5.0.0" },
     { name = "paramiko", specifier = ">=4.0.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.2" },
     { name = "requests", specifier = ">=2.32.5" },
@@ -599,14 +599,14 @@ wheels = [
 
 [[package]]
 name = "osmapi"
-version = "4.3.0"
+version = "5.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b4/9c/d6b783bd25a3239ecf4cd93aff4724af95b920998cec816d543636735548/osmapi-4.3.0.tar.gz", hash = "sha256:85f1ac9dd77aac7c8b2a7b4ef5cf4e29b48e915cfe8f11718ed152d38322ca43", size = 44067, upload-time = "2025-01-21T09:32:33.335Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e6/72/a085a221fa51fd2686e27228a954161d2ee2828c1e5c41f42f8c334d3509/osmapi-5.0.0.tar.gz", hash = "sha256:244b0fb432f7810a38b38a13eacc6d53df5441a1ea02a5e952b0fb1c44f2a420", size = 47244, upload-time = "2026-02-18T21:12:20.474Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c0/19/6efdf63b97d5aed442f51daf77808047700109a7eaffb8b88b4248d12482/osmapi-4.3.0-py3-none-any.whl", hash = "sha256:263f73eadf8665e6338ab08a94af07a5e55d42070b2b2af703255ecd4678ecaf", size = 47361, upload-time = "2025-01-21T09:32:31.863Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/2f/b5f9d150226b49974e3b5ceae2460080ccae1e03f3e0876c09d62740fce8/osmapi-5.0.0-py3-none-any.whl", hash = "sha256:5fb46e8f896e02e457811ca0b20dae70937409887c7e891acd1b7b6fb0fc22c5", size = 54787, upload-time = "2026-02-18T21:12:19.279Z" },
 ]
 
 [[package]]
