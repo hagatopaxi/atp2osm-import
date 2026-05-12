@@ -3,19 +3,16 @@ import logging
 
 from io import BytesIO
 
-from flask import Blueprint, render_template, request, Response
+from flask import Blueprint, render_template, Response
 from psycopg.rows import dict_row
 from staticmap import StaticMap, CircleMarker
 
 from src.db import get_osmdb
 from src.extensions import cache
-from src.utils import fetch_osm_users
 
 logger = logging.getLogger(__name__)
 
 misc_bp = Blueprint("misc", __name__)
-
-HISTORY_PER_PAGE = 20
 
 
 @misc_bp.route("/")
@@ -46,37 +43,6 @@ def home():
 @misc_bp.route("/docs")
 def docs():
     return render_template("docs.html")
-
-
-@misc_bp.route("/history")
-def history():
-    osmdb = get_osmdb()
-    page = request.args.get("page", 1, type=int)
-    page = max(1, page)
-    offset = (page - 1) * HISTORY_PER_PAGE
-
-    with osmdb.cursor(row_factory=dict_row) as cursor:
-        cursor.execute("SELECT COUNT(*) AS total FROM import_history")
-        total = cursor.fetchone()["total"]
-
-        cursor.execute(
-            "SELECT * FROM import_history ORDER BY import_date DESC LIMIT %s OFFSET %s",
-            (HISTORY_PER_PAGE, offset),
-        )
-        entries = cursor.fetchall()
-
-    total_pages = max(1, -(-total // HISTORY_PER_PAGE))
-
-    user_ids = list({e["osm_user_id"] for e in entries})
-    users = fetch_osm_users(user_ids)
-
-    return render_template(
-        "history.html",
-        entries=entries,
-        users=users,
-        page=page,
-        total_pages=total_pages,
-    )
 
 
 @misc_bp.route("/staticmap/<long>/<lat>")

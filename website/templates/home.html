@@ -81,32 +81,33 @@
 <h2 class="text-xl font-semibold mt-6 mb-3">Statistiques</h2>
 
 <div class="grid grid-cols-3 gap-4 max-w-3xl">
+    {% for icon, label, value in [
+        ("iconoir-database-check", "Noeuds mis à jour",  stats["total_nodes_updated"]),
+        ("iconoir-check-circle",   "Imports réussis",    stats["successful_imports"]),
+        ("iconoir-shop",           "Marques importées",  stats["brands_imported"])
+    ] %}
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body items-center text-center">
-            <h2 class="card-title font-mono text-sm">Noeuds mis à jour</h2>
-            <p class="text-3xl font-bold">{{ stats["total_nodes_updated"] }}</p>
+            <i class="{{ icon }} text-2xl text-base-content/40"></i>
+            <p class="text-3xl font-bold">{{ value }}</p>
+            <h2 class="font-mono text-sm text-base-content/60">{{ label }}</h2>
         </div>
     </div>
-    <div class="card bg-base-100 shadow-sm">
-        <div class="card-body items-center text-center">
-            <h2 class="card-title font-mono text-sm">Imports réussis</h2>
-            <p class="text-3xl font-bold">{{ stats["successful_imports"] }}</p>
-        </div>
-    </div>
-    <div class="card bg-base-100 shadow-sm">
-        <div class="card-body items-center text-center">
-            <h2 class="card-title font-mono text-sm">Marques importées</h2>
-            <p class="text-3xl font-bold">{{ stats["brands_imported"] }}</p>
-        </div>
-    </div>
+    {% endfor %}
 </div>
 
 <div class="grid grid-cols-4 gap-4 max-w-3xl mt-4">
-    {% for key, label in [("opening_hours_added", "Horaires"), ("phone_added", "Téléphone"), ("website_added", "Site web"), ("email_added", "Email")] %}
+    {% for icon, key, label in [
+        ("iconoir-clock",        "opening_hours_added", "Horaires"),
+        ("iconoir-phone",        "phone_added",         "Téléphone"),
+        ("iconoir-globe",        "website_added",       "Site web"),
+        ("iconoir-mail",         "email_added",         "Email")
+    ] %}
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body items-center text-center">
-            <h2 class="card-title font-mono text-sm">{{ label }}</h2>
+            <i class="{{ icon }} text-2xl text-base-content/40"></i>
             <p class="text-3xl font-bold">{{ stats[key] }}</p>
+            <h2 class="font-mono text-sm text-base-content/60">{{ label }}</h2>
             <p class="text-xs text-base-content/50">tags ajoutés</p>
         </div>
     </div>

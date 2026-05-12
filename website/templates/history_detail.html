@@ -1,0 +1,121 @@
+{% extends '_base.html' %}
+
+{% block title %}Import #{{ entry.id }}{% endblock %}
+{% block subtitle %}Détails de l'import du {{ entry.import_date.strftime('%Y-%m-%d à %H:%M') }}.{% endblock %}
+
+{% block content %}
+<a class="btn btn-sm btn-ghost self-start -mt-2 mb-2" href="/history?page={{ from_page }}">
+    <i class="iconoir-arrow-left"></i> Retour à l'historique
+</a>
+
+<div class="grid grid-cols-2 gap-4">
+
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body gap-3">
+            <h2 class="card-title text-base">Informations générales</h2>
+            <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+                <dt class="text-base-content/60">Marque</dt>
+                <dd class="font-medium">
+                    {{ entry.brand_name if entry.brand_name else '—' }}
+                    {% if entry.brand_wikidata %}
+                    <a class="link text-xs font-mono text-base-content/50 ml-1"
+                       href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
+                       target="_blank">{{ entry.brand_wikidata }}</a>
+                    {% endif %}
+                </dd>
+
+                <dt class="text-base-content/60">Date</dt>
+                <dd>{{ entry.import_date.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+
+                <dt class="text-base-content/60">Statut</dt>
+                <dd>
+                    {% if entry.status == 'success' %}
+                    <span class="badge badge-success">{{ entry.status }}</span>
+                    {% elif entry.status == 'error' %}
+                    <span class="badge badge-error">{{ entry.status }}</span>
+                    {% elif entry.status == 'partial' %}
+                    <span class="badge badge-warning">{{ entry.status }}</span>
+                    {% else %}
+                    <span class="badge badge-info">{{ entry.status }}</span>
+                    {% endif %}
+                </dd>
+
+                <dt class="text-base-content/60">Utilisateur OSM</dt>
+                <dd>
+                    {% set display_name = users.get(entry.osm_user_id) %}
+                    {% if display_name %}
+                    <a class="link" href="{{ api_url }}/user/{{ display_name }}" target="_blank">{{ display_name }}</a>
+                    {% else %}
+                    {{ entry.osm_user_id }}
+                    {% endif %}
+                </dd>
+
+                <dt class="text-base-content/60">POIs importés</dt>
+                <dd>{{ entry.items_count if entry.items_count is not none else '—' }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body gap-3">
+            <h2 class="card-title text-base">Changesets</h2>
+            {% if entry.changeset_ids %}
+            <p class="text-sm">
+                {% for cs in entry.changeset_ids %}
+                <a class="link font-mono" href="{{ api_url }}/changeset/{{ cs }}" target="_blank">{{ cs }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </p>
+            {% else %}
+            <p class="text-sm text-base-content/50">Aucun changeset enregistré.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if entry.comment %}
+    <div class="card bg-base-100 shadow-sm col-span-2">
+        <div class="card-body gap-3">
+            <h2 class="card-title text-base">Commentaire</h2>
+            {% set comments = entry.comment | parse_comment %}
+            {% if comments is iterable and comments is not string %}
+            <ul class="flex flex-col gap-1">
+                {% for c in comments %}
+                <li class="text-sm">
+                    <a class="link font-mono text-xs" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}</a>
+                    {% if c.comment %} — {{ c.comment }}{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-sm whitespace-pre-wrap">{{ entry.comment }}</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if entry.tags_count %}
+    <div class="card bg-base-100 shadow-sm col-span-2">
+        <div class="card-body gap-3">
+            <h2 class="card-title text-base">Tags mis à jour</h2>
+            {% set tag_icons = {
+                "opening_hours": "iconoir-clock",
+                "phone":         "iconoir-phone",
+                "website":       "iconoir-globe",
+                "email":         "iconoir-mail"
+            } %}
+            <div class="flex flex-wrap gap-2">
+                {% for tag, count in entry.tags_count.items() %}
+                <div class="flex items-center gap-2 bg-base-200 rounded-lg px-3 py-2">
+                    <i class="{{ tag_icons.get(tag, 'iconoir-check') }} text-base-content/60"></i>
+                    <div class="flex flex-col leading-tight">
+                        <span class="text-xs text-base-content/50 font-mono">{{ tag }}</span>
+                        <span class="text-sm font-bold">{{ count }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

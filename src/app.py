@@ -13,6 +13,7 @@ from src.extensions import cache
 from src.migrate import run_migrations
 from src.routes.auth import auth_bp
 from src.routes.brands import brands_bp
+from src.routes.history import history_bp
 from src.routes.misc import misc_bp
 from src.routes.todo import todo_bp
 
@@ -36,6 +37,7 @@ cache.init_app(app)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(brands_bp)
+app.register_blueprint(history_bp)
 app.register_blueprint(misc_bp)
 app.register_blueprint(todo_bp)
 
