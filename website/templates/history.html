@@ -43,14 +43,12 @@
                     {{ entry.brand_name if entry.brand_name else entry.brand_wikidata }}
                 <span class="text-xs text-base-content/50">{{ entry.brand_wikidata }}</span>
             </td>
+            {% set status_labels = {"success": "Succès", "error": "Erreur", "partial": "Partiel"} %}
+            {% set status_classes = {"success": "badge-success", "error": "badge-error", "partial": "badge-warning"} %}
             <td>
-                {% if entry.status == 'success' %}
-                <span class="badge badge-success">{{ entry.status }}</span>
-                {% elif entry.status == 'error' %}
-                <span class="badge badge-error">{{ entry.status }}</span>
-                {% else %}
-                <span class="badge badge-info">{{ entry.status }}</span>
-                {% endif %}
+                <span class="badge {{ status_classes.get(entry.status, 'badge-info') }}">
+                    {{ status_labels.get(entry.status, entry.status) }}
+                </span>
             </td>
             <td>
                 {% set display_name = users.get(entry.osm_user_id) %}
