@@ -94,9 +94,9 @@ def run(pipeline, nodes):
 
 def main(pipeline):
     args = sys.argv[1:]
-    cmd = args[0] if args else "refresh"
+    cmd = args[0] if args else "start"
 
-    if cmd == "refresh":
+    if cmd == "start":
         run(pipeline, _reachable(pipeline, "start"))
 
     elif cmd == "from":
@@ -135,8 +135,8 @@ def _check(pipeline, name):
 def _usage():
     print(
         "Usage:\n"
-        "  python -m src.pipeline                 — full pipeline\n"
-        "  python -m src.pipeline refresh         — same\n"
+        "  python -m src.pipeline                 — full pipeline (from start)\n"
+        "  python -m src.pipeline start           — same\n"
         "  python -m src.pipeline from <step>     — step + all downstream\n"
         "  python -m src.pipeline step <step>     — single step only\n"
         "  python -m src.pipeline list            — print pipeline order",
