@@ -48,9 +48,10 @@ mkdir -p "$QUADLET_DIR" "$PROJECT_DIR/data" "$PROJECT_DIR/logs"
 export PROJECT_NAME PROJECT_DIR IMAGE_NAME CONTAINER_NAME
 envsubst < "$WORK_DIR/deploy/atp2osm.container" > "$QUADLET_DIR/${CONTAINER_NAME}.container"
 
-# Keep refresh-data.sh and osm2pgsql/ up to date on each deploy
-git --git-dir="$GIT_DIR" archive "$COMMIT" -- refresh-data.sh osm2pgsql/ | tar -x -C "$PROJECT_DIR"
-chmod +x "$PROJECT_DIR/refresh-data.sh"
+# Keep runner entry point up to date on each deploy
+# (src/, osm2pgsql/, etc. live inside the container image)
+git --git-dir="$GIT_DIR" archive "$COMMIT" -- run-pipeline.sh | tar -x -C "$PROJECT_DIR"
+chmod +x "$PROJECT_DIR/run-pipeline.sh"
 
 # Keep the 3 most recent git-tagged images, remove older ones
 echo "    Pruning old images (keeping last 3)..."

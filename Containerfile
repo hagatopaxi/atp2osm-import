@@ -1,6 +1,7 @@
 FROM docker.io/library/python:3.11-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends locales \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    locales osm2pgsql \
     && locale-gen fr_FR.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -13,6 +14,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 # Copy application code
+COPY osm2pgsql/ osm2pgsql/
 COPY src/ src/
 COPY website/ website/
 COPY static/ static/

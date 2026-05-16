@@ -15,7 +15,6 @@ _PROJECT_ROOT = Path(__file__).parent.parent.parent
 _PBF_PATH = _PROJECT_ROOT / "data" / "osm" / "france-latest.osm.pbf"
 _GEOFABRIK_URL = "https://download.geofabrik.de/europe/france-latest.osm.pbf"
 _GEOFABRIK_STATE_URL = "https://download.geofabrik.de/europe/france-updates/state.txt"
-_OSM2PGSQL_IMAGE = "docker.io/iboates/osm2pgsql:latest"
 
 
 def _geofabrik_timestamp():
@@ -63,36 +62,21 @@ def run_osm2pgsql():
         return
 
     logger.info("Importing OSM PBF into PostGIS...")
+    env = os.environ.copy()
+    env["PGPASSWORD"] = os.getenv("OSM_DB_PASSWORD", "")
     subprocess.run(
         [
-            "podman",
-            "run",
-            "--rm",
-            "--network",
-            "host",
-            "-v",
-            f"{_PROJECT_ROOT}/osm2pgsql:/osm2pgsql:ro,Z",
-            "-v",
-            f"{_PROJECT_ROOT}/data:/data:Z",
-            "-e",
-            f"PGPASSWORD={os.getenv('OSM_DB_PASSWORD')}",
-            _OSM2PGSQL_IMAGE,
             "osm2pgsql",
-            "--output",
-            "flex",
-            "-S",
-            "/osm2pgsql/generic.lua",
-            "-d",
-            os.getenv("OSM_DB_NAME"),
-            "-U",
-            os.getenv("OSM_DB_USER"),
-            "-H",
-            os.getenv("OSM_DB_HOST"),
-            "-P",
-            os.getenv("OSM_DB_PORT"),
-            "/data/osm/france-latest.osm.pbf",
+            "--output", "flex",
+            "-S", str(_PROJECT_ROOT / "osm2pgsql" / "generic.lua"),
+            "-d", os.getenv("OSM_DB_NAME"),
+            "-U", os.getenv("OSM_DB_USER"),
+            "-H", os.getenv("OSM_DB_HOST"),
+            "-P", os.getenv("OSM_DB_PORT"),
+            str(_PBF_PATH),
         ],
         check=True,
+        env=env,
     )
     _PBF_PATH.unlink()
     logger.info("osm2pgsql import complete")
