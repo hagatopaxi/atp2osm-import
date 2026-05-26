@@ -62,9 +62,8 @@ Each file groups the steps for one domain. A step is just a plain Python functio
 
 ```
 osm.py                   — download_pbf, run_osm2pgsql, setup_mv_places
-atp.py                   — download_atp, extract_atp, convert_atp, split_atp,
-                           create_parquet_atp, import_atp, cleanup_atp
-ndgeojson_to_parquet.py  — convert_to_parquet (called by create_parquet_atp)
+atp.py                   — download_atp, extract_atp, create_parquet_atp, import_atp, cleanup_atp
+ndgeojson_to_parquet.py  — convert_to_parquet, convert_atp, split_atp, convert_geojson_to_ndgeojson, split_ndgeojson
 atp2osm.py               — create_mv_places_brand
 ```
 

@@ -2,7 +2,12 @@ import logging
 import os
 import subprocess
 from datetime import datetime
-from pathlib import Path
+from src.pipeline.constants import (
+    PROJECT_ROOT,
+    GEOFABRIK_STATE_URL,
+    GEOFABRIK_URL,
+    PBF_PATH,
+)
 
 import requests
 
@@ -11,14 +16,9 @@ from src.utils import delete_file_if_exists, download_large_file
 
 logger = logging.getLogger(__name__)
 
-_PROJECT_ROOT = Path(__file__).parent.parent.parent
-_PBF_PATH = _PROJECT_ROOT / "data" / "osm" / "france-latest.osm.pbf"
-_GEOFABRIK_URL = "https://download.geofabrik.de/europe/france-latest.osm.pbf"
-_GEOFABRIK_STATE_URL = "https://download.geofabrik.de/europe/france-updates/state.txt"
-
 
 def _geofabrik_timestamp():
-    resp = requests.get(_GEOFABRIK_STATE_URL, timeout=30)
+    resp = requests.get(GEOFABRIK_STATE_URL, timeout=30)
     resp.raise_for_status()
     for line in resp.text.splitlines():
         if line.startswith("timestamp="):
@@ -42,22 +42,22 @@ def download_pbf():
         )
         return
 
-    if _PBF_PATH.exists():
+    if PBF_PATH.exists():
         logger.info("PBF already present, skipping download")
         return
 
     logger.info("New OSM data available (%s), downloading...", geofabrik_ts.date())
-    _PBF_PATH.parent.mkdir(parents=True, exist_ok=True)
+    PBF_PATH.parent.mkdir(parents=True, exist_ok=True)
     try:
-        download_large_file(_GEOFABRIK_URL, _PBF_PATH)
+        download_large_file(GEOFABRIK_URL, PBF_PATH)
     except Exception:
-        delete_file_if_exists(_PBF_PATH)
+        delete_file_if_exists(PBF_PATH)
         raise
     logger.info("Download complete")
 
 
 def run_osm2pgsql():
-    if not _PBF_PATH.exists():
+    if not PBF_PATH.exists():
         logger.info("No PBF file found, skipping osm2pgsql")
         return
 
@@ -67,18 +67,24 @@ def run_osm2pgsql():
     subprocess.run(
         [
             "osm2pgsql",
-            "--output", "flex",
-            "-S", str(_PROJECT_ROOT / "osm2pgsql" / "generic.lua"),
-            "-d", os.getenv("OSM_DB_NAME"),
-            "-U", os.getenv("OSM_DB_USER"),
-            "-H", os.getenv("OSM_DB_HOST"),
-            "-P", os.getenv("OSM_DB_PORT"),
-            str(_PBF_PATH),
+            "--output",
+            "flex",
+            "-S",
+            str(PROJECT_ROOT / "osm2pgsql" / "generic.lua"),
+            "-d",
+            os.getenv("OSM_DB_NAME"),
+            "-U",
+            os.getenv("OSM_DB_USER"),
+            "-H",
+            os.getenv("OSM_DB_HOST"),
+            "-P",
+            os.getenv("OSM_DB_PORT"),
+            str(PBF_PATH),
         ],
         check=True,
         env=env,
     )
-    _PBF_PATH.unlink()
+    PBF_PATH.unlink()
     logger.info("osm2pgsql import complete")
 
 

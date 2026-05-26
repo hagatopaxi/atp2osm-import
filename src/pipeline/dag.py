@@ -10,14 +10,13 @@
 
 from src.pipeline.atp import (
     cleanup_atp,
-    convert_atp,
     create_parquet_atp,
     download_atp,
     extract_atp,
     import_atp,
-    split_atp,
 )
 from src.pipeline.atp2osm import create_mv_places_brand
+from src.pipeline.ndgeojson_to_parquet import convert_atp, split_atp
 from src.pipeline.osm import download_pbf, run_osm2pgsql, setup_mv_places
 
 PIPELINE = {

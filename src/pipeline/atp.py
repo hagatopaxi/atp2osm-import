@@ -3,10 +3,15 @@ import logging
 import os
 import shutil
 import zipfile
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
-from pathlib import Path
-
+from src.pipeline.constants import (
+    ATP_DIR,
+    GEOJSON_DIR,
+    SPLIT_DIR,
+    PARQUET_PATH,
+    SPIDERS_PATH,
+    ATP_HISTORY_URL,
+)
 import duckdb
 import requests
 
@@ -14,19 +19,8 @@ from src.pipeline._db import connect, last_import_date, record_import
 from src.pipeline.ndgeojson_to_parquet import convert_to_parquet
 from src.utils import delete_file_if_exists, download_large_file
 
-_MAX_FILE_SIZE = 16 * 1024 * 1024  # 16 MB
-_WORKERS = int(os.getenv("PIPELINE_WORKERS") or max(1, (os.cpu_count() or 4) // 2))
 
 logger = logging.getLogger(__name__)
-
-_PROJECT_ROOT = Path(__file__).parent.parent.parent
-_ATP_DIR = _PROJECT_ROOT / "data" / "atp"
-_GEOJSON_DIR = _ATP_DIR / "geojson"
-_NDGEOJSON_DIR = _ATP_DIR / "ndgeojson"
-_SPLIT_DIR = _ATP_DIR / "split"
-_PARQUET_PATH = _ATP_DIR / "latest.parquet"
-_SPIDERS_PATH = _ATP_DIR / "spiders.json"
-_ATP_HISTORY_URL = "https://data.alltheplaces.xyz/runs/history.json"
 
 
 def download_atp():
@@ -34,11 +28,11 @@ def download_atp():
     try:
         last_date = last_import_date(conn, "atp")
 
-        resp = requests.get(_ATP_HISTORY_URL, timeout=30)
+        resp = requests.get(ATP_HISTORY_URL, timeout=30)
         resp.raise_for_status()
         runs = list(reversed(resp.json()))
 
-        _ATP_DIR.mkdir(parents=True, exist_ok=True)
+        ATP_DIR.mkdir(parents=True, exist_ok=True)
 
         for run in runs:
             end_time_raw = run.get("end_time")
@@ -63,15 +57,15 @@ def download_atp():
             zip_url = run.get("output_url")
             stats_url = run.get("stats_url")
 
-            delete_file_if_exists(_ATP_DIR / "output.zip")
-            delete_file_if_exists(_SPIDERS_PATH)
+            delete_file_if_exists(ATP_DIR / "output.zip")
+            delete_file_if_exists(SPIDERS_PATH)
 
-            download_large_file(zip_url, _ATP_DIR / "output.zip")
+            download_large_file(zip_url, ATP_DIR / "output.zip")
 
             if stats_url:
-                stats_path = _ATP_DIR / "stats.json"
+                stats_path = ATP_DIR / "stats.json"
                 download_large_file(stats_url, stats_path)
-                with open(stats_path) as infile, open(_SPIDERS_PATH, "w") as out:
+                with open(stats_path) as infile, open(SPIDERS_PATH, "w") as out:
                     out.write(json.dumps(json.loads(infile.read())["results"]))
                 stats_path.unlink()
 
@@ -85,150 +79,48 @@ def download_atp():
 
 
 def extract_atp():
-    zip_path = _ATP_DIR / "output.zip"
+    zip_path = ATP_DIR / "output.zip"
     if not zip_path.exists():
         logger.info("No ATP zip found, skipping extraction")
         return
 
-    if _GEOJSON_DIR.exists():
-        shutil.rmtree(_GEOJSON_DIR)
-    _GEOJSON_DIR.mkdir(parents=True)
+    if GEOJSON_DIR.exists():
+        shutil.rmtree(GEOJSON_DIR)
+    GEOJSON_DIR.mkdir(parents=True)
 
     with zipfile.ZipFile(zip_path, "r") as zf:
-        zf.extractall(_GEOJSON_DIR)
+        zf.extractall(GEOJSON_DIR)
 
-    geojson_files = list(_GEOJSON_DIR.rglob("*.geojson"))
+    geojson_files = list(GEOJSON_DIR.rglob("*.geojson"))
     if not geojson_files:
-        raise FileNotFoundError(f"No .geojson files found in {_GEOJSON_DIR}")
+        raise FileNotFoundError(f"No .geojson files found in {GEOJSON_DIR}")
 
     for f in geojson_files:
-        if f.parent != _GEOJSON_DIR:
-            f.rename(_GEOJSON_DIR / f.name)
+        if f.parent != GEOJSON_DIR:
+            f.rename(GEOJSON_DIR / f.name)
 
     logger.info("Extracted ATP zip (%d geojson files)", len(geojson_files))
 
 
-def convert_atp():
-    """Step 3: Convert FeatureCollection GeoJSON to NDJSON (one feature per line)."""
-    if _NDGEOJSON_DIR.exists():
-        shutil.rmtree(_NDGEOJSON_DIR)
-    _NDGEOJSON_DIR.mkdir(parents=True)
-
-    files = sorted(_GEOJSON_DIR.glob("*.geojson"))
-    if not files:
-        raise FileNotFoundError(f"No .geojson files in {_GEOJSON_DIR}")
-
-    with ThreadPoolExecutor(max_workers=_WORKERS) as executor:
-        futures = [executor.submit(_convert_single_file, f) for f in files]
-        for fut in futures:
-            fut.result()
-
-    logger.info("Converted FC geojson to NDJSON")
-
-
-def _convert_single_file(file_path: Path):
-    if file_path.stat().st_size == 0:
-        return
-
-    out_path = _NDGEOJSON_DIR / file_path.name
-    written = 0
-
-    with open(file_path, "rb") as f_in, open(out_path, "wb") as f_out:
-        first = True
-        prev = None
-        for line in f_in:
-            if first:
-                first = False
-                continue  # skip FeatureCollection header
-            if prev is not None:
-                clean = prev.rstrip()
-                if clean.endswith(b","):
-                    clean = clean[:-1]
-                if clean:
-                    f_out.write(clean + b"\n")
-                    written += 1
-            prev = line
-        # prev is the last line `]}` — skip it
-
-    if written == 0:
-        out_path.unlink()
-        logger.info("Skipping %s: no features", file_path.name)
-
-
-def split_atp():
-    """Step 4: Split NDJSON files larger than 16 MB; move smaller files as-is."""
-    if _SPLIT_DIR.exists():
-        shutil.rmtree(_SPLIT_DIR)
-    _SPLIT_DIR.mkdir(parents=True)
-
-    files = sorted(_NDGEOJSON_DIR.glob("*.geojson"))
-    if not files:
-        raise FileNotFoundError(f"No .geojson files in {_NDGEOJSON_DIR}")
-
-    with ThreadPoolExecutor(max_workers=_WORKERS) as executor:
-        futures = [executor.submit(_split_or_move, f) for f in files]
-        for fut in futures:
-            fut.result()
-
-    logger.info("Split complete")
-
-
-def _split_or_move(file_path: Path):
-    if file_path.stat().st_size <= _MAX_FILE_SIZE:
-        shutil.move(str(file_path), _SPLIT_DIR / file_path.name)
-        return
-    _split_ndjson_file(file_path)
-    file_path.unlink()
-
-
-def _split_ndjson_file(file_path: Path):
-    base_name = file_path.stem
-    data = file_path.read_bytes()
-    total = len(data)
-
-    start = 0
-    chunk_num = 1
-
-    while start < total:
-        end = start + _MAX_FILE_SIZE
-        if end >= total:
-            chunk_path = _SPLIT_DIR / f"{base_name}_{chunk_num}.geojson"
-            chunk_path.write_bytes(data[start:])
-            break
-
-        # Find the last \n strictly before the 16 MB boundary
-        split_at = data.rfind(b"\n", start, end)
-        if split_at == -1 or split_at <= start:
-            # Line longer than 16 MB — hard split at boundary
-            split_at = end - 1
-
-        chunk_path = _SPLIT_DIR / f"{base_name}_{chunk_num}.geojson"
-        chunk_path.write_bytes(data[start : split_at + 1])
-        chunk_num += 1
-        start = split_at + 1
-
-    logger.info("Split %s into %d chunks", file_path.name, chunk_num)
-
-
 def create_parquet_atp():
     """Step 5: Create parquet from split NDJSON files."""
-    if not _SPLIT_DIR.exists():
-        raise FileNotFoundError(f"No split directory at {_SPLIT_DIR}")
-    delete_file_if_exists(_PARQUET_PATH)
-    convert_to_parquet(_SPLIT_DIR, _PARQUET_PATH)
+    if not SPLIT_DIR.exists():
+        raise FileNotFoundError(f"No split directory at {SPLIT_DIR}")
+    delete_file_if_exists(PARQUET_PATH)
+    convert_to_parquet(SPLIT_DIR, PARQUET_PATH)
     logger.info("Created parquet from NDJSON files")
 
 
 def import_atp():
     conn = connect()
     try:
-        if not _PARQUET_PATH.exists():
+        if not PARQUET_PATH.exists():
             raise FileNotFoundError(
-                f"No parquet file at {_PARQUET_PATH} — atp-parquet must run first"
+                f"No parquet file at {PARQUET_PATH} — atp-parquet must run first"
             )
 
         parquet_mtime = datetime.fromtimestamp(
-            _PARQUET_PATH.stat().st_mtime, tz=timezone.utc
+            PARQUET_PATH.stat().st_mtime, tz=timezone.utc
         )
         last_date = last_import_date(conn, "atp")
 
@@ -277,7 +169,7 @@ def import_atp():
                     NULL::VARCHAR                     AS source_type,
                     properties->>'$.@source_uri'      AS source_uri,
                     ST_AsGeoJSON(geom)                AS geom
-                FROM read_parquet('{_PARQUET_PATH}')
+                FROM read_parquet('{PARQUET_PATH}')
                 WHERE properties->>'$.addr:country' = 'FR'
                     AND geom IS NOT NULL
                     AND REGEXP_MATCHES(COALESCE(SUBSTRING(properties->>'$.addr:postcode', 1, 2), ''), '^[0-9]+$')
@@ -314,7 +206,7 @@ def import_atp():
             ddb.execute(f"""
                 CREATE TABLE pg.atp_spiders AS
                 SELECT *
-                FROM read_json('{_SPIDERS_PATH}')
+                FROM read_json('{SPIDERS_PATH}')
                 WHERE spider IN (SELECT DISTINCT spider_id FROM pg.atp_fr)
             """)
 
@@ -335,7 +227,7 @@ def import_atp():
 
 def cleanup_atp():
     for name in ["output.zip", "geojson", "ndgeojson", "split", "stats.json"]:
-        path = _ATP_DIR / name
+        path = ATP_DIR / name
         if not path.exists():
             continue
         if path.is_dir():
