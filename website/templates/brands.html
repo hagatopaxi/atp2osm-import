@@ -21,6 +21,18 @@
 endblock %}
 
 {% block content %}
+{% if 'user' not in session %}
+<div role="alert" class="alert alert-info alert-soft mb-4 max-w-3xl">
+    <i class="iconoir-log-in text-xl shrink-0"></i>
+    <div>
+        <p class="font-semibold">Connexion requise pour importer</p>
+        <p class="text-sm">Vous devez vous connecter avec votre compte OpenStreetMap pour pouvoir déclencher un import.</p>
+    </div>
+    <button onclick="login('/brands')" class="btn btn-sm btn-primary rounded-full shrink-0">
+        <i class="iconoir-log-in"></i> Se connecter avec OSM
+    </button>
+</div>
+{% endif %}
 <table class="table table-compact bg-base-100 rounded-2">
     <thead>
         <tr>

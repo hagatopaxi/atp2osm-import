@@ -11,27 +11,21 @@
     </label>
   </div>
 
+  {% macro nav_item(href, icon, label, exact=false) %}
+  {% set is_active = (request.path == href) if exact else request.path.startswith(href) %}
+  <li>
+    <a class="{{ 'bg-primary/15 text-primary font-semibold hover:bg-primary/25' if is_active else 'bg-white hover:bg-base-300' }} shadow-sm" href="{{ href }}">
+      <i class="{{ icon }}"></i><span class="sidebar-hide whitespace-nowrap">{{ label }}</span>
+    </a>
+  </li>
+  {% endmacro %}
+
   <ul class="menu p-0 w-full gap-2">
-    <li>
-      <a class="bg-white hover:bg-base-300 shadow-sm" href="/"><i class="iconoir-home"></i><span
-          class="sidebar-hide whitespace-nowrap">Accueil</span></a>
-    </li>
-    <li>
-      <a class="bg-white hover:bg-base-300 shadow-sm" href="/brands"><i class="iconoir-archery"></i><span
-          class="sidebar-hide whitespace-nowrap">Marques à importer</span></a>
-    </li>
-    <li>
-      <a class="bg-white hover:bg-base-300 shadow-sm" href="/history"><i class="iconoir-clock"></i><span
-          class="sidebar-hide whitespace-nowrap">Historique des imports</span></a>
-    </li>
-    <li>
-      <a class="bg-white hover:bg-base-300 shadow-sm" href="/todo"><i class="iconoir-list"></i><span
-          class="sidebar-hide whitespace-nowrap">Marques manquantes</span></a>
-    </li>
-    <li>
-      <a class="bg-white hover:bg-base-300 shadow-sm" href="/docs"><i class="iconoir-book"></i><span
-          class="sidebar-hide whitespace-nowrap">Documentation</span></a>
-    </li>
+    {{ nav_item('/',        'iconoir-home',    'Accueil',             exact=true) }}
+    {{ nav_item('/brands',  'iconoir-archery', 'Marques à importer') }}
+    {{ nav_item('/history', 'iconoir-clock',   'Historique des imports') }}
+    {{ nav_item('/todo',    'iconoir-list',    'Marques manquantes') }}
+    {{ nav_item('/docs',    'iconoir-book',    'Documentation') }}
   </ul>
 
   <div class="flex-1"></div>

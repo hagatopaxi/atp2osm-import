@@ -1,5 +1,6 @@
 import os
 import functools
+from urllib.parse import urlparse
 
 from flask import Blueprint, session, request, redirect, url_for, abort, Response
 from requests_oauthlib import OAuth2Session
@@ -43,6 +44,14 @@ def login():
     authorization_url, state = osm.authorization_url(authorization_base_url)
     session["oauth_state"] = state
 
+    data = request.get_json(silent=True) or {}
+    next_url = data.get("next", "/")
+    # Protected against open-redirect attack, see https://owasp.org/www-community/attacks/open_redirect
+    parsed = urlparse(next_url)
+    if parsed.netloc or parsed.scheme or not next_url.startswith("/"):
+        next_url = "/"
+    session["oauth_next"] = next_url
+
     return authorization_url
 
 
@@ -80,7 +89,8 @@ def oauth_callback():
     session["user"] = user
     session["token"] = dict(token)
 
-    return redirect("/")
+    next_url = session.pop("oauth_next", "/")
+    return redirect(next_url)
 
 
 @auth_bp.route("/logout", methods=["POST"])

@@ -72,9 +72,18 @@
     </p>
 </section>
 
-<section class="mt-6">
+<section class="mt-6 flex flex-wrap gap-3 items-center">
+    {% if 'user' in session %}
     <a href="/brands" class="btn btn-primary">
         <i class="iconoir-double-check"></i> Commencer à importer !
+    </a>
+    {% else %}
+    <button onclick="login('/brands')" class="btn btn-primary rounded-full">
+        <i class="iconoir-log-in"></i> Se connecter à OSM pour démarrer
+    </button>
+    {% endif %}
+    <a href="/docs" class="btn btn-outline">
+        <i class="iconoir-book"></i> Comment ça marche ?
     </a>
 </section>
 

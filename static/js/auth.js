@@ -6,8 +6,12 @@ if (new URLSearchParams(location.search).get('session_expired')) {
   document.addEventListener('DOMContentLoaded', () => { document.body.appendChild(c); setTimeout(() => c.remove(), 5000); });
 }
 
-async function login() {
-  const res = await fetch("/login", { method: "POST" });
+async function login(next = '/') {
+  const res = await fetch("/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ next }),
+  });
   const body = await res.text();
   window.location.replace(body);
 }

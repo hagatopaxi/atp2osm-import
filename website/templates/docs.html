@@ -8,6 +8,65 @@
 <div class="max-w-3xl flex flex-col gap-8">
 
     <section>
+        <h2 class="text-lg font-semibold mb-3">Qu'est-ce qu'une « marque » ?</h2>
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body gap-4">
+
+                <p class="text-sm text-base-content/80 leading-relaxed">
+                    La notion de <strong>marque</strong> vient directement d'<a href="https://alltheplaces.xyz"
+                        target="_blank" rel="noopener" class="link link-primary">All The Places</a> (ATP).
+                    ATP est une base de données collaborative structurée autour des <strong>enseignes nationales et
+                    internationales</strong> : chaînes de magasins, réseaux de restauration, banques, chaînes
+                    de pharmacies… Chaque enseigne y est identifiée par un code
+                    <a href="https://www.wikidata.org" target="_blank" rel="noopener" class="link link-primary">Wikidata</a>
+                    unique — par exemple <code class="font-mono text-xs">Q37158</code> pour Zara.
+                    <strong>Les commerces indépendants</strong> (boulangerie de quartier, restaurant local…)
+                    n'en font pas partie.
+                </p>
+
+                <div class="flex flex-col gap-2">
+                    <p class="text-sm font-semibold">Quelques termes clés</p>
+                    <dl class="flex flex-col gap-2 text-sm">
+                        <div class="flex gap-3 items-start">
+                            <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">spider</dt>
+                            <dd class="text-base-content/70">Programme dédié à une seule enseigne, qui collecte automatiquement ses données depuis son site officiel (horaires d'ouverture, téléphone, adresse…).</dd>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">scraping</dt>
+                            <dd class="text-base-content/70">Technique d'extraction automatique d'informations depuis des pages web. C'est ce que fait chaque spider ATP pour récupérer les données d'une enseigne.</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <p class="text-sm text-base-content/80 leading-relaxed">
+                    atp2osm reprend cette structure et importe les données <strong>enseigne par enseigne</strong>,
+                    en suivant fidèlement les spiders ATP. Cela garantit que toutes les données d'une même enseigne
+                    proviennent d'une source unique et homogène — ce qui permet de valider la qualité d'un spider
+                    en contrôlant un échantillon aléatoire de 1 % des correspondances,
+                    et d'étendre cette confiance à l'ensemble de l'importation.
+                </p>
+
+                <div role="alert" class="alert alert-info alert-soft p-3">
+                    <i class="iconoir-info-circle text-lg shrink-0"></i>
+                    <div class="flex flex-col gap-2">
+                        <p class="text-sm">Une enseigne est absente ? Son spider ATP n'existe peut-être pas encore.</p>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="/todo" class="btn btn-xs btn-primary rounded-full">
+                                <i class="iconoir-list"></i> La signaler dans les marques manquantes
+                            </a>
+                            <a href="https://github.com/alltheplaces/alltheplaces" target="_blank" rel="noopener"
+                                class="btn btn-xs btn-outline rounded-full">
+                                <i class="iconoir-github"></i> Écrire un spider sur GitHub
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section>
         <h2 class="text-lg font-semibold mb-3">Résumé</h2>
         <div class="grid grid-cols-2 gap-4">
             <div class="card bg-base-100 shadow-sm">
@@ -137,8 +196,14 @@
         <h2 class="text-lg font-semibold mb-3">Validation des marques</h2>
         <div role="alert" class="alert alert-warning mb-4">
             <i class="iconoir-warning-triangle text-xl shrink-0"></i>
-            <p class="text-sm">Seul <strong>1 % des éléments</strong> sont validés manuellement, sélectionnés aléatoirement.</p>
+            <p class="text-sm">Seul <strong>1 % des éléments d'une marque</strong> sont validés manuellement, sélectionnés aléatoirement parmi tous les établissements de cette enseigne.</p>
         </div>
+        <p class="text-sm text-base-content/80 leading-relaxed mb-3">
+            La validation se fait <strong>marque par marque</strong> : avant d'importer une enseigne, vous contrôlez
+            un échantillon aléatoire de 1 % de ses établissements. Si les données de cet échantillon sont correctes,
+            la fiabilité est considérée comme acquise pour l'ensemble des établissements de cette enseigne —
+            c'est la cohérence du spider (source unique) qui le permet.
+        </p>
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
             Avant de valider, assurez-vous que les éléments vérifiés sont représentatifs : testez plusieurs établissements
             dans des régions différentes, vérifiez les cas limites (horaires spéciaux, numéros de téléphone mal formatés,
