@@ -16,11 +16,11 @@
 
     {% block structured_data %}{% endblock %}
 
-    <link href="/static/lib/daisyui-5.css" rel="stylesheet" type="text/css" />
-    <script src="/static/lib/tailiwind-4.js"></script>
-    <link rel="stylesheet" href="/static/lib/iconoir.css" type="text/css" />
-    <link rel="stylesheet" href="/static/css/app.css" type="text/css" />
-    <link rel="stylesheet" href="/static/css/icown.css" type="text/css" />
+    <link href="/static/lib/daisyui-5.css?v={{ app_version }}" rel="stylesheet" type="text/css" />
+    <script src="/static/lib/tailiwind-4.js?v={{ app_version }}"></script>
+    <link rel="stylesheet" href="/static/lib/iconoir.css?v={{ app_version }}" type="text/css" />
+    <link rel="stylesheet" href="/static/css/app.css?v={{ app_version }}" type="text/css" />
+    <link rel="stylesheet" href="/static/css/icown.css?v={{ app_version }}" type="text/css" />
     <link rel="icon" type="image/svg+xml" href="/static/img/logo.svg" />
 
     {% block custom_css %}

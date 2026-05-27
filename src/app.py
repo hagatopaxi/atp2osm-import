@@ -28,6 +28,7 @@ try:
 except locale.Error:
     logging.warning("French locale (fr_FR.UTF-8) not available — date formatting will use system default")
 
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0 if env == "DEVELOPMENT" else 31536000  # dev: revalidation systématique — prod: cache 1 an
 app.config["CACHE_TYPE"] = "FileSystemCache"
 app.config["CACHE_DIR"] = CACHE_DIR
 app.config["CACHE_THRESHOLD"] = 1000
