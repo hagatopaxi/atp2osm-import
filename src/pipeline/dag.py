@@ -2,8 +2,14 @@
 #                              (step_function, [successor_step_names], {options})
 #
 # Options:
-#   serial: True — step runs alone, never in parallel with other steps in the same wave.
-#                  Use for bandwidth-heavy operations where concurrency would be counterproductive.
+#   lock: "<name>" — steps sharing the same lock name are serialized via a
+#                    mutex; only one runs at a time, others queue behind it.
+#                    Use for bandwidth-heavy operations (e.g. lock="network")
+#                    where true concurrency would be counterproductive.
+#
+# Execution model: each branch runs independently — a step starts as soon as
+# all its direct predecessors are done, with no synchronisation barrier between
+# unrelated branches.
 #
 # To add a step: implement a function in osm.py / atp.py / atp2osm.py,
 # import it here, and wire it into PIPELINE.
@@ -21,10 +27,10 @@ from src.pipeline.osm import download_pbf, run_osm2pgsql, setup_mv_places
 
 PIPELINE = {
     "start": (None, ["osm-download", "atp-download"]),
-    "osm-download": (download_pbf, ["osm-import"], {"serial": True}),
+    "osm-download": (download_pbf, ["osm-import"], {"lock": "network"}),
     "osm-import": (run_osm2pgsql, ["osm-views"]),
     "osm-views": (setup_mv_places, ["mv-brand"]),
-    "atp-download": (download_atp, ["atp-extract"], {"serial": True}),
+    "atp-download": (download_atp, ["atp-extract"], {"lock": "network"}),
     "atp-extract": (extract_atp, ["atp-convert"]),
     "atp-convert": (convert_atp, ["atp-split"]),
     "atp-split": (split_atp, ["atp-parquet"]),
