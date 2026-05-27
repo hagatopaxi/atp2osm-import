@@ -3,7 +3,33 @@
 {% block title %}Import #{{ entry.id }}{% endblock %}
 {% block subtitle %}Détails de l'import du {{ entry.import_date.strftime('%Y-%m-%d à %H:%M') }}.{% endblock %}
 
+{% block custom_js %}
+<script src="/static/js/history_detail.js?v={{ app_version }}"></script>
+{% endblock %}
+
 {% block content %}
+{% if 'user' in session and session['user']['osm_id'] == entry['osm_user_id'] and entry['status'] == 'success' %}
+<div id="thank-you-banner"
+     data-import-date="{{ entry['import_date'].isoformat() }}"
+     class="alert alert-success alert-soft shadow-lg mb-6 py-6">
+    <i class="iconoir-trophy text-4xl shrink-0"></i>
+    <div class="flex-1">
+        <p class="text-xl font-bold">Merci {{ session['user']['name'] }} !</p>
+        <p class="text-base mt-1">
+            Votre import vient d'être effectué avec succès —
+            {% if entry['items_count'] %}
+            <strong>{{ entry['items_count'] }} POI{{ 's' if entry['items_count'] > 1 }}</strong> enrichi{{ 's' if entry['items_count'] > 1 }} dans OpenStreetMap.
+            {% else %}
+            les données ont été envoyées dans OpenStreetMap.
+            {% endif %}
+        </p>
+    </div>
+    <a href="/brands" class="btn btn-lg btn-success shrink-0">
+        Importer une autre marque <i class="iconoir-arrow-right"></i>
+    </a>
+</div>
+{% endif %}
+
 <a class="btn btn-sm btn-ghost self-start -mt-2 mb-2" href="/history?page={{ from_page }}">
     <i class="iconoir-arrow-left"></i> Retour à l'historique
 </a>

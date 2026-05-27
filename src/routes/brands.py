@@ -140,7 +140,7 @@ def upload_changes(brand_wikidata):
         if errors and not bulk_upload.changesets:
             cursor.execute(
                 """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, brand_name)
-                   VALUES (%s, %s, 'error', %s, %s)""",
+                   VALUES (%s, %s, 'error', %s, %s) RETURNING id""",
                 (
                     brand_wikidata,
                     session["user"]["osm_id"],
@@ -148,14 +148,15 @@ def upload_changes(brand_wikidata):
                     bulk_upload.brand_name,
                 ),
             )
+            entry_id = cursor.fetchone()[0]
             osmdb.commit()
             return Response(
-                json.dumps({"errors": errors}), status=422, mimetype="application/json"
+                json.dumps({"errors": errors, "id": entry_id}), status=422, mimetype="application/json"
             )
         elif errors and bulk_upload.changesets:
             cursor.execute(
                 """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, changeset_ids, brand_name)
-                   VALUES (%s, %s, 'partial', %s, %s, %s)""",
+                   VALUES (%s, %s, 'partial', %s, %s, %s) RETURNING id""",
                 (
                     brand_wikidata,
                     session["user"]["osm_id"],
@@ -164,9 +165,10 @@ def upload_changes(brand_wikidata):
                     bulk_upload.brand_name,
                 ),
             )
+            entry_id = cursor.fetchone()[0]
             osmdb.commit()
             return Response(
-                json.dumps({"partial": True, "errors": errors}),
+                json.dumps({"partial": True, "errors": errors, "id": entry_id}),
                 status=200,
                 mimetype="application/json",
             )
@@ -174,7 +176,7 @@ def upload_changes(brand_wikidata):
             stats = get_stats(changes)
             cursor.execute(
                 """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, changeset_ids, brand_name, tags_count)
-                   VALUES (%s, %s, 'success', %s, %s, %s, %s)""",
+                   VALUES (%s, %s, 'success', %s, %s, %s, %s) RETURNING id""",
                 (
                     brand_wikidata,
                     session["user"]["osm_id"],
@@ -184,5 +186,8 @@ def upload_changes(brand_wikidata):
                     json.dumps(stats["by_tag"]),
                 ),
             )
+            entry_id = cursor.fetchone()[0]
             osmdb.commit()
-            return Response(status=200)
+            return Response(
+                json.dumps({"id": entry_id}), status=200, mimetype="application/json"
+            )

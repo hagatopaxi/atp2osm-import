@@ -20,6 +20,14 @@
 {% block subtitle %}{{ total_brands }} marque{{ 's' if total_brands > 1 }} — données issues de la base All The Places.{%
 endblock %}
 
+{% block custom_css %}
+<link rel="stylesheet" href="/static/css/brands.css?v={{ app_version }}" />
+{% endblock %}
+
+{% block custom_js %}
+<script src="/static/js/brands.js?v={{ app_version }}"></script>
+{% endblock %}
+
 {% block content %}
 {% if 'user' not in session %}
 <div role="alert" class="alert alert-info alert-soft mb-4 max-w-3xl">
@@ -33,6 +41,31 @@ endblock %}
     </button>
 </div>
 {% endif %}
+
+<div class="brand-filter-group mb-4">
+    <input type="radio" name="brand-filter" id="filter-importable" value="importable" checked />
+    <label for="filter-importable" class="brand-filter-card">
+        <i class="iconoir-check-circle"></i>
+        <span>Importables</span>
+        <span id="count-importable" class="brand-filter-badge">…</span>
+    </label>
+
+    <input type="radio" name="brand-filter" id="filter-all" value="all" />
+    <label for="filter-all" class="brand-filter-card">
+        <i class="iconoir-list"></i>
+        <span>Toutes</span>
+        <span id="count-all" class="brand-filter-badge">…</span>
+    </label>
+</div>
+
+<div id="beta-notice" role="alert" class="alert alert-warning alert-soft mb-4 max-w-3xl hidden">
+    <i class="iconoir-info-circle text-xl shrink-0"></i>
+    <p class="text-sm">
+        En version bêta, les imports de grande taille (plus de 25 correspondances) ne sont pas encore disponibles.
+        Ils le seront progressivement au fur et mesure que la plateforme gagnera en maturité.
+    </p>
+</div>
+
 <table class="table table-compact bg-base-100 rounded-2">
     <thead>
         <tr>
@@ -46,7 +79,7 @@ endblock %}
     </thead>
     <tbody>
         {% for row in metadata %}
-        <tr class="group">
+        <tr class="group" data-importable="{{ 'true' if row['total'] <= 25 else 'false' }}">
             <td>
                 {{ row["brand_wikidata"] }}
             </td>

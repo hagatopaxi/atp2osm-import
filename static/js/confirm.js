@@ -16,8 +16,10 @@ async function confirm_import() {
   const warning = document.getElementById("warning");
   const warningIcon = warning.querySelector("i");
   const warningText = warning.querySelector("span");
+
+  const data = await response.json();
+
   if (!response.ok) {
-    const data = await response.json();
     loading.classList.add("hidden");
     button_validate.removeAttribute("disabled");
     button_cancel.removeAttribute("disabled");
@@ -27,15 +29,13 @@ async function confirm_import() {
     warning.classList.add("alert-error");
     return;
   }
-  const contentType = response.headers.get("content-type") || "";
-  if (contentType.includes("application/json")) {
-    const data = await response.json();
-    if (data.partial) {
-      loading.classList.add("hidden");
-      warningText.textContent = `Import partiel : certains départements n'ont pas pu être importés (${data.errors.join(", ")}). Redirection dans quelques secondes…`;
-      setTimeout(() => { window.location.href = "/brands"; }, 4000);
-      return;
-    }
+
+  if (data.partial) {
+    loading.classList.add("hidden");
+    warningText.textContent = `Import partiel : certains départements n'ont pas pu être importés (${data.errors.join(", ")}). Redirection dans quelques secondes…`;
+    setTimeout(() => { window.location.href = `/history/${data.id}`; }, 4000);
+    return;
   }
-  window.location.href = "/brands";
+
+  window.location.href = `/history/${data.id}`;
 }
