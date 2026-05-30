@@ -3,13 +3,9 @@
 {% block title %}Import #{{ entry.id }}{% endblock %}
 {% block subtitle %}Détails de l'import du {{ entry.import_date.strftime('%Y-%m-%d à %H:%M') }}.{% endblock %}
 
-{% block custom_js %}
-<script src="/static/js/history_detail.js?v={{ app_version }}"></script>
-{% endblock %}
-
 {% block content %}
 {% set banner_statuses = ['success', 'partial_osm_api', 'partial_unknown', 'partial', 'cancelled', 'error_osm_api', 'error_unknown', 'error'] %}
-{% if 'user' in session and session['user']['osm_id'] == entry['osm_user_id'] and entry['status'] in banner_statuses %}
+{% if is_recent and 'user' in session and session['user']['osm_id'] == entry['osm_user_id'] and entry['status'] in banner_statuses %}
 
 {% set s = entry['status'] %}
 {% if s == 'success' %}
@@ -42,9 +38,7 @@
   {% set banner_btn_href = '/brands' %}
 {% endif %}
 
-<div id="thank-you-banner"
-     data-import-date="{{ entry['import_date'].isoformat() }}"
-     class="alert {{ banner_color }} alert-soft shadow-lg mb-6 py-6">
+<div class="alert {{ banner_color }} alert-soft shadow-lg mb-6 py-6">
     <i class="{{ banner_icon }} text-4xl shrink-0"></i>
     <div class="flex-1">
         <p class="text-xl font-bold">Merci {{ session['user']['name'] }} !</p>

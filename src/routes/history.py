@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone, timedelta
 
 from flask import Blueprint, render_template, request, abort
 from psycopg.rows import dict_row
@@ -57,4 +58,5 @@ def history_detail(entry_id):
 
     from_page = request.args.get("page", 1, type=int)
     users = fetch_osm_users([entry["osm_user_id"]])
-    return render_template("history_detail.html", entry=entry, users=users, from_page=from_page)
+    is_recent = (datetime.now(timezone.utc) - entry["import_date"]) < timedelta(minutes=5)
+    return render_template("history_detail.html", entry=entry, users=users, from_page=from_page, is_recent=is_recent)
