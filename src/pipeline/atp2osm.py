@@ -25,12 +25,12 @@ def create_mv_places_brand():
                             OR (atp.phone    IS NOT NULL AND osm.phone    IS NULL)
                             OR (atp.website  IS NOT NULL AND osm.website  IS NULL)
                         ) AS is_importable,
-                        ST_Distance(osm.geom_9794, ST_Transform(ST_GeomFromGeoJSON(atp.geom), 9794)) AS atp_distance,
+                        ST_Distance(osm.geom::geography, ST_GeomFromGeoJSON(atp.geom)::geography) AS atp_distance,
                         count(*) FILTER (WHERE osm.node_type = 'node')               OVER (PARTITION BY atp.id) AS pt_cnt,
                         count(*) FILTER (WHERE osm.node_type IN ('way', 'relation')) OVER (PARTITION BY atp.id) AS poly_cnt
                     FROM mv_places osm
                     INNER JOIN atp_fr atp ON
-                        ST_DWithin(osm.geom_9794, ST_Transform(ST_GeomFromGeoJSON(atp.geom), 9794), 500)
+                        ST_DWithin(osm.geom::geography, ST_GeomFromGeoJSON(atp.geom)::geography, 500)
                     WHERE
                         osm.brand_wikidata = atp.brand_wikidata
                         OR LOWER(osm.brand) = LOWER(atp.brand)

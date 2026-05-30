@@ -2,11 +2,10 @@ import logging
 import os
 import subprocess
 from datetime import datetime
+from email.utils import parsedate_to_datetime
 from src.pipeline.constants import (
     PROJECT_ROOT,
-    GEOFABRIK_STATE_URL,
-    GEOFABRIK_URL,
-    PBF_PATH,
+    GEOFABRIK_REGIONS,
 )
 
 import requests
@@ -17,18 +16,51 @@ from src.utils import delete_file_if_exists, download_large_file
 logger = logging.getLogger(__name__)
 
 
-def _geofabrik_timestamp():
-    resp = requests.get(GEOFABRIK_STATE_URL, timeout=30)
+def _geofabrik_timestamp(region: dict) -> datetime:
+    """Fetch the data timestamp for a region.
+
+    Tries the Geofabrik state.txt first; falls back to the HTTP Last-Modified
+    header of the PBF file for regions that don't publish a state file.
+    """
+    try:
+        resp = requests.get(region["state_url"], timeout=30)
+        resp.raise_for_status()
+        for line in resp.text.splitlines():
+            if line.startswith("timestamp="):
+                ts = line[len("timestamp="):].replace("\\:", ":")
+                return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except Exception:
+        pass
+
+    # Fallback: Last-Modified header on the PBF file
+    resp = requests.head(region["url"], timeout=30, allow_redirects=True)
     resp.raise_for_status()
-    for line in resp.text.splitlines():
-        if line.startswith("timestamp="):
-            ts = line[len("timestamp=") :].replace("\\:", ":")
-            return datetime.fromisoformat(ts.replace("Z", "+00:00"))
-    raise ValueError("Could not parse Geofabrik state.txt")
+    last_modified = resp.headers.get("Last-Modified")
+    if last_modified:
+        return parsedate_to_datetime(last_modified)
+
+    raise ValueError(f"Cannot determine data timestamp for {region['url']}")
+
+
+def _newest_geofabrik_timestamp() -> datetime:
+    """Return the most recent timestamp across all configured regions.
+
+    We refresh when any region has data newer than our last import,
+    so we compare last_import_date against the maximum (newest) timestamp.
+    """
+    timestamps = []
+    for name, region in GEOFABRIK_REGIONS.items():
+        try:
+            timestamps.append(_geofabrik_timestamp(region))
+        except Exception as exc:
+            logger.warning("Could not fetch timestamp for %s: %s", name, exc)
+    if not timestamps:
+        raise RuntimeError("No Geofabrik timestamps could be fetched")
+    return max(timestamps)
 
 
 def download_pbf():
-    geofabrik_ts = _geofabrik_timestamp()
+    newest_ts = _newest_geofabrik_timestamp()
 
     conn = connect()
     try:
@@ -36,81 +68,74 @@ def download_pbf():
     finally:
         conn.close()
 
-    if last_date and last_date >= geofabrik_ts:
+    if last_date and last_date >= newest_ts:
         logger.info(
-            "OSM data already up-to-date (%s), skipping download", last_date.date()
+            "OSM data already up-to-date (last import: %s), skipping download",
+            last_date.date(),
         )
         return
 
-    if PBF_PATH.exists():
-        logger.info("PBF already present, skipping download")
-        return
-
-    logger.info("New OSM data available (%s), downloading...", geofabrik_ts.date())
-    PBF_PATH.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        download_large_file(GEOFABRIK_URL, PBF_PATH)
-    except Exception:
-        delete_file_if_exists(PBF_PATH)
-        raise
-    logger.info("Download complete")
+    logger.info("New OSM data available (newest: %s), downloading all regions...", newest_ts.date())
+    for name, region in GEOFABRIK_REGIONS.items():
+        pbf_path = region["pbf_path"]
+        if pbf_path.exists():
+            logger.info("PBF %s already present, skipping", name)
+            continue
+        logger.info("Downloading %s...", name)
+        pbf_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            download_large_file(region["url"], pbf_path)
+        except Exception:
+            delete_file_if_exists(pbf_path)
+            raise
+        logger.info("Downloaded %s", name)
 
 
 def run_osm2pgsql():
-    if not PBF_PATH.exists():
-        logger.info("No PBF file found, skipping osm2pgsql")
+    pbf_paths = [
+        r["pbf_path"]
+        for r in GEOFABRIK_REGIONS.values()
+        if r["pbf_path"].exists()
+    ]
+    if not pbf_paths:
+        logger.info("No PBF files found, skipping osm2pgsql")
         return
 
-    logger.info("Importing OSM PBF into PostGIS...")
+    logger.info("Importing %d PBF file(s) into PostGIS...", len(pbf_paths))
     env = os.environ.copy()
     env["PGPASSWORD"] = os.getenv("OSM_DB_PASSWORD", "")
     subprocess.run(
         [
             "osm2pgsql",
-            "--output",
-            "flex",
-            "-S",
-            str(PROJECT_ROOT / "osm2pgsql" / "generic.lua"),
-            "-d",
-            os.getenv("OSM_DB_NAME"),
-            "-U",
-            os.getenv("OSM_DB_USER"),
-            "-H",
-            os.getenv("OSM_DB_HOST"),
-            "-P",
-            os.getenv("OSM_DB_PORT"),
-            str(PBF_PATH),
+            "--output", "flex",
+            "-S", str(PROJECT_ROOT / "osm2pgsql" / "generic.lua"),
+            "-d", os.getenv("OSM_DB_NAME"),
+            "-U", os.getenv("OSM_DB_USER"),
+            "-H", os.getenv("OSM_DB_HOST"),
+            "-P", os.getenv("OSM_DB_PORT"),
+            *[str(p) for p in pbf_paths],
         ],
         check=True,
         env=env,
     )
-    PBF_PATH.unlink()
-    logger.info("osm2pgsql import complete")
+
+    for p in pbf_paths:
+        p.unlink()
+    logger.info("osm2pgsql import complete (%d file(s))", len(pbf_paths))
 
 
 def setup_mv_places():
-    geofabrik_ts = _geofabrik_timestamp()
+    newest_ts = _newest_geofabrik_timestamp()
     conn = connect()
     try:
         last_date = last_import_date(conn, "osm")
-        if last_date and last_date >= geofabrik_ts:
+        if last_date and last_date >= newest_ts:
             logger.info("OSM views already up-to-date (%s), skipping", last_date.date())
             record_import(conn, "osm", last_date, "skipped")
             return
 
         try:
             with conn.cursor() as cur:
-                cur.execute("SELECT srid FROM spatial_ref_sys WHERE srid=9794;")
-                if not cur.fetchone():
-                    logger.info("Inserting EPSG/9794 projection")
-                    cur.execute("""
-                        INSERT INTO spatial_ref_sys (srid, auth_name, auth_srid, srtext, proj4text)
-                        VALUES(9794, 'EPSG', 9794,
-                            'PROJCS["RGF93_v2b_Lambert-93",GEOGCS["RGF93_v2b",DATUM["Reseau_Geodesique_Francais_1993_v2b",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Lambert_Conformal_Conic"],PARAMETER["False_Easting",700000.0],PARAMETER["False_Northing",6600000.0],PARAMETER["Central_Meridian",3.0],PARAMETER["Standard_Parallel_1",49.0],PARAMETER["Standard_Parallel_2",44.0],PARAMETER["Latitude_Of_Origin",46.5],UNIT["Meter",1.0]]',
-                            '+proj=lcc +lat_0=46.5 +lon_0=3 +lat_1=49 +lat_2=44 +x_0=700000 +y_0=6600000 +ellps=GRS80 +units=m +no_defs +type=crs'
-                        )
-                    """)
-
                 cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places CASCADE;")
                 logger.info("Creating mv_places and indexes...")
                 cur.execute("""
@@ -130,7 +155,6 @@ def setup_mv_places():
                         COALESCE(tags->>'email', tags->>'contact:email')     AS email,
                         version,
                         NULL::jsonb                                          AS members,
-                        ST_Transform(geom, 9794)                             AS geom_9794,
                         geom
                     FROM points
 
@@ -151,14 +175,13 @@ def setup_mv_places():
                         COALESCE(tags->>'email', tags->>'contact:email')     AS email,
                         version,
                         members,
-                        ST_Transform(geom, 9794)                             AS geom_9794,
                         geom
                     FROM polygons
                 """)
 
                 cur.execute("""
-                    CREATE INDEX IF NOT EXISTS mv_places_geom_9794_idx
-                        ON mv_places USING GIST (geom_9794);
+                    CREATE INDEX IF NOT EXISTS mv_places_geog_idx
+                        ON mv_places USING GIST ((geom::geography));
                     CREATE INDEX IF NOT EXISTS mv_places_brand_wikidata_idx
                         ON mv_places ((brand_wikidata));
                     CREATE INDEX IF NOT EXISTS mv_places_brand_lower_idx
@@ -168,14 +191,14 @@ def setup_mv_places():
                     CREATE INDEX IF NOT EXISTS mv_places_website_norm_idx
                         ON mv_places (LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')));
                     CREATE INDEX IF NOT EXISTS mv_places_phone_norm_idx
-                        ON mv_places (REGEXP_REPLACE(REGEXP_REPLACE(phone, '^\+33', '0'), '\s+', '', 'g'));
+                        ON mv_places (normalize_phone(phone));
                     CREATE INDEX IF NOT EXISTS mv_places_email_lower_idx
                         ON mv_places (LOWER(email));
                 """)
 
             conn.commit()
-            record_import(conn, "osm", geofabrik_ts, "success")
-            logger.info("mv_places created (data date: %s)", geofabrik_ts.date())
+            record_import(conn, "osm", newest_ts, "success")
+            logger.info("mv_places created (data date: %s)", newest_ts.date())
 
         except Exception:
             logger.exception("setup_mv_places failed")

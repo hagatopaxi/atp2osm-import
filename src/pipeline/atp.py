@@ -184,7 +184,7 @@ def import_atp():
                 cur.execute("DELETE FROM atp_fr WHERE postcode IS NULL;")
                 cur.execute("""
                     CREATE INDEX IF NOT EXISTS atp_fr_geom_idx
-                        ON atp_fr USING GIST (ST_Transform(ST_GeomFromGeoJSON(geom), 9794));
+                        ON atp_fr USING GIST ((ST_GeomFromGeoJSON(geom)::geography));
                     CREATE INDEX IF NOT EXISTS atp_fr_brand_wikidata_idx
                         ON atp_fr (brand_wikidata);
                     CREATE INDEX IF NOT EXISTS atp_fr_brand_lower_idx

@@ -1,4 +1,4 @@
-local srid = 9794
+local srid = 4326
 
 local tables = {}
 

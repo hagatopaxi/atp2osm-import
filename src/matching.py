@@ -14,8 +14,8 @@ def get_filtered(
         SELECT
             *,
             osm.tags as old_tags,
-            ST_X(ST_Centroid(ST_Transform(osm.geom, 4326))) AS lon,
-            ST_Y(ST_Centroid(ST_Transform(osm.geom, 4326))) AS lat,
+            ST_X(ST_Centroid(osm.geom)) AS lon,
+            ST_Y(ST_Centroid(osm.geom)) AS lat,
             atp.opening_hours as atp_opening_hours,
             atp.phone as atp_phone,
             atp.email as atp_email,
@@ -23,15 +23,15 @@ def get_filtered(
             atp.country as atp_country,
             atp.city as atp_city,
             atp.source_uri as atp_source_uri,
-            ST_Distance(geom_9794, ST_Transform(ST_GeomFromGeoJSON(atp.geom), 9794)) AS atp_distance,
+            ST_Distance(osm.geom::geography, ST_GeomFromGeoJSON(atp.geom)::geography) AS atp_distance,
             count(*) FILTER (WHERE osm.node_type = 'node')                 OVER (PARTITION BY atp.id) AS pt_cnt,
             count(*) FILTER (WHERE osm.node_type IN ('way', 'relation'))   OVER (PARTITION BY atp.id) AS poly_cnt
         FROM
             mv_places osm
         INNER JOIN atp_fr atp ON
             ST_DWithin(
-                geom_9794,
-                ST_Transform(ST_GeomFromGeoJSON(atp.geom), 9794),
+                osm.geom::geography,
+                ST_GeomFromGeoJSON(atp.geom)::geography,
                 500
             )
         WHERE
