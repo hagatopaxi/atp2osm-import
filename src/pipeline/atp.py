@@ -156,7 +156,11 @@ def import_atp():
                     properties->>'$.addr:country'    AS country,
                     properties->>'$.addr:city'        AS city,
                     properties->>'$.addr:postcode'    AS postcode,
-                    SUBSTRING(properties->>'$.addr:postcode', 1, 2) AS departement_number,
+                    CASE
+                        WHEN SUBSTRING(properties->>'$.addr:postcode', 1, 2) IN ('97', '98')
+                            THEN SUBSTRING(properties->>'$.addr:postcode', 1, 3)
+                        ELSE SUBSTRING(properties->>'$.addr:postcode', 1, 2)
+                    END AS departement_number,
                     properties->>'$.brand:wikidata'   AS brand_wikidata,
                     properties->>'$.brand'            AS brand,
                     properties->>'$.name'             AS name,
@@ -172,7 +176,7 @@ def import_atp():
                 FROM read_parquet('{PARQUET_PATH}')
                 WHERE properties->>'$.addr:country' = 'FR'
                     AND geom IS NOT NULL
-                    AND REGEXP_MATCHES(COALESCE(SUBSTRING(properties->>'$.addr:postcode', 1, 2), ''), '^[0-9]+$')
+                    AND REGEXP_MATCHES(COALESCE(properties->>'$.addr:postcode', ''), '^(2[AB]|[0-9]{{2}})[0-9]{{3}}$')
             """)
 
             logger.info("Creating indexes for atp_fr...")
@@ -190,7 +194,7 @@ def import_atp():
                     CREATE INDEX IF NOT EXISTS atp_fr_website_norm_idx
                         ON atp_fr (LOWER(REGEXP_REPLACE(website, '^https?://', '', 'i')));
                     CREATE INDEX IF NOT EXISTS atp_fr_phone_norm_idx
-                        ON atp_fr (REGEXP_REPLACE(REGEXP_REPLACE(phone, '^\+33', '0'), '\s+', '', 'g'));
+                        ON atp_fr (normalize_phone(phone));
                     CREATE INDEX IF NOT EXISTS atp_fr_email_lower_idx
                         ON atp_fr (LOWER(email));
                     CREATE INDEX IF NOT EXISTS atp_fr_departement_number_idx

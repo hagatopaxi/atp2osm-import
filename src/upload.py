@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import osmapi
+from src.matching import DEPARTEMENT_NAMES
 from osmapi.errors import ApiError
 from requests_oauthlib import OAuth2Session
 
@@ -59,9 +60,10 @@ class BulkUpload:
 
         for dpt, dpt_changes in changes_by_dpt.items():
             try:
+                dept_label = DEPARTEMENT_NAMES.get(dpt, f"dép. {dpt}")
                 changeset = self.api.changeset_create(
                     {
-                        "comment": f"Importation des données ATP (dép. {dpt}; {self.brand_name})",
+                        "comment": f"Importation des données ATP ({dept_label}; {self.brand_name})",
                         "created_by": "atp2osm",
                         "source": "https://alltheplaces.xyz",
                         "wiki": "https://wiki.openstreetmap.org/wiki/atp2osm",

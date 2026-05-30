@@ -42,7 +42,7 @@ def get_filtered(
                 OR LOWER(osm.name) = LOWER(atp."name")
                 OR LOWER(osm.email) = LOWER(atp.email)
                 OR LOWER(REGEXP_REPLACE(osm.website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(atp.website, '^https?://', '', 'i'))
-                OR REGEXP_REPLACE(REGEXP_REPLACE(osm.phone, '^\+33', '0'), '\s+', '', 'g') = REGEXP_REPLACE(REGEXP_REPLACE(atp.phone, '^\+33', '0'), '\s+', '', 'g')
+                OR normalize_phone(osm.phone) = normalize_phone(atp.phone)
             )
         )
         SELECT DISTINCT ON (osm_id, node_type) *
@@ -199,6 +199,10 @@ DEPARTEMENT_NAMES = {
     "17": "Charente-Maritime",
     "18": "Cher",
     "19": "Corrèze",
+    # Corse — les codes postaux ATP sont 20xxx (pas 2Axxx/2Bxxx), donc
+    # departement_number vaut "20". Les codes "2A"/"2B" seraient utiles si
+    # on affinait un jour par plage de CP (20000-20199 → 2A, 20200+ → 2B).
+    "20": "Corse",
     "2A": "Corse-du-Sud",
     "2B": "Haute-Corse",
     "21": "Côte-d'Or",
@@ -276,6 +280,20 @@ DEPARTEMENT_NAMES = {
     "93": "Seine-Saint-Denis",
     "94": "Val-de-Marne",
     "95": "Val-d'Oise",
+    # Départements et régions d'outre-mer (DROM)
+    "971": "Guadeloupe",
+    "972": "Martinique",
+    "973": "Guyane",
+    "974": "La Réunion",
+    "976": "Mayotte",
+    # Collectivités d'outre-mer (COM)
+    "975": "Saint-Pierre-et-Miquelon",
+    "977": "Saint-Barthélemy",
+    "978": "Saint-Martin",
+    "984": "Terres australes et antarctiques françaises",
+    "986": "Wallis-et-Futuna",
+    "987": "Polynésie française",
+    "988": "Nouvelle-Calédonie",
 }
 
 

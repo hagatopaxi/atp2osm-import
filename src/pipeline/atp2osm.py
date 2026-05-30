@@ -37,7 +37,7 @@ def create_mv_places_brand():
                         OR LOWER(osm.name)  = LOWER(atp."name")
                         OR LOWER(osm.email) = LOWER(atp.email)
                         OR LOWER(REGEXP_REPLACE(osm.website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(atp.website, '^https?://', '', 'i'))
-                        OR REGEXP_REPLACE(REGEXP_REPLACE(osm.phone, '^\+33', '0'), '\s+', '', 'g') = REGEXP_REPLACE(REGEXP_REPLACE(atp.phone, '^\+33', '0'), '\s+', '', 'g')
+                        OR normalize_phone(osm.phone) = normalize_phone(atp.phone)
                 ),
                 deduped AS (
                     SELECT DISTINCT ON (osm_id, node_type) *
