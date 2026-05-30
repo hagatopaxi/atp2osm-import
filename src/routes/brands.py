@@ -26,7 +26,33 @@ logger = logging.getLogger(__name__)
 brands_bp = Blueprint("brands", __name__)
 
 
-def _determine_import_status(errors: list[tuple[str, str]], has_changesets: bool) -> str:
+def _get_blocking_import(brand_wikidata: str):
+    """Return the most recent import still within its cooldown period, or None.
+
+    Cooldowns mirror the visibility rules in get_all():
+      - cancelled / error_*  → 4 weeks
+      - partial_*            → 2 weeks
+      - success              → 3 months
+    """
+    osmdb = get_osmdb()
+    with osmdb.cursor(row_factory=dict_row) as cursor:
+        return cursor.execute(
+            """SELECT id, import_date, status FROM import_history
+               WHERE brand_wikidata = %s
+                 AND (
+                   (status IN ('cancelled', 'error_osm_api', 'error_unknown') AND import_date > NOW() - INTERVAL '4 weeks')
+                   OR (status IN ('partial_osm_api', 'partial_unknown')       AND import_date > NOW() - INTERVAL '2 weeks')
+                   OR (status = 'success'                                     AND import_date > NOW() - INTERVAL '3 months')
+                 )
+               ORDER BY import_date DESC
+               LIMIT 1""",
+            (brand_wikidata,),
+        ).fetchone()
+
+
+def _determine_import_status(
+    errors: list[tuple[str, str]], has_changesets: bool
+) -> str:
     """Determine the import history status from typed errors and whether any changeset was created."""
     if not errors:
         return "success"
@@ -140,6 +166,13 @@ def report_error(brand_wikidata):
 @brands_bp.route("/brands/<brand_wikidata>/upload", methods=["POST"])
 @auth_required
 def upload_changes(brand_wikidata):
+    if _get_blocking_import(brand_wikidata):
+        return Response(
+            json.dumps({"error": "Forbidden"}),
+            status=403,
+            mimetype="application/json",
+        )
+
     changes = get_changes_by_brand_wikidata(brand_wikidata)
     osm_session = OAuth2Session(token=session["token"])
     bulk_upload = BulkUpload(changes, session=osm_session)

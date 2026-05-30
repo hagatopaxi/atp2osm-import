@@ -212,6 +212,90 @@
     </section>
 
     <section>
+        <h2 class="text-lg font-semibold mb-3">Statuts des imports</h2>
+        <p class="text-sm text-base-content/80 leading-relaxed mb-4">
+            Chaque import enregistré dans l'<a
+                href="/history"
+                class="link link-primary"
+                >historique</a
+            >
+            se voit attribuer un statut reflétant son résultat.
+        </p>
+        <div class="flex flex-col gap-3">
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body flex-row items-start gap-4 py-4">
+                    <span class="badge badge-success mt-0.5 shrink-0"
+                        >Succès</span
+                    >
+                    <div class="flex flex-col gap-1">
+                        <p class="text-sm font-semibold">Import réussi</p>
+                        <p class="text-sm text-base-content/70">
+                            Tous les changements ont été envoyés à OpenStreetMap
+                            et sont désormais visibles publiquement.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body flex-row items-start gap-4 py-4">
+                    <span class="badge badge-warning mt-0.5 shrink-0"
+                        >Partiel</span
+                    >
+                    <div class="flex flex-col gap-1">
+                        <p class="text-sm font-semibold">
+                            Import partiellement réussi
+                        </p>
+                        <p class="text-sm text-base-content/70">
+                            Certains départements n'ont pas pu être importés
+                            suite à une erreur de l'API OpenStreetMap. Les
+                            changements envoyés sont néanmoins visibles sur OSM.
+                            Les données non importées resteront disponibles pour
+                            un prochain import.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body flex-row items-start gap-4 py-4">
+                    <span class="badge badge-info mt-0.5 shrink-0">Annulé</span>
+                    <div class="flex flex-col gap-1">
+                        <p class="text-sm font-semibold">
+                            Import annulé — données signalées
+                        </p>
+                        <p class="text-sm text-base-content/70">
+                            L'import a été interrompu suite à la détection
+                            d'erreurs par un contributeur dans les données ATP.
+                            Aucune modification n'a été envoyée à OpenStreetMap.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-base-100 shadow-sm">
+                <div class="card-body flex-row items-start gap-4 py-4">
+                    <span class="badge badge-error mt-0.5 shrink-0"
+                        >Erreur</span
+                    >
+                    <div class="flex flex-col gap-1">
+                        <p class="text-sm font-semibold">Erreur technique</p>
+                        <p class="text-sm text-base-content/70">
+                            Une erreur indépendante de votre action a empêché
+                            l'import de se terminer. Aucune modification n'a été
+                            envoyée à OpenStreetMap. Vous pouvez relancer
+                            l'import depuis la page de la marque concernée après
+                            4 semaines. Ce délai permet de laisser le temps de
+                            corriger les éventuels erreurs dans les jeux de
+                            données.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
         <h2 class="text-lg font-semibold mb-3">Licences</h2>
         <div class="flex flex-col gap-3 text-sm">
             <div class="card bg-base-100 shadow-sm">

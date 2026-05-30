@@ -95,7 +95,7 @@ endblock %}
             <td>
                 {% if row["last_status"] == 'success' %}
                 <span class="badge badge-warning">Import ancien</span>
-                {% elif row["last_status"] == 'error' %}
+                {% elif row["last_status"] in ('error_osm_api', 'error_unknown') %}
                 <span class="badge badge-error">Erreur</span>
                 {% else %}
                 <span class="badge badge-ghost">—</span>

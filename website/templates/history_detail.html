@@ -16,7 +16,7 @@
     {% else %}les données ont été envoyées dans OpenStreetMap.{% endif %}{% endset %}
   {% set banner_btn_label = 'Importer une autre marque' %}
   {% set banner_btn_href = '/brands' %}
-{% elif s in ('partial_osm_api', 'partial_unknown', 'partial') %}
+{% elif s in ('partial_osm_api', 'partial_unknown') %}
   {% set banner_color = 'alert-warning' %}
   {% set banner_icon = 'iconoir-check-circle' %}
   {% set banner_text %}L'import s'est terminé partiellement —
@@ -75,21 +75,17 @@
 
                 {% set status_labels = {
                     "success":         "Succès",
-                    "partial":         "Partiel",
                     "partial_osm_api": "Partiel",
                     "partial_unknown": "Partiel",
                     "cancelled":       "Annulé",
-                    "error":           "Erreur",
                     "error_osm_api":   "Erreur",
                     "error_unknown":   "Erreur"
                 } %}
                 {% set status_classes = {
                     "success":         "badge-success",
-                    "partial":         "badge-warning",
                     "partial_osm_api": "badge-warning",
                     "partial_unknown": "badge-warning",
                     "cancelled":       "badge-info",
-                    "error":           "badge-error",
                     "error_osm_api":   "badge-error",
                     "error_unknown":   "badge-error"
                 } %}
@@ -101,7 +97,7 @@
                     {% set s = entry.status %}
                     {% if s == 'success' %}
                     <p class="text-xs text-base-content/60 leading-relaxed">L'import s'est déroulé avec succès. Tous les changements ont été envoyés à OpenStreetMap et sont désormais visibles publiquement.</p>
-                    {% elif s in ('partial_osm_api', 'partial_unknown', 'partial') %}
+                    {% elif s in ('partial_osm_api', 'partial_unknown') %}
                     <p class="text-xs text-base-content/60 leading-relaxed">L'import s'est déroulé partiellement. Certains départements n'ont pas pu être importés — les changements envoyés sont néanmoins visibles sur OpenStreetMap. Les données non importées resteront disponibles pour un prochain import.</p>
                     {% elif s == 'cancelled' %}
                     <p class="text-xs text-base-content/60 leading-relaxed">L'import a été annulé suite au signalement d'erreurs dans les données. Ces signalements permettront aux contributeurs AllThePlaces de corriger le spider correspondant lors de ses prochaines mises à jour.</p>

@@ -87,8 +87,8 @@ def get_all(osmdb):
         WHERE (mvb.brand IS NOT NULL AND mvb.brand_wikidata IS NOT NULL)
           AND (
             ih.last_import IS NULL
-            OR ih.last_status = 'error'
-            OR (ih.last_status = 'partial' AND ih.last_import < NOW() - INTERVAL '2 weeks')
+            OR (ih.last_status IN ('cancelled', 'error_osm_api', 'error_unknown') AND ih.last_import < NOW() - INTERVAL '4 weeks')
+            OR (ih.last_status IN ('partial_osm_api', 'partial_unknown') AND ih.last_import < NOW() - INTERVAL '2 weeks')
             OR (ih.last_status = 'success' AND ih.last_import < NOW() - INTERVAL '3 months')
           )
         ORDER BY
