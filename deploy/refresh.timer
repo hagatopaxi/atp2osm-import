@@ -1,0 +1,9 @@
+[Unit]
+Description=Weekly timer for ${PROJECT_NAME} data refresh
+
+[Timer]
+OnCalendar=Mon *-*-* 04:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

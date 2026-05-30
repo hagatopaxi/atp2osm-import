@@ -31,10 +31,25 @@
 </div>
 
 <h2 class="text-lg">Nombre de mise à jour par département</h2>
-<div class="grid grid-cols-5 gap-2">
-    {% for dpt, info in stats["by_department"].items() %}
-    {{ render_stat_card(dpt ~ " - " ~ info["name"], info["count"]) }}
-    {% endfor %}
+<div class="overflow-x-auto">
+    <table class="table table-zebra w-full">
+        <thead>
+            <tr>
+                <th>N°</th>
+                <th>Département</th>
+                <th>Points mis à jour</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dpt, info in stats["by_department"].items() %}
+            <tr>
+                <td class="font-mono">{{ dpt }}</td>
+                <td>{{ info["name"] }}</td>
+                <td>{{ info["count"] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
 <button class="btn btn-primary mt-4 self-end" onclick="document.getElementById('last_confirm_modal').show()">Confirmer

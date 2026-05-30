@@ -17,6 +17,7 @@ PORT=$(grep -E '^PORT=' "$PROJECT_DIR/.env" 2>/dev/null | cut -d'=' -f2 | tr -d 
 PORT="${PORT:-8000}"
 
 QUADLET_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/containers/systemd"
+SYSTEMD_USER_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 
 echo ""
 echo "==> Deploying $PROJECT_NAME"
@@ -39,19 +40,32 @@ podman build \
   "$WORK_DIR"
 echo "    Tagged as ${IMAGE_NAME}:latest and ${IMAGE_NAME}:${GIT_SHORT}"
 
-# --- [3/3] Write Quadlet file + update scripts -----------------------------
-echo "--> [3/3] Writing Quadlet file..."
-mkdir -p "$QUADLET_DIR" "$PROJECT_DIR/data" "$PROJECT_DIR/logs"
+# --- [3/3] Write unit files + reload + restart -----------------------------
+echo "--> [3/3] Writing unit files..."
+mkdir -p "$QUADLET_DIR" "$SYSTEMD_USER_DIR" "$PROJECT_DIR/data" "$PROJECT_DIR/logs"
 
-# Fill in template variables — writing the file triggers the path watcher
-# which runs daemon-reload + restart automatically (see setup-container-watch.sh)
 export PROJECT_NAME PROJECT_DIR IMAGE_NAME CONTAINER_NAME
+
+# Container Quadlet
 envsubst < "$WORK_DIR/deploy/atp2osm.container" > "$QUADLET_DIR/${CONTAINER_NAME}.container"
+
+# Refresh timer units
+envsubst < "$WORK_DIR/deploy/refresh.service" > "$SYSTEMD_USER_DIR/${CONTAINER_NAME}-refresh.service"
+envsubst < "$WORK_DIR/deploy/refresh.timer"   > "$SYSTEMD_USER_DIR/${CONTAINER_NAME}-refresh.timer"
 
 # Keep runner entry point up to date on each deploy
 # (src/, osm2pgsql/, etc. live inside the container image)
 git --git-dir="$GIT_DIR" archive "$COMMIT" -- run-pipeline.sh | tar -x -C "$PROJECT_DIR"
 chmod +x "$PROJECT_DIR/run-pipeline.sh"
+
+# Disable legacy units if present (path watcher + old timer named with dots)
+systemctl --user disable --now "${CONTAINER_NAME}-watch.path"  2>/dev/null || true
+systemctl --user disable --now "${PROJECT_NAME}-refresh.timer" 2>/dev/null || true
+
+# Reload systemd, restart container, enable refresh timer
+systemctl --user daemon-reload
+systemctl --user restart "${CONTAINER_NAME}.service"
+systemctl --user enable --now "${CONTAINER_NAME}-refresh.timer"
 
 # Keep the 3 most recent git-tagged images, remove older ones
 echo "    Pruning old images (keeping last 3)..."
@@ -63,6 +77,6 @@ podman images --format "{{.Repository}}:{{.Tag}}" \
 echo ""
 echo "==> Done — $PROJECT_NAME deploying on port $PORT"
 echo "    Image:        ${IMAGE_NAME}:latest (${GIT_SHORT})"
-echo "    Quadlet file: $QUADLET_DIR/${CONTAINER_NAME}.container"
-echo "    The path watcher will restart the container automatically."
+echo "    Container:    ${CONTAINER_NAME}.service (restarted)"
+echo "    Refresh:      ${CONTAINER_NAME}-refresh.timer (enabled)"
 echo "    Follow logs:  journalctl --user -u ${CONTAINER_NAME}.service -f"

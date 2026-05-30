@@ -1,0 +1,13 @@
+[Unit]
+Description=Weekly ATP + OSM data refresh for ${PROJECT_NAME}
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=${PROJECT_DIR}/run-pipeline.sh
+EnvironmentFile=${PROJECT_DIR}/.env
+WorkingDirectory=${PROJECT_DIR}
+StandardOutput=journal
+StandardError=journal
+MemoryMax=2G
+MemorySwapMax=512M

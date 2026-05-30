@@ -31,17 +31,21 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 
 # Refresh all data (ATP + OSM) — runs weekly via systemd timer in production
 # Manual trigger on server:
-#   systemctl --user start atp2osm-import-refresh.service
+#   systemctl --user start atp2osm-gwenael-leger-fr-refresh.service
 # Manual trigger locally:
-#   OSM_DB_NAME=o2p OSM_DB_USER=o2p OSM_DB_PASSWORD=... OSM_DB_HOST=127.0.0.1 OSM_DB_PORT=5432 ./refresh-data.sh
+#   OSM_DB_NAME=o2p OSM_DB_USER=o2p OSM_DB_PASSWORD=... OSM_DB_HOST=127.0.0.1 OSM_DB_PORT=5432 ./run-pipeline.sh
 ```
 
 ## Architecture
 
-**Data pipeline** (runs outside the web server, via `refresh-data.sh` and `src/setup.py`):
-1. `refresh-data.sh` — Weekly data refresh script: streams OSM PBF from Geofabrik directly into osm2pgsql (no file stored on disk), then triggers ATP re-download and `setup.py`. Runs via systemd timer (Monday 04:00) in production.
-2. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points` and `polygons` tables in PostGIS (SRID 9794, Lambert-93 projection)
-3. `src/setup.py` — Downloads latest ATP parquet from alltheplaces.xyz, loads it into a `atp_fr` table via DuckDB's Postgres extension, creates a materialized view `mv_places` unifying points + polygons with normalized tag columns
+**Data pipeline** (runs outside the web server, via `run-pipeline.sh` and `src/pipeline/`):
+1. `run-pipeline.sh` — Entry point du refresh hebdomadaire : lance `src/pipeline` dans le container via podman. Copié dans le répertoire projet à chaque deploy. Déclenché par un timer systemd (lundi 04:00).
+2. `src/pipeline/` — Module Python qui orchestre le pipeline complet : téléchargement OSM PBF depuis Geofabrik, import osm2pgsql, téléchargement ATP parquet, chargement dans `atp_fr` via DuckDB, refresh de la vue matérialisée.
+3. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points` and `polygons` tables in PostGIS (SRID 9794, Lambert-93 projection)
+
+**Deploy** (`deploy/run` — git hook `post-receive`):
+- Build l'image container, écrit le Quadlet `atp2osm.container`, écrit les unités systemd `refresh.service` + `refresh.timer` depuis les templates `deploy/`, puis fait `daemon-reload` + `restart` + `enable timer` directement.
+- Provisioning one-time côté serveur : `loginctl enable-linger $USER` (garder les services actifs sans session ouverte).
 
 **Web application** (`src/app.py`, Flask):
 - Uses PostGIS with psycopg3, connection per-request via Flask `g`
