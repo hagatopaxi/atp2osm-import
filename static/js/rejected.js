@@ -52,9 +52,10 @@ async function confirmRejection() {
 
     if (!res.ok) throw new Error(res.statusText);
 
+    const data = await res.json();
     sessionStorage.removeItem("invalidations");
     sessionStorage.removeItem("brand_name");
-    window.location.href = "/brands";
+    window.location.href = `/history/${data.id}`;
   } catch (err) {
     alert("Erreur lors de l'envoi : " + err.message);
     confirmBtn.removeAttribute("disabled");

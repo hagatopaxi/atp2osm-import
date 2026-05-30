@@ -8,24 +8,50 @@
 {% endblock %}
 
 {% block content %}
-{% if 'user' in session and session['user']['osm_id'] == entry['osm_user_id'] and entry['status'] == 'success' %}
+{% set banner_statuses = ['success', 'partial_osm_api', 'partial_unknown', 'partial', 'cancelled', 'error_osm_api', 'error_unknown', 'error'] %}
+{% if 'user' in session and session['user']['osm_id'] == entry['osm_user_id'] and entry['status'] in banner_statuses %}
+
+{% set s = entry['status'] %}
+{% if s == 'success' %}
+  {% set banner_color = 'alert-success' %}
+  {% set banner_icon = 'iconoir-trophy' %}
+  {% set banner_text %}Votre import a été effectué avec succès —
+    {% if entry['items_count'] %}<strong>{{ entry['items_count'] }} POI{{ 's' if entry['items_count'] > 1 }}</strong> enrichi{{ 's' if entry['items_count'] > 1 }} dans OpenStreetMap.
+    {% else %}les données ont été envoyées dans OpenStreetMap.{% endif %}{% endset %}
+  {% set banner_btn_label = 'Importer une autre marque' %}
+  {% set banner_btn_href = '/brands' %}
+{% elif s in ('partial_osm_api', 'partial_unknown', 'partial') %}
+  {% set banner_color = 'alert-warning' %}
+  {% set banner_icon = 'iconoir-check-circle' %}
+  {% set banner_text %}L'import s'est terminé partiellement —
+    {% if entry['items_count'] %}<strong>{{ entry['items_count'] }} POI{{ 's' if entry['items_count'] > 1 }}</strong> enrichi{{ 's' if entry['items_count'] > 1 }}. Certains départements n'ont pas pu être importés.
+    {% else %}certains départements n'ont pas pu être importés.{% endif %}{% endset %}
+  {% set banner_btn_label = 'Importer une autre marque' %}
+  {% set banner_btn_href = '/brands' %}
+{% elif s == 'cancelled' %}
+  {% set banner_color = 'alert-info' %}
+  {% set banner_icon = 'iconoir-heart' %}
+  {% set banner_text %}Votre signalement a bien été enregistré. Ces retours sont précieux pour améliorer la qualité des données AllThePlaces.{% endset %}
+  {% set banner_btn_label = 'Voir les marques disponibles' %}
+  {% set banner_btn_href = '/brands' %}
+{% else %}
+  {% set banner_color = 'alert-warning' %}
+  {% set banner_icon = 'iconoir-info-circle' %}
+  {% set banner_text %}Une erreur technique indépendante de notre volonté a empêché l'import de se terminer. Aucune modification n'a été envoyée à OpenStreetMap.{% endset %}
+  {% set banner_btn_label = 'Voir les marques disponibles' %}
+  {% set banner_btn_href = '/brands' %}
+{% endif %}
+
 <div id="thank-you-banner"
      data-import-date="{{ entry['import_date'].isoformat() }}"
-     class="alert alert-success alert-soft shadow-lg mb-6 py-6">
-    <i class="iconoir-trophy text-4xl shrink-0"></i>
+     class="alert {{ banner_color }} alert-soft shadow-lg mb-6 py-6">
+    <i class="{{ banner_icon }} text-4xl shrink-0"></i>
     <div class="flex-1">
         <p class="text-xl font-bold">Merci {{ session['user']['name'] }} !</p>
-        <p class="text-base mt-1">
-            Votre import vient d'être effectué avec succès —
-            {% if entry['items_count'] %}
-            <strong>{{ entry['items_count'] }} POI{{ 's' if entry['items_count'] > 1 }}</strong> enrichi{{ 's' if entry['items_count'] > 1 }} dans OpenStreetMap.
-            {% else %}
-            les données ont été envoyées dans OpenStreetMap.
-            {% endif %}
-        </p>
+        <p class="text-base mt-1">{{ banner_text }}</p>
     </div>
-    <a href="/brands" class="btn btn-lg btn-success shrink-0">
-        Importer une autre marque <i class="iconoir-arrow-right"></i>
+    <a href="{{ banner_btn_href }}" class="btn btn-lg shrink-0">
+        {{ banner_btn_label }} <i class="iconoir-arrow-right"></i>
     </a>
 </div>
 {% endif %}
@@ -53,13 +79,41 @@
                 <dt class="text-base-content/60">Date</dt>
                 <dd>{{ entry.import_date.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
 
-                {% set status_labels = {"success": "Succès", "error": "Erreur", "partial": "Partiel"} %}
-                {% set status_classes = {"success": "badge-success", "error": "badge-error", "partial": "badge-warning"} %}
+                {% set status_labels = {
+                    "success":         "Succès",
+                    "partial":         "Partiel",
+                    "partial_osm_api": "Partiel",
+                    "partial_unknown": "Partiel",
+                    "cancelled":       "Annulé",
+                    "error":           "Erreur",
+                    "error_osm_api":   "Erreur",
+                    "error_unknown":   "Erreur"
+                } %}
+                {% set status_classes = {
+                    "success":         "badge-success",
+                    "partial":         "badge-warning",
+                    "partial_osm_api": "badge-warning",
+                    "partial_unknown": "badge-warning",
+                    "cancelled":       "badge-info",
+                    "error":           "badge-error",
+                    "error_osm_api":   "badge-error",
+                    "error_unknown":   "badge-error"
+                } %}
                 <dt class="text-base-content/60">Statut</dt>
-                <dd>
+                <dd class="flex flex-col gap-1">
                     <span class="badge {{ status_classes.get(entry.status, 'badge-info') }}">
                         {{ status_labels.get(entry.status, entry.status) }}
                     </span>
+                    {% set s = entry.status %}
+                    {% if s == 'success' %}
+                    <p class="text-xs text-base-content/60 leading-relaxed">L'import s'est déroulé avec succès. Tous les changements ont été envoyés à OpenStreetMap et sont désormais visibles publiquement.</p>
+                    {% elif s in ('partial_osm_api', 'partial_unknown', 'partial') %}
+                    <p class="text-xs text-base-content/60 leading-relaxed">L'import s'est déroulé partiellement. Certains départements n'ont pas pu être importés — les changements envoyés sont néanmoins visibles sur OpenStreetMap. Les données non importées resteront disponibles pour un prochain import.</p>
+                    {% elif s == 'cancelled' %}
+                    <p class="text-xs text-base-content/60 leading-relaxed">L'import a été annulé suite au signalement d'erreurs dans les données. Ces signalements permettront aux contributeurs AllThePlaces de corriger le spider correspondant lors de ses prochaines mises à jour.</p>
+                    {% else %}
+                    <p class="text-xs text-base-content/60 leading-relaxed">L'import n'a pas abouti. Aucune modification n'a été envoyée à OpenStreetMap. Il est possible de relancer l'import ultérieurement en retournant sur la page de la marque concernée.</p>
+                    {% endif %}
                 </dd>
 
                 <dt class="text-base-content/60">Utilisateur OSM</dt>

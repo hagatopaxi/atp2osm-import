@@ -48,8 +48,9 @@ class BulkUpload:
         logger.debug(f"Logs for the run saved into {save_path}")
         return save_path
 
-    def upload(self) -> list[str]:
-        """Upload all changes. Returns a list of error messages; empty list means full success."""
+    def upload(self) -> list[tuple[str, str]]:
+        """Upload all changes. Returns a list of (error_type, message) tuples; empty list means full success.
+        error_type is 'osm_api' for OSM API errors (ApiError), 'unknown' for unexpected exceptions."""
         if len(self.changes) == 0:
             return []
 
@@ -133,11 +134,11 @@ class BulkUpload:
                 payload = error.payload.decode("utf-8", errors="replace") if isinstance(error.payload, bytes) else str(error.payload)
                 msg = f"OSM API error for dept {dpt}: HTTP {error.status} — {payload}"
                 logger.error(msg)
-                errors.append(msg)
+                errors.append(("osm_api", msg))
             except Exception as unknown:
                 msg = f"Unknown error for dept {dpt}: {unknown}"
                 logger.error(msg)
-                errors.append(msg)
+                errors.append(("unknown", msg))
             finally:
                 # Ensure osmapi's internal changeset state is reset even if an
                 # exception occurred mid-upload (osmapi's Changeset context manager
