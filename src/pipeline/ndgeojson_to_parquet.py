@@ -297,9 +297,15 @@ def _split_ndgeojson_file(file_path: Path, split_dir: Path) -> None:
 # Wrapper functions for pipeline runner (no parameters)
 def convert_atp() -> None:
     """Step: Convert FeatureCollection GeoJSON to NDJSON."""
+    if not GEOJSON_DIR.exists() or not any(GEOJSON_DIR.glob("*.geojson")):
+        logger.info("No GeoJSON files found, skipping conversion")
+        return
     convert_geojson_to_ndgeojson(GEOJSON_DIR, NDGEOJSON_DIR)
 
 
 def split_atp() -> None:
     """Step: Split NDJSON files larger than 16 MB."""
+    if not NDGEOJSON_DIR.exists() or not any(NDGEOJSON_DIR.glob("*.geojson")):
+        logger.info("No NDJSON files found, skipping split")
+        return
     split_ndgeojson(NDGEOJSON_DIR, SPLIT_DIR)

@@ -104,8 +104,9 @@ def extract_atp():
 
 def create_parquet_atp():
     """Step 5: Create parquet from split NDJSON files."""
-    if not SPLIT_DIR.exists():
-        raise FileNotFoundError(f"No split directory at {SPLIT_DIR}")
+    if not SPLIT_DIR.exists() or not any(SPLIT_DIR.glob("*.geojson")):
+        logger.info("No split NDJSON files found, skipping parquet creation")
+        return
     delete_file_if_exists(PARQUET_PATH)
     convert_to_parquet(SPLIT_DIR, PARQUET_PATH)
     logger.info("Created parquet from NDJSON files")
