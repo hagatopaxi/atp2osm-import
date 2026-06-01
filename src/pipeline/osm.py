@@ -65,15 +65,16 @@ def download_pbf():
     conn = connect()
     try:
         last_date = last_import_date(conn, "osm")
+
+        if last_date and last_date >= newest_ts:
+            logger.info(
+                "OSM data already up-to-date (last import: %s), skipping download",
+                last_date.date(),
+            )
+            record_import(conn, "osm", last_date, "skipped")
+            return
     finally:
         conn.close()
-
-    if last_date and last_date >= newest_ts:
-        logger.info(
-            "OSM data already up-to-date (last import: %s), skipping download",
-            last_date.date(),
-        )
-        return
 
     logger.info("New OSM data available (newest: %s), downloading all regions...", newest_ts.date())
     for name, region in GEOFABRIK_REGIONS.items():
