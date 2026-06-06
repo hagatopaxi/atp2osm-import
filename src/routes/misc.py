@@ -3,7 +3,7 @@ import logging
 
 from io import BytesIO
 
-from flask import Blueprint, render_template, Response
+from flask import Blueprint, render_template, Response, url_for
 from psycopg.rows import dict_row
 from staticmap import StaticMap, CircleMarker
 
@@ -43,6 +43,41 @@ def home():
 @misc_bp.route("/docs")
 def docs():
     return render_template("docs.html")
+
+
+@misc_bp.route("/robots.txt")
+def robots():
+    sitemap_url = url_for("misc.sitemap", _external=True)
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /static/lib/\n"
+        "\n"
+        f"Sitemap: {sitemap_url}\n"
+    )
+    return Response(body, mimetype="text/plain")
+
+
+@misc_bp.route("/sitemap.xml")
+def sitemap():
+    # Pages publiques (hors zone authentifiée OSM OAuth)
+    endpoints = [
+        "misc.home",
+        "brands.brands",
+        "history.history",
+        "todo.todo",
+        "misc.docs",
+    ]
+    urls = "".join(
+        f"<url><loc>{url_for(ep, _external=True)}</loc></url>" for ep in endpoints
+    )
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        f"{urls}"
+        "</urlset>"
+    )
+    return Response(xml, mimetype="application/xml")
 
 
 @misc_bp.route("/staticmap/<long>/<lat>")
