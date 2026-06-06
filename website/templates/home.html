@@ -28,7 +28,23 @@
         }
     }
 </script>
-{% endblock %} 
+<script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareSourceCode",
+        "name": "atp2osm",
+        "description": "Outil d'import des données AllThePlaces dans OpenStreetMap pour les points d'intérêt français.",
+        "codeRepository": "https://github.com/hagatopaxi/atp2osm-import",
+        "programmingLanguage": "Python",
+        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+        "inLanguage": "fr",
+        "author": {
+            "@type": "Person",
+            "name": "Gwenaël Léger"
+        }
+    }
+</script>
+{% endblock %}
 
 {% block title %}Enrichir OpenStreetMap avec les données AllThePlaces{% endblock %} 
 {% block subtitle %}Importez automatiquement les données de points d'intérêt depuis AllThePlaces vers OpenStreetMap.{% endblock%} 
@@ -82,7 +98,7 @@
         <i class="iconoir-log-in"></i> Se connecter à OSM pour démarrer
     </button>
     {% endif %}
-    <a href="/docs" class="btn btn-outline">
+    <a href="/docs" class="btn btn-outline rounded-full">
         <i class="iconoir-book"></i> Comment ça marche ?
     </a>
 </section>
