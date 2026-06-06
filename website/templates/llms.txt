@@ -1,0 +1,16 @@
+# atp2osm
+
+> Outil d'import semi-automatique des données AllThePlaces (ATP) dans OpenStreetMap pour les points d'intérêt français. Il rapproche les fiches ATP des nœuds/relations OSM existants par proximité spatiale (500 m) et similarité d'attributs (marque, nom, email, téléphone, site web), puis laisse les contributeurs OSM valider et téléverser les changements de tags.
+
+Projet open-source (GPL-3.0). Données © OpenStreetMap contributors (ODbL) et All The Places (CC0).
+
+## Pages
+
+{% for endpoint, label, desc in pages -%}
+- [{{ label }}]({{ url_for(endpoint, _external=True) }}) : {{ desc }}
+{% endfor %}
+## Ressources
+
+- [Code source](https://github.com/hagatopaxi/atp2osm-import)
+- [All The Places](https://alltheplaces.xyz)
+- [OpenStreetMap](https://www.openstreetmap.org)

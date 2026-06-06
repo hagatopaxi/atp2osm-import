@@ -14,6 +14,16 @@ logger = logging.getLogger(__name__)
 
 misc_bp = Blueprint("misc", __name__)
 
+# Pages publiques (hors zone authentifiée OSM OAuth).
+# (endpoint, libellé, description) — source unique pour sitemap.xml et llms.txt.
+PUBLIC_PAGES = [
+    ("misc.home", "Accueil", "présentation et statistiques d'import."),
+    ("brands.brands", "Marques à importer", "enseignes ATP disponibles à l'import."),
+    ("history.history", "Historique des imports", "imports réalisés, dates et statuts."),
+    ("todo.todo", "Marques manquantes", "enseignes françaises absentes d'ATP."),
+    ("misc.docs", "Documentation", "fonctionnement et guide de contribution."),
+]
+
 
 @misc_bp.route("/")
 # @cache.cached(key_prefix="home")
@@ -47,37 +57,22 @@ def docs():
 
 @misc_bp.route("/robots.txt")
 def robots():
-    sitemap_url = url_for("misc.sitemap", _external=True)
-    body = (
-        "User-agent: *\n"
-        "Allow: /\n"
-        "Disallow: /static/lib/\n"
-        "\n"
-        f"Sitemap: {sitemap_url}\n"
+    body = render_template(
+        "robots.txt", sitemap_url=url_for("misc.sitemap", _external=True)
     )
     return Response(body, mimetype="text/plain")
 
 
 @misc_bp.route("/sitemap.xml")
 def sitemap():
-    # Pages publiques (hors zone authentifiée OSM OAuth)
-    endpoints = [
-        "misc.home",
-        "brands.brands",
-        "history.history",
-        "todo.todo",
-        "misc.docs",
-    ]
-    urls = "".join(
-        f"<url><loc>{url_for(ep, _external=True)}</loc></url>" for ep in endpoints
-    )
-    xml = (
-        '<?xml version="1.0" encoding="UTF-8"?>'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-        f"{urls}"
-        "</urlset>"
-    )
-    return Response(xml, mimetype="application/xml")
+    body = render_template("sitemap.xml", pages=PUBLIC_PAGES)
+    return Response(body, mimetype="application/xml")
+
+
+@misc_bp.route("/llms.txt")
+def llms_txt():
+    body = render_template("llms.txt", pages=PUBLIC_PAGES)
+    return Response(body, mimetype="text/plain")
 
 
 @misc_bp.route("/staticmap/<long>/<lat>")

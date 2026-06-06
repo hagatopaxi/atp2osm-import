@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /static/lib/
+
+Sitemap: {{ sitemap_url }}

@@ -1,6 +1,34 @@
 {% extends '_base.html' %}
 
 {% block page_title %}Documentation{% endblock %}
+{% block meta_description %}Documentation d'atp2osm : comment fonctionnent les marques AllThePlaces, la correspondance spatiale avec OpenStreetMap et le processus d'import collaboratif.{% endblock %}
+{% block og_title %}Documentation — atp2osm{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Documentation — atp2osm",
+  "description": "Comment fonctionne atp2osm : marques AllThePlaces, correspondance spatiale avec OpenStreetMap et processus d'import collaboratif validé par les contributeurs OSM.",
+  "inLanguage": "fr",
+  "url": "{{ request.host_url }}docs",
+  "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+  "author": { "@type": "Person", "name": "Gwenaël Léger" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "{{ request.host_url }}" },
+    { "@type": "ListItem", "position": 2, "name": "Documentation" }
+  ]
+}
+</script>
+{% endblock %}
+
 {% block title %}Documentation{% endblock %}
 {% block subtitle %}Comment fonctionne atp2osm et comment contribuer.{% endblock %}
 
