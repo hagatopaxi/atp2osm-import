@@ -73,7 +73,7 @@ endblock %}
             <th>Code Wikidata</th>
             <th>Nom</th>
             <th>Correspondances</th>
-            <th>Status</th>
+            <th>Précédent statut</th>
             <th>Dernier import</th>
             <th>Actions</th>
         </tr>
@@ -94,10 +94,24 @@ endblock %}
             </td>
 
             <td>
-                {% if row["last_status"] == 'success' %}
-                <span class="badge badge-warning">Import ancien</span>
-                {% elif row["last_status"] in ('error_osm_api', 'error_unknown') %}
-                <span class="badge badge-error">Erreur</span>
+                {% set status_labels = {
+                    "success":         "Succès",
+                    "partial_osm_api": "Partiel",
+                    "partial_unknown": "Partiel",
+                    "cancelled":       "Annulé",
+                    "error_osm_api":   "Erreur",
+                    "error_unknown":   "Erreur"
+                } %}
+                {% set status_classes = {
+                    "success":         "badge-success",
+                    "partial_osm_api": "badge-warning",
+                    "partial_unknown": "badge-warning",
+                    "cancelled":       "badge-info",
+                    "error_osm_api":   "badge-error",
+                    "error_unknown":   "badge-error"
+                } %}
+                {% if row["last_status"] %}
+                <span class="badge {{ status_classes.get(row['last_status'], 'badge-ghost') }}">{{ status_labels.get(row['last_status'], row['last_status']) }}</span>
                 {% else %}
                 <span class="badge badge-ghost">—</span>
                 {% endif %}
