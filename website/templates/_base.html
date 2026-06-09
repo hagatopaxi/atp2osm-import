@@ -37,7 +37,7 @@
     {% block custom_css %}
     {% endblock %}
 
-    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/auth.js?v={{ app_version }}"></script>
     {% block custom_js %}
     {% endblock %}
 </head>
@@ -56,7 +56,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <script src="/static/js/sidebar.js"></script>
+    <script src="/static/js/sidebar.js?v={{ app_version }}"></script>
 </body>
 
 </html>

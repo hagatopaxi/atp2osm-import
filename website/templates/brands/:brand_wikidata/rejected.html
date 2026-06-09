@@ -4,7 +4,7 @@
 {% block subtitle %}Des erreurs ont été détectées dans les données, l'import ne sera pas effectué.{% endblock %}
 
 {% block custom_js %}
-<script src="/static/js/rejected.js" type="text/javascript"></script>
+<script src="/static/js/rejected.js?v={{ app_version }}" type="text/javascript"></script>
 {% endblock %}
 
 {% block content %}

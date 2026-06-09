@@ -6,7 +6,7 @@
 dans OSM et ne seront pas mises à jour.{% endblock %}
 
 {% block custom_js %}
-<script src="/static/js/validate.js" type="text/javascript"></script>
+<script src="/static/js/validate.js?v={{ app_version }}" type="text/javascript"></script>
 {% endblock %}
 
 {% macro render_tag(key, label, icon, item) %}

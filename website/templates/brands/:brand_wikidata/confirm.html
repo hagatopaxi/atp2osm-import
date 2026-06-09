@@ -4,7 +4,7 @@
 {% block subtitle %}Dernière étape avant l'importation.{% endblock %}
 
 {% block custom_js %}
-<script src="/static/js/confirm.js" type="text/javascript"></script>
+<script src="/static/js/confirm.js?v={{ app_version }}" type="text/javascript"></script>
 {% endblock %}
 
 {% macro render_stat_card(title, value) %}
