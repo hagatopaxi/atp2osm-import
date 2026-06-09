@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import subprocess
 from datetime import datetime
 from email.utils import parsedate_to_datetime
@@ -92,6 +93,23 @@ def download_pbf():
         logger.info("Downloaded %s", name)
 
 
+def _require_free_space(path, needed_bytes):
+    """Fast-fail if the filesystem holding `path` has less than `needed_bytes` free.
+
+    osm2pgsql --create drops and recreates points/polygons with CASCADE, which
+    also drops mv_places and mv_places_brand. If it then runs out of disk it
+    exits non-zero with the views already gone — leaving the site broken. Bail
+    out *before* that happens, with a clear message.
+    """
+    free = shutil.disk_usage(path).free
+    if free < needed_bytes:
+        raise RuntimeError(
+            f"Not enough free disk for osm2pgsql: {free / 1e9:.1f} GB free at "
+            f"{path}, need ~{needed_bytes / 1e9:.1f} GB. Free space and retry "
+            f"(`python -m src.pipeline from osm-import`)."
+        )
+
+
 def run_osm2pgsql():
     pbf_paths = [
         r["pbf_path"]
@@ -101,6 +119,14 @@ def run_osm2pgsql():
     if not pbf_paths:
         logger.info("No PBF files found, skipping osm2pgsql")
         return
+
+    # Fast-fail on low disk before the destructive CASCADE-dropping import.
+    # Heuristic: need ~3x total PBF size (tables + indexes + temp), floor 15 GB.
+    # Override the floor with OSM2PGSQL_MIN_FREE_GB.
+    total_pbf = sum(p.stat().st_size for p in pbf_paths)
+    floor = float(os.getenv("OSM2PGSQL_MIN_FREE_GB") or 15) * 1e9
+    needed = max(floor, 3 * total_pbf)
+    _require_free_space(pbf_paths[0].parent, needed)
 
     logger.info("Importing %d PBF file(s) into PostGIS...", len(pbf_paths))
     env = os.environ.copy()

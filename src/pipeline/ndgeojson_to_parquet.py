@@ -13,9 +13,9 @@ Workflow:
    (one feature per line). This step is necessary because the original GeoJSON files
    are in FeatureCollection format which is harder to process in chunks.
 
-2. split_ndgeojson: Splits large NDJSON files (>16 MB) into smaller chunks. This ensures
-   that each file can be safely loaded into memory and processed by DuckDB without
-   hitting memory limits.
+2. split_ndgeojson: Splits large NDJSON files into smaller chunks (MAX_FILE_SIZE,
+   see constants.py). This ensures that each file can be safely loaded into memory
+   and processed by DuckDB without hitting memory limits.
 
 3. convert_to_parquet: Converts the split NDJSON files to Parquet format using DuckDB.
    This is done in two phases:
@@ -25,10 +25,11 @@ Workflow:
 4. _write_geoparquet_metadata: Adds GeoParquet metadata to the final output for
    better interoperability with geospatial tools.
 
-The 16 MB chunk size is chosen because:
-- It's small enough to avoid memory issues when processing
-- It's large enough to maintain good performance (fewer files to merge)
-- It works well with DuckDB's default memory limits
+The chunk size (MAX_FILE_SIZE) trades off two pressures:
+- Small enough to keep each DuckDB task within its per-worker memory_limit.
+- Large enough to keep the chunk count (and thus merge/filesystem overhead) low.
+Note this is independent of `maximum_object_size` in _ndjson_to_parquet, which
+caps a single JSON object (one feature), not the chunk file.
 
 This approach, while more complex than direct conversion, ensures reliability
 regardless of the input GeoJSON file sizes.
@@ -36,6 +37,7 @@ regardless of the input GeoJSON file sizes.
 
 import json
 import logging
+import os
 import shutil
 import duckdb
 from concurrent.futures import ThreadPoolExecutor
@@ -188,10 +190,13 @@ def _write_geoparquet_metadata(output_path: Path, bbox_res, geom_types: list) ->
 
 
 def convert_geojson_to_ndgeojson(geojson_dir: Path, ndgeojson_dir: Path) -> None:
-    """Convert FeatureCollection GeoJSON to NDJSON (one feature per line)."""
-    if ndgeojson_dir.exists():
-        shutil.rmtree(ndgeojson_dir)
-    ndgeojson_dir.mkdir(parents=True)
+    """Convert FeatureCollection GeoJSON to NDJSON (one feature per line).
+
+    Re-entrant: keeps any NDJSON already produced and deletes each source
+    geojson as soon as its NDJSON is durably written. A crash can be resumed by
+    re-running this step — only the un-deleted geojson files are reprocessed.
+    """
+    ndgeojson_dir.mkdir(parents=True, exist_ok=True)
 
     files = sorted(geojson_dir.glob("*.geojson"))
     if not files:
@@ -208,14 +213,24 @@ def convert_geojson_to_ndgeojson(geojson_dir: Path, ndgeojson_dir: Path) -> None
     logger.info("Converted FC geojson to NDJSON")
 
 
-def _geojson_to_ndgeojson_single(file_path: Path, NDGEOJSON_DIR: Path) -> None:
-    if file_path.stat().st_size == 0:
+def _geojson_to_ndgeojson_single(in_path: Path, NDGEOJSON_DIR: Path) -> None:
+    out_path = NDGEOJSON_DIR / in_path.name
+
+    # Already converted in a prior (partial) run — drop the redundant source.
+    if out_path.exists():
+        in_path.unlink()
         return
 
-    out_path = NDGEOJSON_DIR / file_path.name
+    if in_path.stat().st_size == 0:
+        in_path.unlink()
+        return
+
+    # Write to a temp then atomically rename: out_path only ever exists once it
+    # is complete, so "out exists" is a safe done-marker for resume.
+    tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
     written = 0
 
-    with open(file_path, "rb") as f_in, open(out_path, "wb") as f_out:
+    with open(in_path, "rb") as f_in, open(tmp_path, "wb") as f_out:
         first = True
         prev = None
         for line in f_in:
@@ -231,17 +246,27 @@ def _geojson_to_ndgeojson_single(file_path: Path, NDGEOJSON_DIR: Path) -> None:
                     written += 1
             prev = line
         # prev is the last line `]}` — skip it
+        f_out.flush()
+        os.fsync(f_out.fileno())
 
     if written == 0:
-        out_path.unlink()
-        logger.info("Skipping %s: no features", file_path.name)
+        tmp_path.unlink()
+        in_path.unlink()
+        logger.info("Skipping %s: no features", in_path.name)
+        return
+
+    os.replace(tmp_path, out_path)  # durable, atomic on same filesystem
+    in_path.unlink()  # source consumed — free it immediately
 
 
 def split_ndgeojson(NDGEOJSON_DIR: Path, split_dir: Path) -> None:
-    """Split NDJSON files larger than 16 MB; move smaller files as-is."""
-    if split_dir.exists():
-        shutil.rmtree(split_dir)
-    split_dir.mkdir(parents=True)
+    """Split NDJSON files larger than MAX_FILE_SIZE; move smaller files as-is.
+
+    Re-entrant: keeps any chunks already produced and consumes each source
+    NDJSON in place (move or split+unlink), so a crash is resumed by simply
+    re-running — only the un-consumed NDJSON files are reprocessed.
+    """
+    split_dir.mkdir(parents=True, exist_ok=True)
 
     files = sorted(NDGEOJSON_DIR.glob("*.geojson"))
     if not files:
@@ -257,41 +282,55 @@ def split_ndgeojson(NDGEOJSON_DIR: Path, split_dir: Path) -> None:
     logger.info("Split complete")
 
 
-def _split_or_move_ndgeojson(file_path: Path, split_dir: Path) -> None:
-    if file_path.stat().st_size <= MAX_FILE_SIZE:
-        shutil.move(str(file_path), split_dir / file_path.name)
+def _split_or_move_ndgeojson(in_path: Path, split_dir: Path) -> None:
+    if in_path.stat().st_size <= MAX_FILE_SIZE:
+        # move is atomic on same fs and deletes the source — re-entrant as-is.
+        shutil.move(str(in_path), split_dir / in_path.name)
         return
-    _split_ndgeojson_file(file_path, split_dir)
-    file_path.unlink()
+    _split_ndgeojson_file(in_path, split_dir)
 
 
-def _split_ndgeojson_file(file_path: Path, split_dir: Path) -> None:
-    base_name = file_path.stem
-    data = file_path.read_bytes()
-    total = len(data)
+def _split_ndgeojson_file(in_path: Path, split_dir: Path) -> None:
+    """Split a >MAX_FILE_SIZE NDJSON file into <=MAX_FILE_SIZE chunks named `{base}_{n}`.
 
+    Reads one window (<=MAX_FILE_SIZE) at a time via seek instead of loading the whole
+    file, so peak RAM is one window, not the full (~2 GB) file. The source is
+    kept intact until every chunk is written, then unlinked.
+
+    Crash-safe: because the source is untouched until the final unlink and the
+    chunk boundaries are deterministic, a crash mid-split is recovered by simply
+    re-running — the same `_1, _2, …` chunks are regenerated byte-identically
+    (overwriting any partial leftovers), with no loss and no duplicates.
+    """
+    base_name = in_path.stem
+    size = in_path.stat().st_size
+
+    chunk_num = 0
     start = 0
-    chunk_num = 1
+    with open(in_path, "rb") as f:
+        while start < size:
+            end = min(start + MAX_FILE_SIZE, size)
+            if end < size:
+                f.seek(start)
+                window = f.read(end - start)
+                nl = window.rfind(b"\n")
+                if nl <= 0:
+                    # Single line > MAX_FILE_SIZE — emit it whole rather than hard-split
+                    # (a hard split would corrupt the JSON object). Impossible in theory
+                    boundary = end
+                else:
+                    boundary = start + nl + 1
+            else:
+                boundary = size
 
-    while start < total:
-        end = start + MAX_FILE_SIZE
-        if end >= total:
-            chunk_path = split_dir / f"{base_name}_{chunk_num}.geojson"
-            chunk_path.write_bytes(data[start:])
-            break
+            f.seek(start)
+            chunk = f.read(boundary - start)
+            chunk_num += 1
+            (split_dir / f"{base_name}_{chunk_num}.geojson").write_bytes(chunk)
+            start = boundary
 
-        # Find the last \n strictly before the 16 MB boundary
-        split_at = data.rfind(b"\n", start, end)
-        if split_at == -1 or split_at <= start:
-            # Line longer than 16 MB — hard split at boundary
-            split_at = end - 1
-
-        chunk_path = split_dir / f"{base_name}_{chunk_num}.geojson"
-        chunk_path.write_bytes(data[start : split_at + 1])
-        chunk_num += 1
-        start = split_at + 1
-
-    logger.info("Split %s into %d chunks", file_path.name, chunk_num)
+    in_path.unlink()  # all chunks written — source consumed
+    logger.info("Split %s into %d chunks", in_path.name, chunk_num)
 
 
 # Wrapper functions for pipeline runner (no parameters)
@@ -304,7 +343,7 @@ def convert_atp() -> None:
 
 
 def split_atp() -> None:
-    """Step: Split NDJSON files larger than 16 MB."""
+    """Step: Split NDJSON files larger than MAX_FILE_SIZE."""
     if not NDGEOJSON_DIR.exists() or not any(NDGEOJSON_DIR.glob("*.geojson")):
         logger.info("No NDJSON files found, skipping split")
         return

@@ -9,7 +9,7 @@ from pathlib import Path
 WORKERS = int(os.getenv("PIPELINE_WORKERS") or max(1, (os.cpu_count() or 4) // 2))
 
 # File size limits
-MAX_FILE_SIZE = 16 * 1024 * 1024  # 16 MB - maximum size for NDJSON chunks
+MAX_FILE_SIZE = 128 * 1024 * 1024  # 128 MB - maximum size for NDJSON chunks
 
 # Directory paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent
