@@ -61,6 +61,12 @@ def favicon():
     return send_from_directory(STATIC_DIR, "img/logo.svg", mimetype="image/svg+xml")
 
 
+@misc_bp.route("/google1387dd4d6e23b123.html")
+def google_site_verification():
+    return send_from_directory(
+        STATIC_DIR, "google1387dd4d6e23b123.html", mimetype="text/html"
+    )
+
 
 @misc_bp.route("/robots.txt")
 def robots():
