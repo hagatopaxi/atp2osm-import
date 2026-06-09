@@ -252,7 +252,7 @@ def _geojson_to_ndgeojson_single(in_path: Path, NDGEOJSON_DIR: Path) -> None:
     if written == 0:
         tmp_path.unlink()
         in_path.unlink()
-        logger.info("Skipping %s: no features", in_path.name)
+        logger.debug("Skipping %s: no features", in_path.name)
         return
 
     os.replace(tmp_path, out_path)  # durable, atomic on same filesystem
@@ -330,7 +330,7 @@ def _split_ndgeojson_file(in_path: Path, split_dir: Path) -> None:
             start = boundary
 
     in_path.unlink()  # all chunks written — source consumed
-    logger.info("Split %s into %d chunks", in_path.name, chunk_num)
+    logger.debug("Split %s into %d chunks", in_path.name, chunk_num)
 
 
 # Wrapper functions for pipeline runner (no parameters)
