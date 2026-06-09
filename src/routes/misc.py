@@ -3,10 +3,11 @@ import logging
 
 from io import BytesIO
 
-from flask import Blueprint, render_template, Response, url_for
+from flask import Blueprint, render_template, Response, url_for, send_from_directory
 from psycopg.rows import dict_row
 from staticmap import StaticMap, CircleMarker
 
+from src.config import STATIC_DIR
 from src.db import get_osmdb
 from src.extensions import cache
 
@@ -53,6 +54,12 @@ def home():
 @misc_bp.route("/docs")
 def docs():
     return render_template("docs.html")
+
+
+@misc_bp.route("/favicon.ico")
+def favicon():
+    return send_from_directory(STATIC_DIR, "img/logo.svg", mimetype="image/svg+xml")
+
 
 
 @misc_bp.route("/robots.txt")
