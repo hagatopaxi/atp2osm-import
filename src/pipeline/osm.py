@@ -54,7 +54,8 @@ def _newest_geofabrik_timestamp() -> datetime:
         try:
             timestamps.append(_geofabrik_timestamp(region))
         except Exception as exc:
-            logger.warning("Could not fetch timestamp for %s: %s", name, exc)
+            logger.error("Could not fetch timestamp for %s: %s", name, exc)
+            raise
     if not timestamps:
         raise RuntimeError("No Geofabrik timestamps could be fetched")
     return max(timestamps)
