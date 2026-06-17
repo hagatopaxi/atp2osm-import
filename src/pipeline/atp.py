@@ -222,10 +222,6 @@ def import_atp():
 
         except Exception:
             logger.exception("import_atp failed")
-            try:
-                record_import(conn, "atp", None, "error")
-            except Exception:
-                pass
             raise
 
     finally:

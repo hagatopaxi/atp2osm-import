@@ -229,10 +229,6 @@ def setup_mv_places():
 
         except Exception:
             logger.exception("setup_mv_places failed")
-            try:
-                record_import(conn, "osm", None, "error")
-            except Exception:
-                pass
             raise
     finally:
         conn.close()

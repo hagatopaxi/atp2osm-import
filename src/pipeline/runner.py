@@ -68,6 +68,10 @@ from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
+
+def _noop_failure(step_name, exc):
+    """Default failure hook, does nothing."""
+
 _step_ctx = threading.local()
 
 
@@ -126,7 +130,7 @@ def _topo_levels(pipeline, nodes):
     return levels
 
 
-def _run_step(pipeline, name):
+def _run_step(pipeline, name, on_failure=_noop_failure):
     fn = _fn(pipeline[name])
     if fn is None:
         return
@@ -135,11 +139,14 @@ def _run_step(pipeline, name):
         logger.info("▶  start")
         fn()
         logger.info("✓  done")
+    except Exception as exc:
+        on_failure(name, exc)
+        raise
     finally:
         _step_ctx.name = None
 
 
-def run(pipeline, nodes):
+def run(pipeline, nodes, on_failure=_noop_failure):
     """Run pipeline steps as soon as their predecessors complete.
 
     Each branch is fully independent: a step starts the moment all its
@@ -202,7 +209,7 @@ def run(pipeline, nodes):
             if mutex:
                 mutex.acquire()
             try:
-                _run_step(pipeline, name)
+                _run_step(pipeline, name, on_failure)
             finally:
                 if mutex:
                     mutex.release()
@@ -243,26 +250,26 @@ def run(pipeline, nodes):
         raise errors[0]
 
 
-def main(pipeline):
+def main(pipeline, on_failure=_noop_failure):
     args = sys.argv[1:]
     cmd = args[0] if args else "start"
 
     if cmd == "start":
-        run(pipeline, _reachable(pipeline, "start"))
+        run(pipeline, _reachable(pipeline, "start"), on_failure)
 
     elif cmd == "from":
         if len(args) < 2:
             _usage()
         start = args[1]
         _check(pipeline, start)
-        run(pipeline, _reachable(pipeline, start))
+        run(pipeline, _reachable(pipeline, start), on_failure)
 
     elif cmd == "step":
         if len(args) < 2:
             _usage()
         name = args[1]
         _check(pipeline, name)
-        _run_step(pipeline, name)
+        _run_step(pipeline, name, on_failure)
 
     elif cmd == "list":
         for level in _topo_levels(pipeline, set(pipeline)):
