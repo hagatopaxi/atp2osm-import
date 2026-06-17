@@ -1,8 +1,8 @@
 {% extends '_base.html' %}
 
-{% block meta_description %}Historique des imports AllThePlaces vers OpenStreetMap réalisés via atp2osm : marques importées, dates et statuts.{% endblock %}
-{% block page_title %}Historique des imports{% endblock %}
-{% block og_title %}Historique des imports — atp2osm{% endblock %}
+{% block meta_description %}Historique des intégrations AllThePlaces vers OpenStreetMap réalisées via atp2osm : marques intégrées, dates et statuts.{% endblock %}
+{% block page_title %}Historique des intégrations{% endblock %}
+{% block og_title %}Historique des intégrations — atp2osm{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -11,18 +11,18 @@
   "@type": "BreadcrumbList",
   "itemListElement": [
     { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "{{ request.host_url }}" },
-    { "@type": "ListItem", "position": 2, "name": "Historique des imports" }
+    { "@type": "ListItem", "position": 2, "name": "Historique des intégrations" }
   ]
 }
 </script>
 {% endblock %}
 
-{% block title %}Historique des imports{% endblock %}
-{% block subtitle %}Liste de toutes les importations effectuées ou signalées comme erronées.{% endblock %}
+{% block title %}Historique des intégrations{% endblock %}
+{% block subtitle %}Liste de toutes les intégrations effectuées ou signalées comme erronées.{% endblock %}
 
 {% block content %}
 {% if entries|length == 0 and page == 1 %}
-<p class="text-base-content/60">Aucun import enregistré pour le moment.</p>
+<p class="text-base-content/60">Aucune intégration enregistrée pour le moment.</p>
 {% else %}
 <table class="table table-compact bg-base-100 rounded-2">
     <thead>
@@ -31,7 +31,7 @@
             <th>Marque (Wikidata)</th>
             <th>Statut</th>
             <th>Utilisateur OSM</th>
-            <th>POIs importés</th>
+            <th>POIs intégrés</th>
             <th>Changesets</th>
             <th>Action</th>
         </tr>

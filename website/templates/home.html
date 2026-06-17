@@ -1,8 +1,8 @@
 {% extends '_base.html' %}
 
-{% block meta_description %}atp2osm enrichit OpenStreetMap avec les données AllThePlaces pour la France : horaires d'ouverture, téléphone, site web, email. Import semi-automatique validé par les contributeurs OSM.{% endblock %} 
+{% block meta_description %}atp2osm enrichit OpenStreetMap avec les données AllThePlaces pour la France : horaires d'ouverture, téléphone, site web, email. Intégration semi-automatique validée par les contributeurs OSM.{% endblock %}
 {% block og_title %}atp2osm — Enrichir OpenStreetMap avec les données AllThePlaces{% endblock %} 
-{% block og_description %}Outil d'import collaboratif des points d'intérêt AllThePlaces dans OpenStreetMap pour la France.{% endblock %} 
+{% block og_description %}Outil d'intégration collaborative des points d'intérêt AllThePlaces dans OpenStreetMap pour la France.{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -10,7 +10,7 @@
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "atp2osm",
-        "description": "Outil d'import semi-automatique des données AllThePlaces (ATP) dans OpenStreetMap pour les points d'intérêt français. Correspondance spatiale et validation collaborative des tags.",
+        "description": "Outil d'intégration semi-automatique des données AllThePlaces (ATP) dans OpenStreetMap pour les points d'intérêt français. Correspondance spatiale et validation collaborative des tags.",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Any",
         "inLanguage": "fr",
@@ -33,7 +33,7 @@
         "@context": "https://schema.org",
         "@type": "SoftwareSourceCode",
         "name": "atp2osm",
-        "description": "Outil d'import des données AllThePlaces dans OpenStreetMap pour les points d'intérêt français.",
+        "description": "Outil d'intégration des données AllThePlaces dans OpenStreetMap pour les points d'intérêt français.",
         "codeRepository": "https://github.com/hagatopaxi/atp2osm-import",
         "programmingLanguage": "Python",
         "license": "https://www.gnu.org/licenses/gpl-3.0.html",
@@ -47,7 +47,7 @@
 {% endblock %}
 
 {% block title %}Enrichir OpenStreetMap avec les données AllThePlaces{% endblock %} 
-{% block subtitle %}Importez automatiquement les données de points d'intérêt depuis AllThePlaces vers OpenStreetMap.{% endblock%} 
+{% block subtitle %}Intégrez automatiquement les données de points d'intérêt depuis AllThePlaces vers OpenStreetMap.{% endblock%}
 
 {% block content %}
 <section class="max-w-3xl">
@@ -73,10 +73,10 @@
     <p class="text-base leading-relaxed mb-6">
         Pour chaque marque, l'outil identifie les correspondances par proximité
         géographique et par attributs (nom, marque, téléphone, email, site web),
-        puis propose les mises à jour de tags à valider avant import.
+        puis propose les mises à jour de tags à valider avant intégration.
     </p>
     <p>
-        Pour voir la progression des imports dans votre région vous pouvez aller
+        Pour voir la progression des intégrations dans votre région vous pouvez aller
         visualiser le résultat sur le site suivant :
         <a
             class="link link-primary"
@@ -91,7 +91,7 @@
 <section class="mt-6 flex flex-wrap gap-3 items-center">
     {% if 'user' in session %}
     <a href="/brands" class="btn btn-primary rounded-full">
-        <i class="iconoir-double-check"></i> Commencer à importer !
+        <i class="iconoir-double-check"></i> Commencer à intégrer !
     </a>
     {% else %}
     <button onclick="login('/brands')" class="btn btn-primary rounded-full">
@@ -108,8 +108,8 @@
 <div class="grid grid-cols-3 gap-4 max-w-3xl">
     {% for icon, label, value in [
         ("iconoir-database-check", "Noeuds mis à jour",  stats["total_nodes_updated"]),
-        ("iconoir-check-circle",   "Imports réussis",    stats["successful_imports"]),
-        ("iconoir-shop",           "Marques importées",  stats["brands_imported"])
+        ("iconoir-check-circle",   "Intégrations réussies", stats["successful_imports"]),
+        ("iconoir-shop",           "Marques intégrées",     stats["brands_imported"])
     ] %}
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body items-center text-center">
@@ -167,7 +167,7 @@
                 </p>
                 {% else %}
                 <p class="text-sm text-base-content/60">
-                    Aucune donnée importée
+                    Aucune donnée intégrée
                 </p>
                 {% endif %}
             </div>

@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 
-{% block title %}Import annulé{% endblock %}
-{% block subtitle %}Des erreurs ont été détectées dans les données, l'import ne sera pas effectué.{% endblock %}
+{% block title %}Intégration annulée{% endblock %}
+{% block subtitle %}Des erreurs ont été détectées dans les données, l'intégration ne sera pas effectuée.{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/rejected.js?v={{ app_version }}" type="text/javascript"></script>
@@ -16,8 +16,8 @@
     </div>
 
     <div class="card bg-base-100 border-base-300 border shadow-md p-6">
-        <p class="text-base">En confirmant, les erreurs signalées seront enregistrées dans l'historique des imports.
-            Elles seront prises en compte lors des prochaines importations afin d'éviter de réimporter des données incorrectes.</p>
+        <p class="text-base">En confirmant, vos signalements seront enregistrés dans l'historique. Les données concernées
+            seront écartées des prochaines intégrations, tant qu'elles n'auront pas été corrigées.</p>
     </div>
 
     <div class="flex gap-2 self-end">

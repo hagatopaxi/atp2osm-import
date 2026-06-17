@@ -1,8 +1,8 @@
 {% extends '_base.html' %}
 
-{% block meta_description %}Liste des {{ total_brands }} marques disponibles à l'import dans OpenStreetMap via atp2osm. Données issues d'AllThePlaces, validées par les contributeurs OSM.{% endblock %}
-{% block page_title %}Marques à importer{% endblock %}
-{% block og_title %}Marques à importer — atp2osm{% endblock %}
+{% block meta_description %}Liste des {{ total_brands }} marques disponibles à l'intégration dans OpenStreetMap via atp2osm. Données issues d'AllThePlaces, validées par les contributeurs OSM.{% endblock %}
+{% block page_title %}Marques à intégrer{% endblock %}
+{% block og_title %}Marques à intégrer — atp2osm{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -11,13 +11,13 @@
   "@type": "BreadcrumbList",
   "itemListElement": [
     { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "{{ request.host_url }}" },
-    { "@type": "ListItem", "position": 2, "name": "Marques à importer" }
+    { "@type": "ListItem", "position": 2, "name": "Marques à intégrer" }
   ]
 }
 </script>
 {% endblock %}
 
-{% block title %}Liste des marques à importer dans Open Street Map{% endblock %}
+{% block title %}Liste des marques à intégrer dans OpenStreetMap{% endblock %}
 {% block subtitle %}{{ total_brands }} marque{{ 's' if total_brands > 1 }} — données issues de la base All The Places.{%
 endblock %}
 
@@ -34,8 +34,8 @@ endblock %}
 <div role="alert" class="alert alert-info alert-soft mb-4 max-w-3xl">
     <i class="iconoir-log-in text-xl shrink-0"></i>
     <div>
-        <p class="font-semibold">Connexion requise pour importer</p>
-        <p class="text-sm">Vous devez vous connecter avec votre compte OpenStreetMap pour pouvoir déclencher un import.</p>
+        <p class="font-semibold">Connexion requise</p>
+        <p class="text-sm">Connectez-vous avec votre compte OpenStreetMap pour lancer une intégration.</p>
     </div>
     <button onclick="login('/brands')" class="btn btn-sm btn-primary rounded-full shrink-0">
         <i class="iconoir-log-in"></i> Se connecter avec OSM
@@ -47,7 +47,7 @@ endblock %}
     <input type="radio" name="brand-filter" id="filter-importable" value="importable" checked />
     <label for="filter-importable" class="brand-filter-card">
         <i class="iconoir-check-circle"></i>
-        <span>Importables</span>
+        <span>Disponibles</span>
         <span id="count-importable" class="brand-filter-badge">…</span>
     </label>
 
@@ -62,7 +62,7 @@ endblock %}
 <div id="beta-notice" role="alert" class="alert alert-warning alert-soft mb-4 max-w-3xl hidden">
     <i class="iconoir-info-circle text-xl shrink-0"></i>
     <p class="text-sm">
-        En version bêta, les imports de grande taille (plus de 25 correspondances) ne sont pas encore disponibles.
+        En version bêta, les intégrations de grande taille (plus de 25 correspondances) ne sont pas encore disponibles.
         Ils le seront progressivement au fur et mesure que la plateforme gagnera en maturité.
     </p>
 </div>
@@ -74,7 +74,7 @@ endblock %}
             <th>Nom</th>
             <th>Correspondances</th>
             <th>Précédent statut</th>
-            <th>Dernier import</th>
+            <th>Dernière intégration</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -128,7 +128,7 @@ endblock %}
             <td>
                 <div class="opacity-0 group-hover:opacity-100 transition-opacity">
                     {% if row["total"] > 25 %}
-                    {% set tooltip = "Import trop important pour la version Beta" %}
+                    {% set tooltip = "Intégration trop importante pour la version Beta" %}
                     {% elif 'user' not in session %}
                     {% set tooltip = "Vous devez vous connecter" %}
                     {% endif %}
@@ -137,7 +137,7 @@ endblock %}
                         <a {% if not disabled %}href="/brands/{{ row['brand_wikidata'] }}/validate"{% endif %}
                         {{ 'disabled' if disabled }} class="btn {{ 'btn-accent' if not disabled }} btn-sm rounded-md">
                         <i class="iconoir-double-check"></i>
-                        Importer
+                        Intégrer
                         </a>
                     </div>
                 </div>

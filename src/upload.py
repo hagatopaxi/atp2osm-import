@@ -63,7 +63,7 @@ class BulkUpload:
                 dept_label = DEPARTEMENT_NAMES.get(dpt, f"dép. {dpt}")
                 changeset = self.api.changeset_create(
                     {
-                        "comment": f"Importation des données ATP ({dept_label}; {self.brand_name})",
+                        "comment": f"Intégration des données ATP ({dept_label}; {self.brand_name})",
                         "created_by": "atp2osm",
                         "source": "https://alltheplaces.xyz",
                         "wiki": "https://wiki.openstreetmap.org/wiki/atp2osm",

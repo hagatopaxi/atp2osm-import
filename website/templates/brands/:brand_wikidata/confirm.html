@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 
-{% block title %}2/2 - Confirmation de l'import{% endblock %}
-{% block subtitle %}Dernière étape avant l'importation.{% endblock %}
+{% block title %}2/2 - Confirmation de l'intégration{% endblock %}
+{% block subtitle %}Dernière étape avant l'intégration.{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/confirm.js?v={{ app_version }}" type="text/javascript"></script>
@@ -17,7 +17,7 @@
 {% endmacro %}
 
 {% block content %}
-<h2 class="text-lg">Taille de l'import</h2>
+<h2 class="text-lg">Taille de l'intégration</h2>
 <div class="grid grid-cols-5 gap-2">
     {{ render_stat_card("Nombre de POI", stats["size"]) }}
     {{ render_stat_card("Nombre de tag", stats["total_tag_updates"]) }}
@@ -52,8 +52,7 @@
     </table>
 </div>
 
-<button class="btn btn-primary mt-4 self-end" onclick="document.getElementById('last_confirm_modal').show()">Confirmer
-    l'importation</button>
+<button class="btn btn-primary mt-4 self-end" onclick="document.getElementById('last_confirm_modal').show()">Confirmer l'intégration</button>
 <dialog id="last_confirm_modal" class="modal">
     <div class="modal-box">
         <h3 class="font-bold text-lg">Attention cette action est irréversible ?</h3>
@@ -64,8 +63,8 @@
 
         <div class="modal-action">
             <button id="submit_importation" class="btn btn-error" onclick="confirm_import()">
-                <div id="loading" class="loading loading-spinner loading-md hidden"></div>Importer les
-                données
+                <div id="loading" class="loading loading-spinner loading-md hidden"></div>
+                Intégrer les données
             </button>
             <button id="cancel" onclick="document.getElementById('last_confirm_modal').close()"
                 class="btn">Annuler</button>

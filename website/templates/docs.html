@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 
 {% block page_title %}Documentation{% endblock %}
-{% block meta_description %}Documentation d'atp2osm : comment fonctionnent les marques AllThePlaces, la correspondance spatiale avec OpenStreetMap et le processus d'import collaboratif.{% endblock %}
+{% block meta_description %}Documentation d'atp2osm : comment est structuré la base AllThePlaces, la correspondance spatiale avec les données d'OpenStreetMap et le processus d'intégration collaborative.{% endblock %}
 {% block og_title %}Documentation — atp2osm{% endblock %}
 
 {% block structured_data %}
@@ -10,7 +10,7 @@
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "headline": "Documentation — atp2osm",
-  "description": "Comment fonctionne atp2osm : marques AllThePlaces, correspondance spatiale avec OpenStreetMap et processus d'import collaboratif validé par les contributeurs OSM.",
+  "description": "Comment fonctionne atp2osm : les marques dans AllThePlaces, la correspondance spatiale avec OpenStreetMap et processus d'intégration collaborative.",
   "inLanguage": "fr",
   "url": "{{ request.host_url }}docs",
   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
@@ -67,11 +67,11 @@
                 </div>
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    atp2osm reprend cette structure et importe les données <strong>enseigne par enseigne</strong>,
+                    atp2osm reprend cette structure et intègre les données <strong>enseigne par enseigne</strong>,
                     en suivant fidèlement les spiders ATP. Cela garantit que toutes les données d'une même enseigne
                     proviennent d'une source unique et homogène — ce qui permet de valider la qualité d'un spider
                     en contrôlant un échantillon aléatoire de 1 % des correspondances,
-                    et d'étendre cette confiance à l'ensemble de l'importation.
+                    et d'étendre cette confiance à l'ensemble du jeu de données.
                 </p>
 
                 <div role="alert" class="alert alert-info alert-soft p-3">
@@ -102,8 +102,8 @@
                     <h3 class="font-semibold text-success text-sm flex items-center gap-1"><i class="iconoir-check-circle"></i> Ce qui est fait</h3>
                     <ul class="text-sm text-base-content/80 flex flex-col gap-1">
                         <li>Ajout des tags <span class="font-mono text-xs">opening_hours</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span>, <span class="font-mono text-xs">email</span> manquants</li>
-                        <li>Correspondance sur nœuds, ways et relations</li>
-                        <li>Regroupement des imports par département</li>
+                        <li>Correspondance sur les nodes, ways et relations</li>
+                        <li>Regroupement des intégrations par département</li>
                         <li>Traçabilité complète dans l'historique</li>
                     </ul>
                 </div>
@@ -115,7 +115,7 @@
                         <li>Création de nouveaux nœuds OSM</li>
                         <li>Modification ou suppression de tags existants</li>
                         <li>Modification de la géométrie</li>
-                        <li>Import sans validation humaine</li>
+                        <li>Intégration sans validation humaine</li>
                     </ul>
                 </div>
             </div>
@@ -132,7 +132,7 @@
         </p>
         <p class="text-sm text-base-content/80 leading-relaxed">
             L'outil compare ces données avec les nœuds OSM existants, identifie les tags manquants,
-            et vous permet de valider puis d'importer ces enrichissements directement dans OSM via votre compte.
+            et vous permet de valider puis d'intégrer ces données directement dans OSM via votre compte.
             <strong>Aucun nœud n'est créé ou supprimé</strong> — seuls des tags manquants sont ajoutés.
         </p>
     </section>
@@ -176,8 +176,8 @@
             </li>
             <li class="step">
                 <div class="text-left ml-3">
-                    <p class="font-semibold">Validation et import</p>
-                    <p class="text-base-content/70">Vous vérifiez les changements proposés pour une marque, puis vous déclenchez l'import. Les modifications sont envoyées à l'API OSM via votre compte, groupées par département.</p>
+                    <p class="font-semibold">Validation et intégration</p>
+                    <p class="text-base-content/70">Vous vérifiez les changements proposés pour une marque, puis vous déclenchez l'intégration automatique de l'ensemble du jeu de données. Les modifications sont envoyées à l'API OSM via votre compte, groupées par département.</p>
                 </div>
             </li>
         </ul>
@@ -190,14 +190,14 @@
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">1</span>
                 <div>
                     <p class="font-semibold">Connectez-vous avec votre compte OSM</p>
-                    <p class="text-base-content/70">Utilisez le bouton de connexion en bas du menu. Vos imports seront enregistrés sous votre nom dans l'historique OSM des changesets.</p>
+                    <p class="text-base-content/70">Utilisez le bouton de connexion en bas du menu. Vos intégrations seront enregistrées sous votre nom dans l'historique OSM des changesets.</p>
                 </div>
             </li>
             <li class="flex gap-3">
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">2</span>
                 <div>
                     <p class="font-semibold">Choisissez une marque</p>
-                    <p class="text-base-content/70">La page <a href="/brands" class="link link-primary">Marques à importer</a> liste toutes les enseignes pour lesquelles des enrichissements sont disponibles, avec le nombre de nœuds concernés.</p>
+                    <p class="text-base-content/70">La page <a href="/brands" class="link link-primary">Marques à intégrer</a> liste toutes les enseignes pour lesquelles des enrichissements sont disponibles, avec le nombre de nœuds concernés.</p>
                 </div>
             </li>
             <li class="flex gap-3">
@@ -213,8 +213,8 @@
             <li class="flex gap-3">
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">4</span>
                 <div>
-                    <p class="font-semibold">Importez</p>
-                    <p class="text-base-content/70">Si les données vous semblent correctes, lancez l'import. Les changesets sont créés automatiquement sur OSM, un par département. L'opération est irréversible — assurez-vous d'avoir vérifié les données.</p>
+                    <p class="font-semibold">Intégrez</p>
+                    <p class="text-base-content/70">Si les données vous semblent correctes, lancez l'intégration. Les changesets sont créés automatiquement sur OSM, un par département. L'opération est irréversible : assurez-vous d'avoir vérifié les données.</p>
                 </div>
             </li>
         </ol>
@@ -227,10 +227,9 @@
             <p class="text-sm">Seul <strong>1 % des éléments d'une marque</strong> sont validés manuellement, sélectionnés aléatoirement parmi tous les établissements de cette enseigne.</p>
         </div>
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
-            La validation se fait <strong>marque par marque</strong> : avant d'importer une enseigne, vous contrôlez
+            La validation se fait <strong>marque par marque</strong> : avant d'intégrer une enseigne, vous contrôlez
             un échantillon aléatoire de 1 % de ses établissements. Si les données de cet échantillon sont correctes,
-            la fiabilité est considérée comme acquise pour l'ensemble des établissements de cette enseigne —
-            c'est la cohérence du spider (source unique) qui le permet.
+            la fiabilité est considérée comme acquise pour l'ensemble des établissements de cette enseigne.
         </p>
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
             Avant de valider, assurez-vous que les éléments vérifiés sont représentatifs : testez plusieurs établissements
@@ -240,9 +239,9 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">Statuts des imports</h2>
+        <h2 class="text-lg font-semibold mb-3">Statuts des intégrations</h2>
         <p class="text-sm text-base-content/80 leading-relaxed mb-4">
-            Chaque import enregistré dans l'<a
+            Chaque intégration enregistrée dans l'<a
                 href="/history"
                 class="link link-primary"
                 >historique</a
@@ -256,7 +255,7 @@
                         >Succès</span
                     >
                     <div class="flex flex-col gap-1">
-                        <p class="text-sm font-semibold">Import réussi</p>
+                        <p class="text-sm font-semibold">Intégration réussie</p>
                         <p class="text-sm text-base-content/70">
                             Tous les changements ont été envoyés à OpenStreetMap
                             et sont désormais visibles publiquement.
@@ -272,14 +271,14 @@
                     >
                     <div class="flex flex-col gap-1">
                         <p class="text-sm font-semibold">
-                            Import partiellement réussi
+                            Intégration partiellement réussie
                         </p>
                         <p class="text-sm text-base-content/70">
-                            Certains départements n'ont pas pu être importés
+                            Certains départements n'ont pas pu être intégrés
                             suite à une erreur de l'API OpenStreetMap. Les
                             changements envoyés sont néanmoins visibles sur OSM.
-                            Les données non importées resteront disponibles pour
-                            un prochain import.
+                            Les données non intégrées resteront disponibles pour
+                            une prochaine intégration.
                         </p>
                     </div>
                 </div>
@@ -290,10 +289,10 @@
                     <span class="badge badge-info mt-0.5 shrink-0">Annulé</span>
                     <div class="flex flex-col gap-1">
                         <p class="text-sm font-semibold">
-                            Import annulé — données signalées
+                            Intégration annulée — données signalées
                         </p>
                         <p class="text-sm text-base-content/70">
-                            L'import a été interrompu suite à la détection
+                            L'intégration a été interrompue suite à la détection
                             d'erreurs par un contributeur dans les données ATP.
                             Aucune modification n'a été envoyée à OpenStreetMap.
                         </p>
@@ -310,9 +309,9 @@
                         <p class="text-sm font-semibold">Erreur technique</p>
                         <p class="text-sm text-base-content/70">
                             Une erreur indépendante de votre action a empêché
-                            l'import de se terminer. Aucune modification n'a été
+                            l'intégration de se terminer. Aucune modification n'a été
                             envoyée à OpenStreetMap. Vous pouvez relancer
-                            l'import depuis la page de la marque concernée après
+                            l'intégration depuis la page de la marque concernée après
                             4 semaines. Ce délai permet de laisser le temps de
                             corriger les éventuels erreurs dans les jeux de
                             données.
@@ -360,7 +359,7 @@
                 <a href="https://wiki.openstreetmap.org/wiki/atp2osm" target="_blank" rel="noopener" class="link link-primary">
                     <i class="icown-wikipedia"></i> Page wiki OSM
                 </a>
-                — documentation des imports automatisés
+                — documentation des intégrations automatisées
             </li>
             <li>
                 <a href="https://github.com/hagatopaxi/atp2osm-import" target="_blank" rel="noopener" class="link link-primary">

@@ -18,9 +18,9 @@ misc_bp = Blueprint("misc", __name__)
 # Pages publiques (hors zone authentifiée OSM OAuth).
 # (endpoint, libellé, description) — source unique pour sitemap.xml et llms.txt.
 PUBLIC_PAGES = [
-    ("misc.home", "Accueil", "présentation et statistiques d'import."),
-    ("brands.brands", "Marques à importer", "enseignes ATP disponibles à l'import."),
-    ("history.history", "Historique des imports", "imports réalisés, dates et statuts."),
+    ("misc.home", "Accueil", "présentation et statistiques d'intégration."),
+    ("brands.brands", "Marques à intégrer", "enseignes ATP disponibles à l'intégration."),
+    ("history.history", "Historique des intégrations", "intégrations réalisées, dates et statuts."),
     ("todo.todo", "Marques manquantes", "enseignes françaises absentes d'ATP."),
     ("misc.docs", "Documentation", "fonctionnement et guide de contribution."),
 ]
