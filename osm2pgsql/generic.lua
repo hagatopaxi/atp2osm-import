@@ -3,17 +3,17 @@ local srid = 4326
 local tables = {}
 
 tables.points = osm2pgsql.define_node_table('points', {
-    { column = 'tags', type = 'jsonb' },
-    { column = 'geom', type = 'point', projection = srid, not_null = true },
+    { column = 'tags',    type = 'jsonb' },
+    { column = 'geom',    type = 'point', projection = srid, not_null = true },
     { column = 'version', type = 'int' },
 })
 
 tables.polygons = osm2pgsql.define_area_table('polygons', {
-    { column = 'osm_type', type = 'text', not_null = true },
-    { column = 'tags', type = 'jsonb' },
-    { column = 'members', type = 'jsonb' },
-    { column = 'geom', type = 'geometry', projection = srid, not_null = true },
-    { column = 'version', type = 'int' },
+    { column = 'osm_type', type = 'text',     not_null = true },
+    { column = 'tags',     type = 'jsonb' },
+    { column = 'members',  type = 'jsonb' },
+    { column = 'geom',     type = 'geometry', projection = srid, not_null = true },
+    { column = 'version',  type = 'int' },
 })
 
 -- Based on tags wiki list, that removes every POI which are definitely not places
@@ -46,7 +46,7 @@ local function is_definitely_not_a_place(tags)
     if tags["traffic_sign"] then return true end
     if tags["water"] then return true end
     if tags["waterway"] then return true end
-    
+
     if tags["bicycle_road"] then return true end
 
     if tags["building"] and not (tags["shop"] or tags["brand"] or tags["brand:wikidata"]) then return true end
@@ -69,8 +69,36 @@ local function is_definitely_not_a_place(tags)
     if tags["railway"] and tags["railway"] ~= 'subway_entrance' then return true end
     if tags["railway"] and tags["railway"] ~= 'tram_stop' then return true end
 
+    if tags["amenity"] then
+        local amenity = tags["amenity"]
+
+        if amenity == 'shop' then return false end
+
+        if amenity == 'bar' then return false end
+        if amenity == 'biergarten' then return false end
+        if amenity == 'cafe' then return false end
+        if amenity == 'fast_food' then return false end
+        if amenity == 'food_court' then return false end
+        if amenity == 'ice_cream' then return false end
+        if amenity == 'pub' then return false end
+        if amenity == 'restaurant' then return false end
+        if amenity == 'atm' then return false end
+        if amenity == 'bank' then return false end
+        if amenity == 'bureau_de_change' then return false end
+        if amenity == 'money_transfer' then return false end
+        if amenity == 'payment_centre' then return false end
+        if amenity == 'bicycle_rental' then return false end
+        if amenity == 'boat_rental' then return false end
+        if amenity == 'car_rental' then return false end
+        if amenity == 'fuel' then return false end
+        if amenity == 'motorcycle_rental' then return false end
+
+        -- All other amenities are rejected for ATP
+        return true
+    end
+
     return false
-end 
+end
 
 function osm2pgsql.process_way(object)
     local tags = object.tags
@@ -101,7 +129,7 @@ end
 function osm2pgsql.process_relation(object)
     local tags = object.tags
     if is_definitely_not_a_place(tags) then return end
-    
+
     local relation_type = object.tags['type']
 
     if relation_type == 'multipolygon' then
