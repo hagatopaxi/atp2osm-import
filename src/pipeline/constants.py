@@ -2,11 +2,12 @@
 Shared constants for the ATP2OSM import pipeline.
 """
 
-import os
 from pathlib import Path
 
+from src.config import get_pipeline
+
 # Parallel processing configuration
-WORKERS = int(os.getenv("PIPELINE_WORKERS") or max(1, (os.cpu_count() or 4) // 2))
+WORKERS = get_pipeline().workers
 
 # File size limits
 MAX_FILE_SIZE = 128 * 1024 * 1024  # 128 MB - maximum size for NDJSON chunks

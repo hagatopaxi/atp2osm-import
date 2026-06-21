@@ -155,15 +155,16 @@ def download_large_file(
 
 def fetch_osm_users(user_ids):
     """Batch fetch user display names from the OSM API."""
-    from src.config import api_url, APP_VERSION
+    from src.config import get_settings
     if not user_ids:
         return {}
+    settings = get_settings()
     ids_param = ",".join(str(uid) for uid in user_ids)
     try:
         resp = requests.get(
-            f"{api_url}/api/0.6/users.json?users={ids_param}",
+            f"{settings.api_url}/api/0.6/users.json?users={ids_param}",
             timeout=5,
-            headers={"User-Agent": f"atp2osm/{APP_VERSION}"},
+            headers={"User-Agent": f"atp2osm/{settings.app_version}"},
         )
         resp.raise_for_status()
         data = resp.json()

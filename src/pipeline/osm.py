@@ -11,6 +11,7 @@ from src.pipeline.constants import (
 
 import requests
 
+from src.config import get_database, get_pipeline
 from src.pipeline._db import connect, last_import_date, record_import
 from src.utils import delete_file_if_exists, download_large_file
 
@@ -125,22 +126,23 @@ def run_osm2pgsql():
     # Heuristic: need ~3x total PBF size (tables + indexes + temp), floor 15 GB.
     # Override the floor with OSM2PGSQL_MIN_FREE_GB.
     total_pbf = sum(p.stat().st_size for p in pbf_paths)
-    floor = float(os.getenv("OSM2PGSQL_MIN_FREE_GB") or 15) * 1e9
+    floor = get_pipeline().min_free_gb * 1e9
     needed = max(floor, 3 * total_pbf)
     _require_free_space(pbf_paths[0].parent, needed)
 
+    db = get_database()
     logger.info("Importing %d PBF file(s) into PostGIS...", len(pbf_paths))
     env = os.environ.copy()
-    env["PGPASSWORD"] = os.getenv("OSM_DB_PASSWORD", "")
+    env["PGPASSWORD"] = db.password
     subprocess.run(
         [
             "osm2pgsql",
             "--output", "flex",
             "-S", str(PROJECT_ROOT / "osm2pgsql" / "generic.lua"),
-            "-d", os.getenv("OSM_DB_NAME"),
-            "-U", os.getenv("OSM_DB_USER"),
-            "-H", os.getenv("OSM_DB_HOST"),
-            "-P", os.getenv("OSM_DB_PORT"),
+            "-d", db.name,
+            "-U", db.user,
+            "-H", db.host,
+            "-P", db.port,
             *[str(p) for p in pbf_paths],
         ],
         check=True,

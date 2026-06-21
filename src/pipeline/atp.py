@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 import shutil
 import zipfile
 from datetime import datetime, timezone
@@ -15,6 +14,7 @@ from src.pipeline.constants import (
 import duckdb
 import requests
 
+from src.config import get_database
 from src.pipeline._db import connect, last_import_date, record_import
 from src.pipeline.ndgeojson_to_parquet import convert_to_parquet
 from src.utils import delete_file_if_exists, download_large_file
@@ -139,12 +139,13 @@ def import_atp():
                 cur.execute("DROP TABLE IF EXISTS atp_spiders CASCADE")
             conn.commit()
 
+            db = get_database()
             db_url = (
-                f"dbname={os.getenv('OSM_DB_NAME')} "
-                f"user={os.getenv('OSM_DB_USER')} "
-                f"host={os.getenv('OSM_DB_HOST')} "
-                f"password={os.getenv('OSM_DB_PASSWORD')} "
-                f"port={os.getenv('OSM_DB_PORT')}"
+                f"dbname={db.name} "
+                f"user={db.user} "
+                f"host={db.host} "
+                f"password={db.password} "
+                f"port={db.port}"
             )
             ddb = duckdb.connect()
             ddb.execute("INSTALL postgres; LOAD postgres;")

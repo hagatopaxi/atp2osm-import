@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import osmapi
+from src.config import get_settings
 from src.matching import DEPARTEMENT_NAMES
 from osmapi.errors import ApiError
 from requests_oauthlib import OAuth2Session
@@ -25,9 +26,10 @@ class BulkUpload:
         self.brand_wikidata = changes[0]["tag"].get("brand:wikidata") or "unknown"
         self.changesets = []
 
-        self.is_dev = os.getenv("APP_ENV").upper() == "DEVELOPMENT"
+        settings = get_settings()
+        self.is_dev = settings.is_dev
         self.api = osmapi.OsmApi(
-            api=os.getenv("OSM_API_HOST"),
+            api=settings.api_url,
             session=session,
         )
 
@@ -71,7 +73,7 @@ class BulkUpload:
                     }
                 )
                 logger.debug(
-                    f"{os.getenv('OSM_API_HOST').rstrip('/')}/changeset/{changeset}"
+                    f"{get_settings().api_url}/changeset/{changeset}"
                 )
 
                 changingNodes = []

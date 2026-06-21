@@ -5,6 +5,7 @@ import duckdb
 import json
 
 from datetime import datetime
+from src.config import get_database
 from src.utils import delete_file_if_exists, timer, download_large_file
 from pathlib import Path
 
@@ -100,8 +101,9 @@ def import_atp_data(osmdb):
             cursor.execute("DROP TABLE IF EXISTS atp_fr CASCADE")
             osmdb.commit()
 
+        db = get_database()
         duckdb.execute(
-            f"ATTACH 'dbname={os.getenv('OSM_DB_NAME')} user={os.getenv('OSM_DB_USER')} host={os.getenv('OSM_DB_HOST')} password={os.getenv('OSM_DB_PASSWORD')} port={os.getenv('OSM_DB_PORT')}' AS pg (TYPE postgres);",
+            f"ATTACH 'dbname={db.name} user={db.user} host={db.host} password={db.password} port={db.port}' AS pg (TYPE postgres);",
         )
 
         logger.info("Creating new atp_fr table from parquet file")

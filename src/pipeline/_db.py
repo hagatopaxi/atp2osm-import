@@ -1,16 +1,10 @@
-import os
-
 import psycopg
+
+from src.config import get_database
 
 
 def connect():
-    return psycopg.connect(
-        dbname=os.getenv("OSM_DB_NAME"),
-        user=os.getenv("OSM_DB_USER"),
-        password=os.getenv("OSM_DB_PASSWORD"),
-        host=os.getenv("OSM_DB_HOST"),
-        port=os.getenv("OSM_DB_PORT"),
-    )
+    return psycopg.connect(**get_database().connect_kwargs)
 
 
 def last_import_date(conn, import_type):

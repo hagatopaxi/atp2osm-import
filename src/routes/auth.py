@@ -1,16 +1,17 @@
-import os
 import functools
 from urllib.parse import urlparse
 
 from flask import Blueprint, session, request, redirect, url_for, abort, Response
 from requests_oauthlib import OAuth2Session
 
-from src.config import api_url
+from src.config import get_settings
 
 auth_bp = Blueprint("auth", __name__)
 
-client_id = os.getenv("OSM_OAUTH_CLIENT_ID")
-client_secret = os.getenv("OSM_OAUTH_CLIENT_SECRET")
+_settings = get_settings()
+api_url = _settings.api_url
+client_id = _settings.oauth_client_id
+client_secret = _settings.oauth_client_secret
 authorization_base_url = f"{api_url}/oauth2/authorize"
 token_url = f"{api_url}/oauth2/token"
 scope = ["write_api", "read_prefs"]
@@ -30,9 +31,8 @@ def auth_required(f):
 
 
 def get_oauth_redirect_uri():
-    base_url = os.getenv("APP_BASE_URL", "").rstrip("/")
-    if base_url:
-        return f"{base_url}/oauth-callback"
+    if _settings.app_base_url:
+        return f"{_settings.app_base_url}/oauth-callback"
     return url_for("auth.oauth_callback", _external=True)
 
 
@@ -79,7 +79,7 @@ def oauth_callback():
         token_url,
         client_secret=client_secret,
         authorization_response=authorization_response,
-        headers={"User-Agent": f"atp2osm/{os.getenv('APP_VERSION')}"},
+        headers={"User-Agent": f"atp2osm/{_settings.app_version}"},
     )
     user_detail_url = f"{api_url}/api/0.6/user/details.json"
     response = osm.get(user_detail_url)

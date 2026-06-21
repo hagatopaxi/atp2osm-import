@@ -1,5 +1,6 @@
 import logging
 
+from src.config import get_database
 from src.pipeline.dag import PIPELINE, record_failure
 from src.pipeline.runner import StepFormatter, main
 
@@ -11,4 +12,5 @@ handler.setFormatter(StepFormatter(
 logging.root.setLevel(logging.INFO)
 logging.root.addHandler(handler)
 
+get_database()  # fail fast if the DB env vars are missing
 main(PIPELINE, record_failure)
