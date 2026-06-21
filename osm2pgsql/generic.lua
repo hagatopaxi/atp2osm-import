@@ -24,6 +24,7 @@ local function is_definitely_not_a_place(tags)
     if tags["barrier"] then return true end
     if tags["bicycle_road"] then return true end
     if tags["boundary"] then return true end
+    if tags["admin_level"] then return true end
     if tags["busway"] then return true end
     if tags["cycleway"] then return true end
     if tags["emergency"] then return true end
@@ -37,36 +38,18 @@ local function is_definitely_not_a_place(tags)
     if tags["parking"] then return true end
     if tags["place"] then return true end
     if tags["power"] then return true end
+    if tags["public_transport"] then return true end
     if tags["railway"] then return true end
     if tags["route"] then return true end
     if tags["sidewalk"] then return true end
     if tags["telecom"] then return true end
+    if tags["traffic_sign"] then return true end
     if tags["water"] then return true end
     if tags["waterway"] then return true end
     
     if tags["bicycle_road"] then return true end
 
-    if tags["building"] == 'apartments' then return true end
-    if tags["building"] == 'barracks' then return true end
-    if tags["building"] == 'bridge' then return true end
-    if tags["building"] == 'dormitory' then return true end
-    if tags["building"] == 'digester' then return true end
-    if tags["building"] == 'house' then return true end
-    if tags["building"] == 'houseboat' then return true end
-    if tags["building"] == 'industrial' then return true end
-    if tags["building"] == 'ger' then return true end
-    if tags["building"] == 'residential' then return true end
-    if tags["building"] == 'semidetached_house' then return true end
-    if tags["building"] == 'static_caravan' then return true end
-    if tags["building"] == 'stilt_house' then return true end
-    if tags["building"] == 'storage_tank' then return true end
-    if tags["building"] == 'tech_cab' then return true end
-    if tags["building"] == 'terrace' then return true end
-    if tags["building"] == 'tree_house' then return true end
-    if tags["building"] == 'transformer_tower' then return true end
-    if tags["building"] == 'water_tower' then return true end
-    if tags["building"] == 'warehouse' then return true end
-    if tags["building"] == 'yes' then return true end
+    if tags["building"] and not (tags["shop"] or tags["brand"] or tags["brand:wikidata"]) then return true end
 
     if tags["landuse"] == 'industrial' then return true end
     if tags["landuse"] == 'construction' then return true end
