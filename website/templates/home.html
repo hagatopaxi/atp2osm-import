@@ -105,11 +105,12 @@
 
 <h2 class="text-xl font-semibold mt-6 mb-3">Statistiques</h2>
 
-<div class="grid grid-cols-3 gap-4 max-w-3xl">
+<div class="grid grid-cols-4 gap-4 max-w-3xl">
     {% for icon, label, value in [
         ("iconoir-database-check", "Noeuds mis à jour",  stats["total_nodes_updated"]),
         ("iconoir-check-circle",   "Intégrations réussies", stats["successful_imports"]),
-        ("iconoir-shop",           "Marques intégrées",     stats["brands_imported"])
+        ("iconoir-shop",           "Marques intégrées",     stats["brands_imported"]),
+        ("iconoir-community",      "Contributeurs",         stats["contributors"])
     ] %}
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body items-center text-center">

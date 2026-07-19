@@ -36,6 +36,7 @@ def home():
                 COALESCE(SUM(items_count), 0) AS total_nodes_updated,
                 COUNT(*) FILTER (WHERE status = 'success') AS successful_imports,
                 COUNT(DISTINCT brand_wikidata) FILTER (WHERE status = 'success') AS brands_imported,
+                COUNT(DISTINCT osm_user_id) AS contributors,
                 COALESCE(SUM((tags_count->>'opening_hours')::int), 0) AS opening_hours_added,
                 COALESCE(SUM((tags_count->>'phone')::int), 0) AS phone_added,
                 COALESCE(SUM((tags_count->>'website')::int), 0) AS website_added,
