@@ -25,6 +25,7 @@ class BulkUpload:
         self.brand_name = changes[0]["atp_brand"]
         self.brand_wikidata = changes[0]["tag"].get("brand:wikidata") or "unknown"
         self.changesets = []
+        self.uploaded_changes = []  # POIs whose département changeset succeeded
 
         settings = get_settings()
         self.is_dev = settings.is_dev
@@ -134,6 +135,7 @@ class BulkUpload:
 
                 self.api.changeset_close()
                 self.changesets.append(changeset)
+                self.uploaded_changes.extend(dpt_changes)
             except ApiError as error:
                 payload = error.payload.decode("utf-8", errors="replace") if isinstance(error.payload, bytes) else str(error.payload)
                 msg = f"OSM API error for dept {dpt}: HTTP {error.status} — {payload}"

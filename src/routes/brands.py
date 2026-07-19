@@ -217,16 +217,19 @@ def upload_changes(brand_wikidata):
                 json.dumps({"errors": error_messages, "id": entry_id}), status=422, mimetype="application/json"
             )
         elif errors and bulk_upload.changesets:
+            stats = get_stats(bulk_upload.uploaded_changes)
             cursor.execute(
-                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, changeset_ids, brand_name)
-                   VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, items_count, changeset_ids, brand_name, tags_count)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
                 (
                     brand_wikidata,
                     session["user"]["osm_id"],
                     status,
                     "; ".join(error_messages),
+                    len(bulk_upload.uploaded_changes),
                     bulk_upload.changesets,
                     bulk_upload.brand_name,
+                    json.dumps(stats["by_tag"]),
                 ),
             )
             entry_id = cursor.fetchone()[0]
