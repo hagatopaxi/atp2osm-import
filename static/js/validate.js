@@ -1,5 +1,6 @@
 let currentInvalidItemId = null;
 let invalidations = [];
+let apiAnswered = false;
 
 function markSourceChecked(itemId) {
   document
@@ -9,6 +10,45 @@ function markSourceChecked(itemId) {
     });
   const warning = document.querySelector(`[data-source-warning="${itemId}"]`);
   if (warning) warning.remove();
+
+  // La première fois qu'une source est ouverte, on demande si c'est une API :
+  // on remplace le bouton par la question. Une fois répondu, on ne repose plus.
+  if (apiAnswered) return;
+  const sourceBtn = document.querySelector(`[data-source-btn="${itemId}"]`);
+  if (sourceBtn) sourceBtn.classList.add("hidden");
+  const question = document.querySelector(`[data-api-question="${itemId}"]`);
+  if (question) question.classList.remove("hidden");
+}
+
+// Réponse à « est-ce une API ? » : on fige le message dans le bandeau et, si
+// oui, on débloque les points restants.
+function answerIsApi(btn, isApi) {
+  apiAnswered = true;
+  const question = btn.closest("[data-api-question]");
+  question.querySelector("[data-api-msg]").textContent = isApi
+    ? "Cette source de données est une API."
+    : "Cette source de données n'est pas une API.";
+  question.querySelector("[data-api-choices]").remove();
+  if (isApi) markBrandIsApi();
+}
+
+// La source est une API : elle n'est plus obligatoire, on débloque les points
+// restants, on retire les avertissements et on remplace les boutons « ouvrir
+// la source » restants par une simple mention.
+function markBrandIsApi() {
+  document
+    .querySelectorAll("[data-validate-btn][disabled]")
+    .forEach((btn) => btn.removeAttribute("disabled"));
+  document
+    .querySelectorAll("[data-source-warning]")
+    .forEach((warning) => warning.remove());
+  document.querySelectorAll("[data-source-btn]:not(.hidden)").forEach((btn) => {
+    const mention = document.createElement("div");
+    mention.className = "alert alert-soft alert-info";
+    mention.innerHTML =
+      '<i class="iconoir-database"></i><span>Cette source de données est une API.</span>';
+    btn.replaceWith(mention);
+  });
 }
 
 function extractWikidata(url) {

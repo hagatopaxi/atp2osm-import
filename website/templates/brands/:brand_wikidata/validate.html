@@ -59,9 +59,18 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
                 </div>
                 {% elif item['source_uri'] %}
                 <a class="btn btn-accent btn-sm" href="{{ item['source_uri'] }}" target="_blank"
+                    data-source-btn="{{ item['node_type'] }}-{{ item['id'] }}"
                     onclick="markSourceChecked(`{{ item['node_type'] }}-{{ item['id'] }}`)">
-                    Ouvrir la source de donnée <i class="iconoir-open-new-window ml-1"></i>
+                    Ouvrir la source de données <i class="iconoir-open-new-window ml-1"></i>
                 </a>
+                <div class="hidden alert alert-soft alert-info" data-api-question="{{ item['node_type'] }}-{{ item['id'] }}">
+                    <i class="iconoir-database"></i>
+                    <span data-api-msg>Est-ce une API ? Si oui, la source ne sera plus obligatoire pour les points restants.</span>
+                    <div class="flex gap-2" data-api-choices>
+                        <button class="btn btn-xs btn-outline bg-white" onclick="answerIsApi(this, true)">Oui</button>
+                        <button class="btn btn-xs btn-outline bg-white" onclick="answerIsApi(this, false)">Non</button>
+                    </div>
+                </div>
                 {% endif %}
 
                 {{ render_tag("brand", "Nom de la marque", "iconoir-shop", item) }}
