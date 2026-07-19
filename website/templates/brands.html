@@ -62,7 +62,7 @@ endblock %}
 <div id="beta-notice" role="alert" class="alert alert-warning alert-soft mb-4 max-w-3xl hidden">
     <i class="iconoir-info-circle text-xl shrink-0"></i>
     <p class="text-sm">
-        En version bêta, les intégrations de grande taille (plus de 25 correspondances) ne sont pas encore disponibles.
+        En version bêta, les intégrations de grande taille (plus de {{ max_import_size }} correspondances) ne sont pas encore disponibles.
         Ils le seront progressivement au fur et mesure que la plateforme gagnera en maturité.
     </p>
 </div>
@@ -80,7 +80,7 @@ endblock %}
     </thead>
     <tbody>
         {% for row in metadata %}
-        <tr class="group" data-importable="{{ 'true' if row['total'] <= 25 else 'false' }}">
+        <tr class="group" data-importable="{{ 'true' if row['total'] <= max_import_size else 'false' }}">
             <td>
                 {{ row["brand_wikidata"] }}
             </td>
@@ -127,7 +127,7 @@ endblock %}
 
             <td>
                 <div class="opacity-0 group-hover:opacity-100 transition-opacity">
-                    {% if row["total"] > 25 %}
+                    {% if row["total"] > max_import_size %}
                     {% set tooltip = "Intégration trop importante pour la version Beta" %}
                     {% elif 'user' not in session %}
                     {% set tooltip = "Vous devez vous connecter" %}

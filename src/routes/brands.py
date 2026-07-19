@@ -23,6 +23,9 @@ from src.utils import get_rand_items
 
 logger = logging.getLogger(__name__)
 
+# Taille maximale d'une intégration disponible en bêta (nb de correspondances)
+MAX_IMPORT_SIZE = 50
+
 brands_bp = Blueprint("brands", __name__)
 
 
@@ -74,7 +77,12 @@ def get_changes_by_brand_wikidata(brand_wikidata):
 def brands():
     osmdb = get_osmdb()
     metadata = get_all(osmdb)
-    return render_template("brands.html", metadata=metadata, total_brands=len(metadata))
+    return render_template(
+        "brands.html",
+        metadata=metadata,
+        total_brands=len(metadata),
+        max_import_size=MAX_IMPORT_SIZE,
+    )
 
 
 @brands_bp.route("/brands/<brand_wikidata>/validate")
@@ -174,6 +182,13 @@ def upload_changes(brand_wikidata):
         )
 
     changes = get_changes_by_brand_wikidata(brand_wikidata)
+    if len(changes) > MAX_IMPORT_SIZE:
+        return Response(
+            json.dumps({"error": "Import too large"}),
+            status=403,
+            mimetype="application/json",
+        )
+
     osm_session = OAuth2Session(token=session["token"])
     bulk_upload = BulkUpload(changes, session=osm_session)
     errors = bulk_upload.upload()
