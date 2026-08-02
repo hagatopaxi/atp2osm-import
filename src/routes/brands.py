@@ -24,7 +24,7 @@ from src.utils import filter_brands, get_rand_items
 logger = logging.getLogger(__name__)
 
 # Taille maximale d'une intégration disponible en bêta (nb de correspondances)
-MAX_IMPORT_SIZE = 50
+MAX_IMPORT_SIZE = 100
 
 brands_bp = Blueprint("brands", __name__)
 
