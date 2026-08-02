@@ -1,12 +1,10 @@
 import os
 import time
-import functools
 import logging
 import requests
 import random
 
 from pathlib import Path
-from typing import Callable, Any, TypeVar, cast
 
 
 logger = logging.getLogger(__name__)
@@ -19,42 +17,6 @@ def delete_file_if_exists(file_path):
     if os.path.exists(file_path):
         os.remove(file_path)
 
-
-F = TypeVar("F", bound=Callable[..., Any])
-
-
-def timer(func: F) -> F:
-    """
-    Décorateur qui chronomètre l'exécution d'une fonction.
-
-    Exemple d’utilisation :
-
-    @timer
-    def my_job():
-        data = [x**2 for x in range(10_000)]
-        filtered = [x for x in data if x % 2 == 0]
-        return sum(filtered)
-
-    total = my_job()          # affichera « Execution took X seconds »
-    """
-
-    @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
-        start = time.perf_counter()
-        try:
-            # Exécution de la fonction décorée
-            result = func(*args, **kwargs)
-        finally:
-            # Le bloc finally garantit que le temps est affiché même si
-            # la fonction lève une exception.
-            end = time.perf_counter()
-            duration = end - start
-            if duration > 3:
-                logger.info(f"{func.__name__} – Execution took {duration:.0f} seconds")
-        return result
-
-    # Cast pour que le type retourné corresponde à celui du décorateur
-    return cast(F, wrapper)
 
 
 def clean_debug_folder():
