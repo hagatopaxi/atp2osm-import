@@ -3,53 +3,73 @@ from psycopg.rows import dict_row
 from typing import Any
 
 
+# Requête unique de correspondance ATP <-> OSM, partagée par /validate
+# (get_filtered) et par la vue matérialisée mv_places_brand qui alimente le
+# compteur de la liste des marques. Les deux DOIVENT rester sur la même SQL :
+# c'est la divergence entre deux copies qui a fait afficher 50 POIs dans la
+# liste et 60 dans /validate.
+#
+# Le dédoublonnage inclut atp_brand_wikidata : un même objet OSM peut
+# correspondre à deux marques différentes, et il doit alors être compté pour
+# chacune (comme le fait /validate, qui filtre sur une seule marque).
+MATCHED_POI_SQL = """
+    WITH joined_poi AS (
+    SELECT
+        *,
+        osm.tags as old_tags,
+        ST_X(ST_Centroid(osm.geom)) AS lon,
+        ST_Y(ST_Centroid(osm.geom)) AS lat,
+        atp.opening_hours as atp_opening_hours,
+        atp.phone as atp_phone,
+        atp.email as atp_email,
+        atp.website as atp_website,
+        atp.country as atp_country,
+        atp.city as atp_city,
+        atp.source_uri as atp_source_uri,
+        atp.brand as atp_brand,
+        atp.brand_wikidata as atp_brand_wikidata,
+        (
+            (atp.opening_hours IS NOT NULL AND osm.opening_hours IS NULL)
+            OR (atp.email   IS NOT NULL AND osm.email   IS NULL)
+            OR (atp.phone   IS NOT NULL AND osm.phone   IS NULL)
+            OR (atp.website IS NOT NULL AND osm.website IS NULL)
+        ) AS is_importable,
+        ST_Distance(osm.geom::geography, ST_GeomFromGeoJSON(atp.geom)::geography) AS atp_distance,
+        count(*) FILTER (WHERE osm.node_type = 'node')                 OVER (PARTITION BY atp.id) AS pt_cnt,
+        count(*) FILTER (WHERE osm.node_type IN ('way', 'relation'))   OVER (PARTITION BY atp.id) AS poly_cnt
+    FROM
+        mv_places osm
+    INNER JOIN atp_fr atp ON
+        ST_DWithin(
+            osm.geom::geography,
+            ST_GeomFromGeoJSON(atp.geom)::geography,
+            500
+        )
+    WHERE
+        {where_options} AND
+        (
+            osm.brand_wikidata = atp.brand_wikidata
+            OR LOWER(osm.brand) = LOWER(atp.brand)
+            OR LOWER(osm.name) = LOWER(atp."name")
+            OR LOWER(osm.email) = LOWER(atp.email)
+            OR LOWER(REGEXP_REPLACE(osm.website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(atp.website, '^https?://', '', 'i'))
+            OR normalize_phone(osm.phone) = normalize_phone(atp.phone)
+        )
+    )
+    SELECT DISTINCT ON (osm_id, node_type, atp_brand_wikidata) *
+    FROM joined_poi
+    WHERE pt_cnt <= 1 AND poly_cnt <= 1
+    ORDER BY osm_id, node_type, atp_brand_wikidata, atp_distance
+"""
+
+
 def get_filtered(
     cursor: Cursor,
     brand: str = None,
     postcode: str = None,
     departement_number: str = None,
 ) -> Cursor:
-    query = """
-        WITH joined_poi AS (
-        SELECT
-            *,
-            osm.tags as old_tags,
-            ST_X(ST_Centroid(osm.geom)) AS lon,
-            ST_Y(ST_Centroid(osm.geom)) AS lat,
-            atp.opening_hours as atp_opening_hours,
-            atp.phone as atp_phone,
-            atp.email as atp_email,
-            atp.website as atp_website,
-            atp.country as atp_country,
-            atp.city as atp_city,
-            atp.source_uri as atp_source_uri,
-            ST_Distance(osm.geom::geography, ST_GeomFromGeoJSON(atp.geom)::geography) AS atp_distance,
-            count(*) FILTER (WHERE osm.node_type = 'node')                 OVER (PARTITION BY atp.id) AS pt_cnt,
-            count(*) FILTER (WHERE osm.node_type IN ('way', 'relation'))   OVER (PARTITION BY atp.id) AS poly_cnt
-        FROM
-            mv_places osm
-        INNER JOIN atp_fr atp ON
-            ST_DWithin(
-                osm.geom::geography,
-                ST_GeomFromGeoJSON(atp.geom)::geography,
-                500
-            )
-        WHERE
-            {where_options} AND
-            (
-                osm.brand_wikidata = atp.brand_wikidata
-                OR LOWER(osm.brand) = LOWER(atp.brand)
-                OR LOWER(osm.name) = LOWER(atp."name")
-                OR LOWER(osm.email) = LOWER(atp.email)
-                OR LOWER(REGEXP_REPLACE(osm.website, '^https?://', '', 'i')) = LOWER(REGEXP_REPLACE(atp.website, '^https?://', '', 'i'))
-                OR normalize_phone(osm.phone) = normalize_phone(atp.phone)
-            )
-        )
-        SELECT DISTINCT ON (osm_id, node_type) *
-        FROM joined_poi
-        WHERE pt_cnt <= 1 AND poly_cnt <= 1
-        ORDER BY osm_id, node_type, atp_distance
-    """
+    query = MATCHED_POI_SQL
     options = []
     params = []
     if brand:
@@ -62,7 +82,7 @@ def get_filtered(
         options.append("atp.departement_number = %s")
         params.append(departement_number)
 
-    where_options = " AND ".join(options)
+    where_options = " AND ".join(options) or "TRUE"
 
     return cursor.execute(query.format(where_options=where_options), params)
 

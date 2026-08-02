@@ -107,6 +107,36 @@ def brands_validate(brand_wikidata):
             osmdb.commit()
         return render_template("brands/:brand_wikidata/empty.html")
 
+    # Garde-fou : la liste des marques (mv_places_brand) et /validate doivent
+    # compter le même nombre de POIs. Si /validate dépasse la limite, c'est que
+    # les deux comptages ont divergé — on met l'intégration en erreur pour
+    # sortir la marque de la liste au lieu de laisser le bug se reproduire.
+    if len(changes) > MAX_IMPORT_SIZE:
+        osmdb = get_osmdb()
+        with osmdb.cursor() as cursor:
+            cursor.execute(
+                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, brand_name)
+                   VALUES (%s, %s, 'error_unknown', %s, %s)""",
+                (
+                    brand_wikidata,
+                    session["user"]["osm_id"],
+                    f"Comptage incohérent : {len(changes)} POIs à intégrer pour une limite de {MAX_IMPORT_SIZE}",
+                    changes[0]["atp_brand"],
+                ),
+            )
+            osmdb.commit()
+        logger.error(
+            "Comptage incohérent pour %s : %d POIs > limite %d",
+            brand_wikidata,
+            len(changes),
+            MAX_IMPORT_SIZE,
+        )
+        return render_template(
+            "brands/:brand_wikidata/oversized.html",
+            size=len(changes),
+            max_import_size=MAX_IMPORT_SIZE,
+        )
+
     # Check at least 5 items
     min_to_check = max(ceil(len(changes) / 100), 5)
     items = get_rand_items(changes, n=min_to_check)
