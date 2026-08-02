@@ -1,0 +1,12 @@
+{% extends '_base.html' %}
+
+{% block title %}503 - Maintenance{% endblock %}
+
+{% block content %}
+<h1>Mise à jour des données en cours</h1>
+<p>
+    Les données OpenStreetMap et All The Places sont en cours de rafraîchissement.
+    Le site sera de nouveau disponible dès que le rafraîchissement sera terminé.
+</p>
+{% if since %}<p>Début : {{ since.strftime('%d %B %Y à %H:%M') }}</p>{% endif %}
+{% endblock %}
