@@ -4,6 +4,7 @@ import logging
 import requests
 import random
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -239,13 +240,33 @@ def filter_brands(rows, args, max_import_size):
     return rows, active
 
 
+# ponytail: cache mémoire par process (pseudo OSM -> date d'expiration). Un
+# display_name ne bouge quasiment jamais, une semaine suffit. Si plusieurs
+# workers tournent, chacun a le sien — c'est voulu, pas la peine de sortir Redis.
+OSM_USER_CACHE_TTL = timedelta(weeks=1)
+_osm_user_cache: dict[int, tuple[str, datetime]] = {}
+
+
 def fetch_osm_users(user_ids):
-    """Batch fetch user display names from the OSM API."""
+    """Batch fetch user display names from the OSM API, cached one week."""
     from src.config import get_settings
     if not user_ids:
         return {}
+
+    now = datetime.now(timezone.utc)
+    cached = {}
+    missing = []
+    for uid in user_ids:
+        entry = _osm_user_cache.get(uid)
+        if entry and entry[1] > now:
+            cached[uid] = entry[0]
+        else:
+            missing.append(uid)
+    if not missing:
+        return cached
+
     settings = get_settings()
-    ids_param = ",".join(str(uid) for uid in user_ids)
+    ids_param = ",".join(str(uid) for uid in missing)
     try:
         resp = requests.get(
             f"{settings.api_url}/api/0.6/users.json?users={ids_param}",
@@ -253,13 +274,18 @@ def fetch_osm_users(user_ids):
             headers={"User-Agent": f"atp2osm/{settings.app_version}"},
         )
         resp.raise_for_status()
-        data = resp.json()
-        return {
-            u["user"]["id"]: u["user"]["display_name"] for u in data.get("users", [])
+        fetched = {
+            u["user"]["id"]: u["user"]["display_name"]
+            for u in resp.json().get("users", [])
         }
     except Exception:
         logger.exception("Failed to fetch OSM user details")
-        return {}
+        return cached  # l'API est muette : on sert au moins ce qu'on a
+
+    expires = now + OSM_USER_CACHE_TTL
+    for uid, name in fetched.items():
+        _osm_user_cache[uid] = (name, expires)
+    return cached | fetched
 
 
 def get_rand_items(arr: list, n: int) -> list:
