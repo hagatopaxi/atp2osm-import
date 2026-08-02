@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, abort
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
-from src.utils import fetch_osm_users
+from src.utils import build_filters, fetch_osm_users
 
 logger = logging.getLogger(__name__)
 
@@ -13,28 +13,41 @@ history_bp = Blueprint("history", __name__)
 
 HISTORY_PER_PAGE = 20
 
+# Filters this page exposes, and the columns they apply to.
+FILTERS = {
+    "q": ("brand_name", "brand_wikidata"),
+    "status": "status",
+    "user": "osm_user_id",
+    "date": "import_date",
+}
+
 
 @history_bp.route("/history")
 def history():
     osmdb = get_osmdb()
-    page = request.args.get("page", 1, type=int)
-    page = max(1, page)
+    page = max(1, request.args.get("page", 1, type=int))
     offset = (page - 1) * HISTORY_PER_PAGE
+    where, params, filters = build_filters(request.args, FILTERS)
 
     with osmdb.cursor(row_factory=dict_row) as cursor:
-        cursor.execute("SELECT COUNT(*) AS total FROM import_history")
-        total = cursor.fetchone()["total"]
+        total = cursor.execute(
+            f"SELECT COUNT(*) AS total FROM import_history {where}", params
+        ).fetchone()["total"]
 
-        cursor.execute(
-            "SELECT * FROM import_history ORDER BY import_date DESC LIMIT %s OFFSET %s",
-            (HISTORY_PER_PAGE, offset),
-        )
-        entries = cursor.fetchall()
+        entries = cursor.execute(
+            f"SELECT * FROM import_history {where} ORDER BY import_date DESC LIMIT %s OFFSET %s",
+            params + [HISTORY_PER_PAGE, offset],
+        ).fetchall()
+
+        all_user_ids = [
+            r["osm_user_id"]
+            for r in cursor.execute(
+                "SELECT DISTINCT osm_user_id FROM import_history"
+            ).fetchall()
+        ]
 
     total_pages = max(1, -(-total // HISTORY_PER_PAGE))
-
-    user_ids = list({e["osm_user_id"] for e in entries})
-    users = fetch_osm_users(user_ids)
+    users = fetch_osm_users(all_user_ids)
 
     return render_template(
         "history.html",
@@ -42,6 +55,12 @@ def history():
         users=users,
         page=page,
         total_pages=total_pages,
+        total=total,
+        filters=filters,
+        filter_users=sorted(
+            ((uid, users.get(uid, str(uid))) for uid in all_user_ids),
+            key=lambda u: u[1].lower(),
+        ),
     )
 
 

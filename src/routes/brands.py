@@ -19,7 +19,7 @@ from src.extensions import cache
 from src.matching import get_all, get_changes, get_filtered, get_stats
 from src.routes.auth import auth_required
 from src.upload import BulkUpload
-from src.utils import get_rand_items
+from src.utils import filter_brands, get_rand_items
 
 logger = logging.getLogger(__name__)
 
@@ -76,11 +76,21 @@ def get_changes_by_brand_wikidata(brand_wikidata):
 # @cache.cached(key_prefix="brands")
 def brands():
     osmdb = get_osmdb()
-    metadata = get_all(osmdb)
+    # Filtered in Python rather than through a WHERE in get_all(): the page shows
+    # the filtered rows AND counts over the unfiltered set (the "Available / All"
+    # badges). Filtering in SQL would need a second query for those counts,
+    # replaying get_all()'s visibility rules (4 weeks / 2 weeks / 3 months
+    # cooldowns). Worth switching if the list grows enough that fetching it whole
+    # costs.
+    all_brands = get_all(osmdb)
+    rows, filters = filter_brands(all_brands, request.args, MAX_IMPORT_SIZE)
     return render_template(
         "brands.html",
-        metadata=metadata,
-        total_brands=len(metadata),
+        rows=rows,
+        total_brands=len(all_brands),
+        count_importable=sum(1 for r in all_brands if r["total"] <= MAX_IMPORT_SIZE),
+        shown=len(rows),
+        filters=filters,
         max_import_size=MAX_IMPORT_SIZE,
     )
 

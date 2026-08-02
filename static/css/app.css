@@ -89,3 +89,17 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
 #sidebar .sidebar-expand-icon {
     font-size: 1.5rem;
 }
+
+/* Form control harmonisation.
+   daisyUI floors font-size at .875rem on .input/.select while .btn-sm goes down
+   to .75rem, so fields and buttons did not match. Align both scales on a size
+   in between. */
+.input-sm,
+.select-sm,
+.btn-sm {
+    font-size: 0.8125rem;
+}
+
+.input-sm input {
+    font-size: inherit;
+}

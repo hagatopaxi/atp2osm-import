@@ -17,13 +17,75 @@
 </script>
 {% endblock %}
 
+{% block custom_js %}
+<script src="/static/js/filters.js?v={{ app_version }}"></script>
+{% endblock %}
+
 {% block title %}Historique des intégrations{% endblock %}
 {% block subtitle %}Liste de toutes les intégrations effectuées ou signalées comme erronées.{% endblock %}
 
 {% block content %}
-{% if entries|length == 0 and page == 1 %}
-<p class="text-base-content/60">Aucune intégration enregistrée pour le moment.</p>
+{% set status_filters = [
+    ('success',   'Succès',  'btn-success'),
+    ('partial',   'Partiel', 'btn-warning'),
+    ('cancelled', 'Annulé',  'btn-info'),
+    ('error',     'Erreur',  'btn-error')
+] %}
+<form method="get" data-autosubmit class="flex flex-wrap items-end gap-3 mb-4">
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">Marque</legend>
+        <label class="input input-sm w-56">
+            <i class="iconoir-search opacity-50"></i>
+            <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="Nom ou code Wikidata"
+                {{ 'autofocus' if filters.q }} />
+        </label>
+    </fieldset>
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">Statut</legend>
+        <div class="filter">
+            <input class="btn btn-sm filter-reset" type="radio" name="status" value="" aria-label="Tous" />
+            {% for value, label, color in status_filters %}
+            <input class="btn btn-sm {{ color }}" type="radio" name="status" value="{{ value }}" aria-label="{{ label }}"
+                {{ 'checked' if filters.status == value }} />
+            {% endfor %}
+        </div>
+    </fieldset>
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">Utilisateur</legend>
+        <select name="user" class="select select-sm">
+            <option value="">Tous</option>
+            {% for uid, name in filter_users %}
+            <option value="{{ uid }}" {{ 'selected' if filters.user == uid }}>{{ name }}</option>
+            {% endfor %}
+        </select>
+    </fieldset>
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">Période</legend>
+        <div class="join">
+            <input type="date" name="from" value="{{ filters['from'] or '' }}"
+                class="input input-sm join-item" aria-label="Du" />
+            <input type="date" name="to" value="{{ filters['to'] or '' }}"
+                class="input input-sm join-item" aria-label="Au" />
+        </div>
+    </fieldset>
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">&nbsp;</legend>
+        <div class="join">
+            <button type="submit" class="btn btn-sm btn-primary join-item">Filtrer</button>
+            {% if filters %}
+            <a href="{{ url_for('history.history') }}" class="btn btn-sm btn-ghost join-item">Réinitialiser</a>
+            {% endif %}
+        </div>
+    </fieldset>
+</form>
+
+{% if entries|length == 0 %}
+<p class="text-base-content/60">
+    {% if filters %}Aucune intégration ne correspond à ces filtres.{% else %}Aucune intégration enregistrée pour le
+    moment.{% endif %}
+</p>
 {% else %}
+<p class="text-sm text-base-content/60 mb-2">{{ total }} intégration{{ 's' if total > 1 }}</p>
 <table class="table table-compact bg-base-100 rounded-2">
     <thead>
         <tr>
@@ -39,7 +101,7 @@
     <tbody>
         {% for entry in entries %}
         <tr class="group">
-            <td class="whitespace-nowrap">{{ entry.import_date.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td class="whitespace-nowrap">{{ entry.import_date.strftime('%d/%m/%Y %H:%M') }}</td>
             <td>
                     {{ entry.brand_name if entry.brand_name else entry.brand_wikidata }}
                 <span class="text-xs text-base-content/50">{{ entry.brand_wikidata }}</span>
@@ -88,15 +150,16 @@
 {% if total_pages > 1 %}
 <div class="join self-center mt-4">
     {% if page > 1 %}
-    <a class="join-item btn" href="?page={{ page - 1 }}">«</a>
+    <a class="join-item btn" href="{{ url_for('history.history', page=page - 1, **filters) }}">«</a>
     {% endif %}
 
     {% for p in range(1, total_pages + 1) %}
-    <a class="join-item btn {{ 'btn-active' if p == page }}" href="?page={{ p }}">{{ p }}</a>
+    <a class="join-item btn {{ 'btn-active' if p == page }}"
+        href="{{ url_for('history.history', page=p, **filters) }}">{{ p }}</a>
     {% endfor %}
 
     {% if page < total_pages %}
-    <a class="join-item btn" href="?page={{ page + 1 }}">»</a>
+    <a class="join-item btn" href="{{ url_for('history.history', page=page + 1, **filters) }}">»</a>
     {% endif %}
 </div>
 {% endif %}

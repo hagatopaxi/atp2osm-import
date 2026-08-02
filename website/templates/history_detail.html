@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 
 {% block title %}Intégration #{{ entry.id }}{% endblock %}
-{% block subtitle %}Détails de l'intégration du {{ entry.import_date.strftime('%Y-%m-%d à %H:%M') }}.{% endblock %}
+{% block subtitle %}Détails de l'intégration du {{ entry.import_date.strftime('%d/%m/%Y à %H:%M') }}.{% endblock %}
 
 {% block content %}
 {% set banner_statuses = ['success', 'partial_osm_api', 'partial_unknown', 'partial', 'cancelled', 'error_osm_api', 'error_unknown', 'error'] %}
@@ -70,7 +70,7 @@
                 </dd>
 
                 <dt class="text-base-content/60">Date</dt>
-                <dd>{{ entry.import_date.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+                <dd>{{ entry.import_date.strftime('%d/%m/%Y %H:%M:%S') }}</dd>
 
                 {% set status_labels = {
                     "success":         "Succès",

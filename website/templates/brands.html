@@ -26,7 +26,7 @@ endblock %}
 {% endblock %}
 
 {% block custom_js %}
-<script src="/static/js/brands.js?v={{ app_version }}"></script>
+<script src="/static/js/filters.js?v={{ app_version }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -43,23 +43,74 @@ endblock %}
 </div>
 {% endif %}
 
-<div class="brand-filter-group mb-4">
-    <input type="radio" name="brand-filter" id="filter-importable" value="importable" checked />
-    <label for="filter-importable" class="brand-filter-card">
-        <i class="iconoir-check-circle"></i>
-        <span>Disponibles</span>
-        <span id="count-importable" class="brand-filter-badge">…</span>
-    </label>
+<form method="get" data-autosubmit>
+    <div class="brand-filter-group mb-4">
+        <input type="radio" name="scope" id="filter-importable" value="importable"
+            {{ 'checked' if filters.scope != 'all' }} />
+        <label for="filter-importable" class="brand-filter-card">
+            <i class="iconoir-check-circle"></i>
+            <span>Disponibles</span>
+            <span class="brand-filter-badge">{{ count_importable }}</span>
+        </label>
 
-    <input type="radio" name="brand-filter" id="filter-all" value="all" />
-    <label for="filter-all" class="brand-filter-card">
-        <i class="iconoir-list"></i>
-        <span>Toutes</span>
-        <span id="count-all" class="brand-filter-badge">…</span>
-    </label>
-</div>
+        <input type="radio" name="scope" id="filter-all" value="all" {{ 'checked' if filters.scope == 'all' }} />
+        <label for="filter-all" class="brand-filter-card">
+            <i class="iconoir-list"></i>
+            <span>Toutes</span>
+            <span class="brand-filter-badge">{{ total_brands }}</span>
+        </label>
+    </div>
 
-<div id="beta-notice" role="alert" class="alert alert-warning alert-soft mb-4 max-w-3xl hidden">
+    <div class="flex flex-wrap items-end gap-3 mb-4">
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">Marque</legend>
+            <label class="input input-sm w-56">
+                <i class="iconoir-search opacity-50"></i>
+                <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="Nom ou code Wikidata"
+                    {{ 'autofocus' if filters.q }} />
+            </label>
+        </fieldset>
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">Précédent statut</legend>
+            <div class="filter">
+                <input class="btn btn-sm filter-reset" type="radio" name="status" value="" aria-label="Tous" />
+                {% for value, label, color in [
+                    ('none',      'Jamais intégrée', ''),
+                    ('success',   'Succès',          'btn-success'),
+                    ('partial',   'Partiel',         'btn-warning'),
+                    ('cancelled', 'Annulé',          'btn-info'),
+                    ('error',     'Erreur',          'btn-error')
+                ] %}
+                <input class="btn btn-sm {{ color }}" type="radio" name="status" value="{{ value }}"
+                    aria-label="{{ label }}" {{ 'checked' if filters.status == value }} />
+                {% endfor %}
+            </div>
+        </fieldset>
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">Dernière intégration</legend>
+            <div class="join">
+                <input type="date" name="from" value="{{ filters['from'] or '' }}" class="input input-sm join-item"
+                    aria-label="Du" />
+                <input type="date" name="to" value="{{ filters['to'] or '' }}" class="input input-sm join-item"
+                    aria-label="Au" />
+            </div>
+        </fieldset>
+        <fieldset class="fieldset">
+            <legend class="fieldset-legend">&nbsp;</legend>
+            <div class="join">
+                <button type="submit" class="btn btn-sm btn-primary join-item">Filtrer</button>
+                <a href="{{ url_for('brands.brands') }}" class="btn btn-sm btn-ghost join-item">Réinitialiser</a>
+            </div>
+        </fieldset>
+        <span class="text-sm text-base-content/60 ml-auto mb-2">{{ shown }} marque{{ 's' if shown > 1 }}</span>
+    </div>
+</form>
+
+{% if shown == 0 %}
+<p class="text-base-content/60">Aucune marque ne correspond à ces filtres.</p>
+{% endif %}
+
+<div role="alert" class="alert alert-warning alert-soft mb-4 max-w-3xl {{ 'hidden' if filters.scope != 'all' }}">
     <i class="iconoir-info-circle text-xl shrink-0"></i>
     <p class="text-sm">
         En version bêta, les intégrations de grande taille (plus de {{ max_import_size }} correspondances) ne sont pas encore disponibles.
@@ -79,8 +130,8 @@ endblock %}
         </tr>
     </thead>
     <tbody>
-        {% for row in metadata %}
-        <tr class="group" data-importable="{{ 'true' if row['total'] <= max_import_size else 'false' }}">
+        {% for row in rows %}
+        <tr class="group">
             <td>
                 {{ row["brand_wikidata"] }}
             </td>
@@ -119,7 +170,7 @@ endblock %}
 
             <td>
                 {% if row["last_import"] %}
-                {{ row["last_import"].strftime('%-d %B %Y') }}
+                {{ row["last_import"].strftime('%d/%m/%Y') }}
                 {% else %}
                 Jamais
                 {% endif %}

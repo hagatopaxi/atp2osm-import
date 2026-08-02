@@ -6,24 +6,52 @@ from psycopg.rows import dict_row
 
 from src.db import get_osmdb
 from src.routes.auth import auth_required
-from src.utils import fetch_osm_users
+from src.utils import build_filters, fetch_osm_users
 
 logger = logging.getLogger(__name__)
 
 todo_bp = Blueprint("todo", __name__)
 
+# Filters this page exposes: no status here, a brand still to import has none.
+FILTERS = {
+    "q": ("brand_name", "brand_wikidata"),
+    "user": "osm_user_id",
+    "date": "created_at",
+}
+
 
 @todo_bp.route("/todo")
 def todo():
     osmdb = get_osmdb()
+    where, params, filters = build_filters(request.args, FILTERS)
     with osmdb.cursor(row_factory=dict_row) as cursor:
         entries = cursor.execute(
-            "SELECT * FROM todo_brands ORDER BY created_at DESC"
+            f"SELECT * FROM todo_brands {where} ORDER BY created_at DESC", params
         ).fetchall()
-    user_ids = list({e["osm_user_id"] for e in entries})
-    users = fetch_osm_users(user_ids)
+        total = cursor.execute(
+            "SELECT COUNT(*) AS total FROM todo_brands"
+        ).fetchone()["total"]
+        all_user_ids = [
+            r["osm_user_id"]
+            for r in cursor.execute(
+                "SELECT DISTINCT osm_user_id FROM todo_brands"
+            ).fetchall()
+        ]
+
+    users = fetch_osm_users(all_user_ids)
     current_user_id = session["user"]["osm_id"] if "user" in session else None
-    return render_template("todo.html", entries=entries, users=users, current_user_id=current_user_id)
+    return render_template(
+        "todo.html",
+        entries=entries,
+        users=users,
+        current_user_id=current_user_id,
+        total=total,
+        filters=filters,
+        filter_users=sorted(
+            ((uid, users.get(uid, str(uid))) for uid in all_user_ids),
+            key=lambda u: u[1].lower(),
+        ),
+    )
 
 
 @todo_bp.route("/todo/check")

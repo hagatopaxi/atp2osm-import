@@ -115,6 +115,130 @@ def download_large_file(
         raise
 
 
+STATUS_GROUPS = {
+    "success": ["success"],
+    "partial": ["partial_osm_api", "partial_unknown"],
+    "cancelled": ["cancelled"],
+    "error": ["error_osm_api", "error_unknown"],
+}
+
+
+def status_group(status: str | None) -> str:
+    """Group import statuses into the families the filters expose.
+
+    Returns 'none' for a brand that was never imported (or an unknown status).
+    """
+    for group, statuses in STATUS_GROUPS.items():
+        if status in statuses:
+            return group
+    return "none"
+
+
+def build_filters(args, spec):
+    """Build a SQL WHERE clause from the query string.
+
+    `spec` declares which filters the page exposes, and on which columns:
+
+        {"q":      ("brand_name", "brand_wikidata"),  # ILIKE search
+         "status": "status",                          # STATUS_GROUPS family
+         "user":   "osm_user_id",                     # integer equality
+         "date":   "import_date"}                     # ?from= and ?to= bounds
+
+    A filter missing from `spec` is ignored even when present in the URL. Column
+    names always come from the code, never from the request.
+
+    Returns (where_sql, params, active_filters).
+    """
+    where, params, active = [], [], {}
+
+    if "q" in spec:
+        q = args.get("q", "").strip()
+        if q:
+            columns = spec["q"]
+            where.append("(" + " OR ".join(f"{c} ILIKE %s" for c in columns) + ")")
+            params += [f"%{q}%"] * len(columns)
+            active["q"] = q
+
+    if "status" in spec:
+        status = args.get("status", "")
+        if status in STATUS_GROUPS:
+            where.append(f"{spec['status']} = ANY(%s)")
+            params.append(STATUS_GROUPS[status])
+            active["status"] = status
+
+    if "user" in spec:
+        user = args.get("user", type=int)
+        if user:
+            where.append(f"{spec['user']} = %s")
+            params.append(user)
+            active["user"] = user
+
+    if "date" in spec:
+        column = spec["date"]
+        date_from = args.get("from", "").strip()
+        if date_from:
+            where.append(f"{column} >= %s")
+            params.append(date_from)
+            active["from"] = date_from
+
+        date_to = args.get("to", "").strip()
+        if date_to:
+            # inclusive bound: everything dated on the given day
+            where.append(f"{column} < %s::date + 1")
+            params.append(date_to)
+            active["to"] = date_to
+
+    return ("WHERE " + " AND ".join(where) if where else ""), params, active
+
+
+def filter_brands(rows, args, max_import_size):
+    """Filter the brand list from the query string.
+
+    Counterpart of build_filters() for an already in-memory list — see the comment
+    in the /brands view for why. Two filters only exist here: `scope` (import size)
+    and the 'never imported' status.
+
+    Returns (filtered_rows, active_filters).
+    """
+    active = {}
+
+    scope = args.get("scope", "importable")
+    if scope == "importable":
+        rows = [r for r in rows if r["total"] <= max_import_size]
+    active["scope"] = scope
+
+    q = args.get("q", "").strip()
+    if q:
+        needle = q.lower()
+        rows = [
+            r
+            for r in rows
+            if needle in r["brand"].lower() or needle in r["brand_wikidata"].lower()
+        ]
+        active["q"] = q
+
+    status = args.get("status", "")
+    if status:
+        rows = [r for r in rows if status_group(r["last_status"]) == status]
+        active["status"] = status
+
+    date_from = args.get("from", "").strip()
+    if date_from:
+        rows = [
+            r for r in rows if r["last_import"] and str(r["last_import"].date()) >= date_from
+        ]
+        active["from"] = date_from
+
+    date_to = args.get("to", "").strip()
+    if date_to:
+        rows = [
+            r for r in rows if r["last_import"] and str(r["last_import"].date()) <= date_to
+        ]
+        active["to"] = date_to
+
+    return rows, active
+
+
 def fetch_osm_users(user_ids):
     """Batch fetch user display names from the OSM API."""
     from src.config import get_settings

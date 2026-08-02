@@ -22,6 +22,7 @@
 permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquantes.{% endblock %}
 
 {% block custom_js %}
+<script src="/static/js/filters.js?v={{ app_version }}"></script>
 <script src="/static/js/todo.js?v={{ app_version }}"></script>
 {% endblock %}
 
@@ -70,9 +71,50 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
     </div>
   </div>
 
-  {% if entries|length == 0 %}
+  {% if total == 0 %}
   <p class="text-base-content/60">Aucune marque dans la liste pour le moment.</p>
   {% else %}
+  <form method="get" data-autosubmit class="flex flex-wrap items-end gap-3">
+    <fieldset class="fieldset">
+      <legend class="fieldset-legend">Marque</legend>
+      <label class="input input-sm w-56">
+        <i class="iconoir-search opacity-50"></i>
+        <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="Nom ou code Wikidata"
+          {{ 'autofocus' if filters.q }} />
+      </label>
+    </fieldset>
+    <fieldset class="fieldset">
+      <legend class="fieldset-legend">Ajouté par</legend>
+      <select name="user" class="select select-sm">
+        <option value="">Tous</option>
+        {% for uid, name in filter_users %}
+        <option value="{{ uid }}" {{ 'selected' if filters.user == uid }}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </fieldset>
+    <fieldset class="fieldset">
+      <legend class="fieldset-legend">Date d'ajout</legend>
+      <div class="join">
+        <input type="date" name="from" value="{{ filters['from'] or '' }}" class="input input-sm join-item"
+          aria-label="Du" />
+        <input type="date" name="to" value="{{ filters['to'] or '' }}" class="input input-sm join-item"
+          aria-label="Au" />
+      </div>
+    </fieldset>
+    <fieldset class="fieldset">
+      <legend class="fieldset-legend">&nbsp;</legend>
+      <div class="join">
+        <button type="submit" class="btn btn-sm btn-primary join-item">Filtrer</button>
+        <a href="{{ url_for('todo.todo') }}" class="btn btn-sm btn-ghost join-item">Réinitialiser</a>
+      </div>
+    </fieldset>
+    <span class="text-sm text-base-content/60 ml-auto mb-2">{{ entries|length }} marque{{ 's' if entries|length > 1 }}</span>
+  </form>
+
+  {% if entries|length == 0 %}
+  <p class="text-base-content/60">Aucune marque ne correspond à ces filtres.</p>
+  {% endif %}
+
   <div class="overflow-x-auto">
     <table class="table table-zebra w-full">
       <thead>
@@ -107,7 +149,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
             {{ entry.osm_user_id }}
             {% endif %}
           </td>
-          <td class="whitespace-nowrap">{{ entry.created_at.strftime('%Y-%m-%d') }}</td>
+          <td class="whitespace-nowrap">{{ entry.created_at.strftime('%d/%m/%Y') }}</td>
           <td>
             {% if current_user_id == entry.osm_user_id %}
             <button class="btn btn-ghost btn-sm btn-square text-error" onclick="deleteEntry({{ entry.id }})">
