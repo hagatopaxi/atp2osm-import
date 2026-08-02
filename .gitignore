@@ -8,3 +8,5 @@ __pycache__
 logs
 dist
 .cache
+.worktrees
+.dev.log
