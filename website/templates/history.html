@@ -79,6 +79,24 @@
     </fieldset>
 </form>
 
+{% if weekly_max > 0 %}
+<figure class="bg-base-100 rounded-2 p-4 mb-4">
+    <figcaption class="text-sm text-base-content/60 mb-3">POIs intégrés par semaine (26 dernières semaines)</figcaption>
+    <div class="weekly-chart" role="img"
+        aria-label="{% for w in weekly %}Semaine du {{ w.week.strftime('%d/%m/%Y') }} : {{ w.count }} POIs. {% endfor %}">
+        {% for w in weekly %}
+        <div class="weekly-chart-bar" style="--bar: {{ (100 * w.count / weekly_max) | round(1) }}%"
+            title="Semaine du {{ w.week.strftime('%d/%m/%Y') }} — {{ w.count }} POIs"></div>
+        {% endfor %}
+    </div>
+    <div class="flex justify-between text-xs text-base-content/50 mt-1">
+        <span>{{ weekly[0].week.strftime('%d/%m/%Y') }}</span>
+        <span>max {{ weekly_max }}</span>
+        <span>{{ weekly[-1].week.strftime('%d/%m/%Y') }}</span>
+    </div>
+</figure>
+{% endif %}
+
 {% if entries|length == 0 %}
 <p class="text-base-content/60">
     {% if filters %}Aucune intégration ne correspond à ces filtres.{% else %}Aucune intégration enregistrée pour le
