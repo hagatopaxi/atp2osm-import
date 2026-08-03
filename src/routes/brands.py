@@ -19,7 +19,7 @@ from src.extensions import cache
 from src.matching import get_all, get_changes, get_filtered, get_stats
 from src.routes.auth import auth_required
 from src.upload import BulkUpload
-from src.utils import filter_brands, get_rand_items
+from src.utils import _determine_import_status, filter_brands, get_rand_items
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +43,9 @@ def _get_blocking_import(brand_wikidata: str):
     """Return the most recent import still within its cooldown period, or None.
 
     Cooldowns mirror the visibility rules in get_all():
-      - cancelled / error_*  → 4 weeks
-      - partial_*            → 2 weeks
-      - success              → 3 months
+      - cancelled / error → 4 weeks
+      - partial           → 2 weeks
+      - success           → 3 months
     """
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
@@ -53,26 +53,14 @@ def _get_blocking_import(brand_wikidata: str):
             """SELECT id, import_date, status FROM import_history
                WHERE brand_wikidata = %s
                  AND (
-                   (status IN ('cancelled', 'error_osm_api', 'error_unknown') AND import_date > NOW() - INTERVAL '4 weeks')
-                   OR (status IN ('partial_osm_api', 'partial_unknown')       AND import_date > NOW() - INTERVAL '2 weeks')
-                   OR (status = 'success'                                     AND import_date > NOW() - INTERVAL '3 months')
+                   (status IN ('cancelled', 'error') AND import_date > NOW() - INTERVAL '4 weeks')
+                   OR (status = 'partial'            AND import_date > NOW() - INTERVAL '2 weeks')
+                   OR (status = 'success'            AND import_date > NOW() - INTERVAL '3 months')
                  )
                ORDER BY import_date DESC
                LIMIT 1""",
             (brand_wikidata,),
         ).fetchone()
-
-
-def _determine_import_status(
-    errors: list[tuple[str, str]], has_changesets: bool
-) -> str:
-    """Determine the import history status from typed errors and whether any changeset was created."""
-    if not errors:
-        return "success"
-    error_types = {e[0] for e in errors}
-    if has_changesets:
-        return "partial_osm_api" if error_types == {"osm_api"} else "partial_unknown"
-    return "error_osm_api" if error_types == {"osm_api"} else "error_unknown"
 
 
 def get_changes_by_brand_wikidata(brand_wikidata):
@@ -136,7 +124,7 @@ def brands_validate(brand_wikidata):
         with osmdb.cursor() as cursor:
             cursor.execute(
                 """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, brand_name)
-                   VALUES (%s, %s, 'error_unknown', %s, %s)""",
+                   VALUES (%s, %s, 'error', %s, %s)""",
                 (
                     brand_wikidata,
                     session["user"]["osm_id"],
@@ -244,67 +232,58 @@ def upload_changes(brand_wikidata):
     errors = bulk_upload.upload()
     bulk_upload.save_log_file()
 
+    error_messages = [msg for _, msg in errors]
+    status = _determine_import_status(bulk_upload.results)
+    stats = get_stats(bulk_upload.uploaded_changes)
+
     osmdb = get_osmdb()
     with osmdb.cursor() as cursor:
-        status = _determine_import_status(errors, bool(bulk_upload.changesets))
-        error_messages = [msg for _, msg in errors]
+        # changeset_ids n'est plus alimentée : le détail par département vit
+        # désormais dans import_departements.
+        cursor.execute(
+            """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, items_count, brand_name, tags_count)
+               VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+            (
+                brand_wikidata,
+                session["user"]["osm_id"],
+                status,
+                "; ".join(error_messages) or None,
+                len(bulk_upload.uploaded_changes),
+                bulk_upload.brand_name,
+                json.dumps(stats["by_tag"]),
+            ),
+        )
+        entry_id = cursor.fetchone()[0]
+        cursor.executemany(
+            """INSERT INTO import_departements
+                   (import_id, departement_number, items_count, osm_changeset_id, status, comment)
+               VALUES (%s, %s, %s, %s, %s, %s)""",
+            [
+                (
+                    entry_id,
+                    r["departement_number"],
+                    r["items_count"],
+                    r["osm_changeset_id"],
+                    r["status"],
+                    r["comment"],
+                )
+                for r in bulk_upload.results
+            ],
+        )
+        osmdb.commit()
 
-        if errors and not bulk_upload.changesets:
-            cursor.execute(
-                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, brand_name)
-                   VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-                (
-                    brand_wikidata,
-                    session["user"]["osm_id"],
-                    status,
-                    "; ".join(error_messages),
-                    bulk_upload.brand_name,
-                ),
-            )
-            entry_id = cursor.fetchone()[0]
-            osmdb.commit()
-            return Response(
-                json.dumps({"errors": error_messages, "id": entry_id}), status=422, mimetype="application/json"
-            )
-        elif errors and bulk_upload.changesets:
-            stats = get_stats(bulk_upload.uploaded_changes)
-            cursor.execute(
-                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, items_count, changeset_ids, brand_name, tags_count)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-                (
-                    brand_wikidata,
-                    session["user"]["osm_id"],
-                    status,
-                    "; ".join(error_messages),
-                    len(bulk_upload.uploaded_changes),
-                    bulk_upload.changesets,
-                    bulk_upload.brand_name,
-                    json.dumps(stats["by_tag"]),
-                ),
-            )
-            entry_id = cursor.fetchone()[0]
-            osmdb.commit()
-            return Response(
-                json.dumps({"partial": True, "errors": error_messages, "id": entry_id}),
-                status=200,
-                mimetype="application/json",
-            )
-        else:
-            stats = get_stats(changes)
-            cursor.execute(
-                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, items_count, changeset_ids, brand_name, tags_count)
-                   VALUES (%s, %s, 'success', %s, %s, %s, %s) RETURNING id""",
-                (
-                    brand_wikidata,
-                    session["user"]["osm_id"],
-                    len(changes),
-                    bulk_upload.changesets,
-                    bulk_upload.brand_name,
-                    json.dumps(stats["by_tag"]),
-                ),
-            )
-            entry_id = cursor.fetchone()[0]
-            osmdb.commit()
-            return Response(
-                json.dumps({"id": entry_id}), status=200, mimetype="application/json"
-            )
+    if not errors:
+        return Response(
+            json.dumps({"id": entry_id}), status=200, mimetype="application/json"
+        )
+    if bulk_upload.changesets:
+        return Response(
+            json.dumps({"partial": True, "errors": error_messages, "id": entry_id}),
+            status=200,
+            mimetype="application/json",
+        )
+    return Response(
+        json.dumps({"errors": error_messages, "id": entry_id}),
+        status=422,
+        mimetype="application/json",
+    )

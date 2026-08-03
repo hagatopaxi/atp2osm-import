@@ -116,23 +116,14 @@ def download_large_file(
         raise
 
 
-STATUS_GROUPS = {
-    "success": ["success"],
-    "partial": ["partial_osm_api", "partial_unknown"],
-    "cancelled": ["cancelled"],
-    "error": ["error_osm_api", "error_unknown"],
-}
+# Le sort d'une intégration. Le détail du type d'erreur vit une ligne plus
+# bas, sur le département : c'est là qu'il a un sens.
+IMPORT_STATUSES = ("success", "partial", "cancelled", "error")
 
 
 def status_group(status: str | None) -> str:
-    """Group import statuses into the families the filters expose.
-
-    Returns 'none' for a brand that was never imported (or an unknown status).
-    """
-    for group, statuses in STATUS_GROUPS.items():
-        if status in statuses:
-            return group
-    return "none"
+    """Le statut lui-même, ou 'none' pour une marque jamais intégrée."""
+    return status if status in IMPORT_STATUSES else "none"
 
 
 def build_filters(args, spec):
@@ -141,7 +132,7 @@ def build_filters(args, spec):
     `spec` declares which filters the page exposes, and on which columns:
 
         {"q":      ("brand_name", "brand_wikidata"),  # ILIKE search
-         "status": "status",                          # STATUS_GROUPS family
+         "status": "status",                          # one of IMPORT_STATUSES
          "user":   "osm_user_id",                     # integer equality
          "date":   "import_date"}                     # ?from= and ?to= bounds
 
@@ -162,9 +153,9 @@ def build_filters(args, spec):
 
     if "status" in spec:
         status = args.get("status", "")
-        if status in STATUS_GROUPS:
-            where.append(f"{spec['status']} = ANY(%s)")
-            params.append(STATUS_GROUPS[status])
+        if status in IMPORT_STATUSES:
+            where.append(f"{spec['status']} = %s")
+            params.append(status)
             active["status"] = status
 
     if "user" in spec:
@@ -309,3 +300,15 @@ def get_rand_items(arr: list, n: int) -> list:
         if i != max_iter:
             items_idx.append(rand_idx)
     return [arr[idx] for idx in items_idx]
+
+
+def _determine_import_status(results: list[dict]) -> str:
+    """Derive the import_history status from its département rows.
+
+    All succeeded → success ; none → error ; a mix → partial. Le type d'erreur
+    (API OSM ou inattendue) reste sur la ligne du département.
+    """
+    statuses = {r["status"] for r in results}
+    if statuses <= {"success"}:
+        return "success"
+    return "partial" if "success" in statuses else "error"

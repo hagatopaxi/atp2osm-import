@@ -26,6 +26,7 @@ class BulkUpload:
         self.brand_wikidata = changes[0]["tag"].get("brand:wikidata") or "unknown"
         self.changesets = []
         self.uploaded_changes = []  # POIs whose département changeset succeeded
+        self.results = []  # one entry per département, mirrors import_departements
 
         settings = get_settings()
         self.is_dev = settings.is_dev
@@ -62,6 +63,7 @@ class BulkUpload:
         errors = []
 
         for dpt, dpt_changes in changes_by_dpt.items():
+            changeset = None
             try:
                 dept_label = DEPARTEMENT_NAMES.get(dpt, f"dép. {dpt}")
                 changeset = self.api.changeset_create(
@@ -136,15 +138,20 @@ class BulkUpload:
                 self.api.changeset_close()
                 self.changesets.append(changeset)
                 self.uploaded_changes.extend(dpt_changes)
+                self._record(dpt, dpt_changes, "success", changeset, None)
             except ApiError as error:
                 payload = error.payload.decode("utf-8", errors="replace") if isinstance(error.payload, bytes) else str(error.payload)
                 msg = f"OSM API error for dept {dpt}: HTTP {error.status} — {payload}"
                 logger.error(msg)
                 errors.append(("osm_api", msg))
+                # changeset vaut None seulement si sa création a échoué : il
+                # existe bel et bien quand c'est l'envoi qui a lâché.
+                self._record(dpt, dpt_changes, "error_osm_api", changeset, msg)
             except Exception as unknown:
                 msg = f"Unknown error for dept {dpt}: {unknown}"
                 logger.error(msg)
                 errors.append(("unknown", msg))
+                self._record(dpt, dpt_changes, "error_unknown", changeset, msg)
             finally:
                 # Ensure osmapi's internal changeset state is reset even if an
                 # exception occurred mid-upload (osmapi's Changeset context manager
@@ -157,6 +164,16 @@ class BulkUpload:
                         self.api._current_changeset_id = 0
 
         return errors
+
+    def _record(self, dpt, dpt_changes, status, changeset, comment):
+        """One entry per département — becomes a row of import_departements."""
+        self.results.append({
+            "departement_number": dpt,
+            "items_count": len(dpt_changes),
+            "osm_changeset_id": changeset,
+            "status": status,
+            "comment": comment,
+        })
 
     def _write_osc(
         self,

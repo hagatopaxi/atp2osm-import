@@ -125,21 +125,17 @@
                 <span class="text-xs text-base-content/50">{{ entry.brand_wikidata }}</span>
             </td>
             {% set status_labels = {
-                "success":         "Succès",
-                "partial_osm_api": "Partiel",
-                "partial_unknown": "Partiel",
-                "cancelled":       "Annulé",
-                "error_osm_api":   "Erreur",
-                "error_unknown":   "Erreur"
-            } %}
+                    "success":   "Succès",
+                    "partial":   "Partiel",
+                    "cancelled": "Annulé",
+                    "error":     "Erreur"
+                } %}
             {% set status_classes = {
-                "success":         "badge-success",
-                "partial_osm_api": "badge-warning",
-                "partial_unknown": "badge-warning",
-                "cancelled":       "badge-info",
-                "error_osm_api":   "badge-error",
-                "error_unknown":   "badge-error"
-            } %}
+                    "success":   "badge-success",
+                    "partial":   "badge-warning",
+                    "cancelled": "badge-info",
+                    "error":     "badge-error"
+                } %}
             <td>
                 <span class="badge {{ status_classes.get(entry.status, 'badge-info') }}">
                     {{ status_labels.get(entry.status, entry.status) }}
@@ -154,7 +150,7 @@
                 {% endif %}
             </td>
             <td>{{ entry.items_count if entry.items_count is not none else '—' }}</td>
-            <td>{{ entry.changeset_ids | length if entry.changeset_ids else '—' }}</td>
+            <td>{{ entry.departements_count if entry.departements_count else '—' }}</td>
             <td>
                 <div class="opacity-0 group-hover:opacity-100 transition-opacity">
                     <a class="btn btn-sm btn-ghost rounded-md" href="/history/{{ entry.id }}?page={{ page }}">Voir plus</a>

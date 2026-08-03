@@ -146,20 +146,16 @@ endblock %}
 
             <td>
                 {% set status_labels = {
-                    "success":         "Succès",
-                    "partial_osm_api": "Partiel",
-                    "partial_unknown": "Partiel",
-                    "cancelled":       "Annulé",
-                    "error_osm_api":   "Erreur",
-                    "error_unknown":   "Erreur"
+                    "success":   "Succès",
+                    "partial":   "Partiel",
+                    "cancelled": "Annulé",
+                    "error":     "Erreur"
                 } %}
                 {% set status_classes = {
-                    "success":         "badge-success",
-                    "partial_osm_api": "badge-warning",
-                    "partial_unknown": "badge-warning",
-                    "cancelled":       "badge-info",
-                    "error_osm_api":   "badge-error",
-                    "error_unknown":   "badge-error"
+                    "success":   "badge-success",
+                    "partial":   "badge-warning",
+                    "cancelled": "badge-info",
+                    "error":     "badge-error"
                 } %}
                 {% if row["last_status"] %}
                 <span class="badge {{ status_classes.get(row['last_status'], 'badge-ghost') }}">{{ status_labels.get(row['last_status'], row['last_status']) }}</span>

@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, abort
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
+from src.matching import DEPARTEMENT_NAMES
 from src.utils import build_filters, fetch_osm_users
 
 logger = logging.getLogger(__name__)
@@ -55,7 +56,10 @@ def history():
         ).fetchone()["total"]
 
         entries = cursor.execute(
-            f"SELECT * FROM import_history {where} ORDER BY import_date DESC LIMIT %s OFFSET %s",
+            f"""SELECT *,
+                       (SELECT COUNT(*) FROM import_departements ic
+                        WHERE ic.import_id = import_history.id) AS departements_count
+                FROM import_history {where} ORDER BY import_date DESC LIMIT %s OFFSET %s""",
             params + [HISTORY_PER_PAGE, offset],
         ).fetchall()
 
@@ -99,10 +103,36 @@ def history_detail(entry_id):
             "SELECT * FROM import_history WHERE id = %s", (entry_id,)
         ).fetchone()
 
+        departements = cursor.execute(
+            """SELECT * FROM import_departements
+               WHERE import_id = %s ORDER BY departement_number""",
+            (entry_id,),
+        ).fetchall()
+
     if entry is None:
         abort(404)
+
+    for dpt in departements:
+        dpt["departement_name"] = DEPARTEMENT_NAMES.get(
+            dpt["departement_number"], dpt["departement_number"]
+        )
 
     from_page = request.args.get("page", 1, type=int)
     users = fetch_osm_users([entry["osm_user_id"]])
     is_recent = (datetime.now(timezone.utc) - entry["import_date"]) < timedelta(minutes=5)
-    return render_template("history_detail.html", entry=entry, users=users, from_page=from_page, is_recent=is_recent)
+    # Taux de réussite en départements, seulement si le détail est connu :
+    # les intégrations antérieures à la migration n'ont pas de lignes filles.
+    success_rate = (
+        (sum(1 for d in departements if d["status"] == "success"), len(departements))
+        if departements
+        else None
+    )
+    return render_template(
+        "history_detail.html",
+        entry=entry,
+        departements=departements,
+        success_rate=success_rate,
+        users=users,
+        from_page=from_page,
+        is_recent=is_recent,
+    )

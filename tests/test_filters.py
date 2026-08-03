@@ -28,7 +28,7 @@ def test_all_filters():
     assert params == [
         "%carre%",
         "%carre%",
-        ["partial_osm_api", "partial_unknown"],
+        "partial",
         42,
         "2026-01-01",
         "2026-02-01",
@@ -57,7 +57,7 @@ def _brand(name, wikidata, total, status=None, last_import=None):
 BRANDS = [
     _brand("Carrefour", "Q217599", 10),
     _brand("Lidl", "Q151954", 500, "success", datetime(2026, 3, 1)),
-    _brand("Aldi", "Q125054", 20, "error_osm_api", datetime(2026, 1, 15)),
+    _brand("Aldi", "Q125054", 20, "error", datetime(2026, 1, 15)),
 ]
 
 
