@@ -350,6 +350,51 @@ def pack_departements(counts: dict[str, int], max_size: int) -> list[list[str]]:
     return batches
 
 
+# Taille maximale d'un lot, en POIs. Un lot = un ensemble de départements
+# entiers, un changeset par département.
+BATCH_MAX_SIZE = 200
+
+
+def count_by_departement(changes: list[dict]) -> dict[str, int]:
+    """Effectif par département d'une liste de correspondances."""
+    counts = {}
+    for change in changes:
+        dpt = change["departement_number"]
+        counts[dpt] = counts.get(dpt, 0) + 1
+    return counts
+
+
+def get_blocked_departements(cursor: Cursor, brand_wikidata: str) -> set[str]:
+    """Départements de la marque encore sous cooldown.
+
+    Le statut consulté est celui du changeset, pas celui de l'intégration : un
+    changeset a abouti ou non, il n'y a pas de statut partiel à ce niveau.
+    """
+    rows = cursor.execute(
+        """SELECT DISTINCT ic.departement_number AS dpt
+           FROM import_departements ic
+           JOIN import_history ih ON ih.id = ic.import_id
+           WHERE ih.brand_wikidata = %s
+             AND ( (ic.status IN ('error_osm_api','error_unknown') AND ih.import_date > NOW() - INTERVAL '4 weeks')
+                OR (ic.status = 'success'                          AND ih.import_date > NOW() - INTERVAL '3 months') )""",
+        (brand_wikidata,),
+    ).fetchall()
+    return {row["dpt"] for row in rows}  # cursor en dict_row, comme partout ici
+
+
+def compose_batch(
+    counts: dict[str, int], blocked: set[str], max_size: int = BATCH_MAX_SIZE
+) -> list[str]:
+    """Départements du prochain lot à intégrer.
+
+    Jamais persisté : recalculé à chaque visite à partir de l'état courant.
+    Renvoie une liste vide quand tous les départements sont bloqués.
+    """
+    available = {dpt: n for dpt, n in counts.items() if dpt not in blocked}
+    batches = pack_departements(available, max_size)
+    return batches[0] if batches else []
+
+
 def get_stats(changes: list) -> dict:
     tag_updates = {}
     total_tag_updates = 0

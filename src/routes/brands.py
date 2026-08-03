@@ -1,6 +1,5 @@
 import json
 import logging
-from math import ceil
 
 from flask import (
     Blueprint,
@@ -145,9 +144,9 @@ def brands_validate(brand_wikidata):
             max_import_size=MAX_IMPORT_SIZE,
         )
 
-    # Check at least 5 items
-    min_to_check = max(ceil(len(changes) / 100), 5)
-    items = get_rand_items(changes, n=min_to_check)
+    # 5 POIs par lot : un lot valant au plus BATCH_MAX_SIZE POIs, c'est au moins
+    # 2,5 % de relu. get_rand_items() renvoie tout quand le lot est plus petit.
+    items = get_rand_items(changes, n=5)
     brand = items[0]["atp_brand"]
     for idx, item in enumerate(items):
         item["title"] = (

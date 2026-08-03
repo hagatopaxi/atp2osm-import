@@ -1,4 +1,4 @@
-from src.matching import pack_departements
+from src.matching import compose_batch, count_by_departement, pack_departements
 
 
 def test_empty():
@@ -29,3 +29,22 @@ def test_oversized_departement_gets_its_own_batch():
     # 75 is truncated to 200 by the caller, so it leaves no room for 69
     batches = pack_departements({"75": 500, "69": 10}, 200)
     assert batches == [["75"], ["69"]]
+
+
+def test_compose_batch_skips_blocked():
+    counts = {"69": 120, "59": 90, "33": 60}
+    assert compose_batch(counts, blocked={"69"}, max_size=200) == ["33", "59"]
+
+
+def test_compose_batch_first_batch_only():
+    counts = {"69": 150, "59": 150, "33": 150}
+    assert compose_batch(counts, blocked=set(), max_size=200) == ["33"]
+
+
+def test_compose_batch_all_blocked():
+    assert compose_batch({"69": 10}, blocked={"69"}, max_size=200) == []
+
+
+def test_count_by_departement():
+    changes = [{"departement_number": d} for d in ("69", "59", "69")]
+    assert count_by_departement(changes) == {"69": 2, "59": 1}
