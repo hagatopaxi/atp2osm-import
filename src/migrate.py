@@ -1,3 +1,5 @@
+import importlib.util
+import inspect
 import logging
 import pathlib
 import re
@@ -5,6 +7,20 @@ import re
 logger = logging.getLogger(__name__)
 
 MIGRATIONS_DIR = pathlib.Path(__file__).parent.parent / "migrations"
+
+
+class Migration:
+    """Base class for .py migrations — those that need more than SQL.
+
+    The runner instantiates the subclass found in the file with the open
+    connection and calls migrate(). Commit and rollback stay its business.
+    """
+
+    def __init__(self, conn):
+        self.conn = conn
+
+    def migrate(self):
+        raise NotImplementedError
 
 
 def _ensure_schema_migrations_table(cursor):
@@ -24,7 +40,7 @@ def _get_applied_versions(cursor):
 
 def _discover_migrations():
     """Return sorted list of (version, filepath) from the migrations directory."""
-    pattern = re.compile(r"^(\d+)_.+\.sql$")
+    pattern = re.compile(r"^(\d+)_.+\.(sql|py)$")
     migrations = []
 
     if not MIGRATIONS_DIR.is_dir():
@@ -38,6 +54,25 @@ def _discover_migrations():
             migrations.append((version, path))
 
     return migrations
+
+
+def _run_python_migration(path, conn):
+    """Load the file, find its Migration subclass, run migrate()."""
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    subclasses = [
+        obj
+        for _, obj in inspect.getmembers(module, inspect.isclass)
+        if issubclass(obj, Migration) and obj is not Migration
+    ]
+    if len(subclasses) != 1:
+        raise RuntimeError(
+            f"{path.name} must define exactly one Migration subclass, found {len(subclasses)}"
+        )
+
+    subclasses[0](conn).migrate()
 
 
 def run_migrations(conn):
@@ -61,8 +96,10 @@ def run_migrations(conn):
         for version, path in pending:
             logger.info(f"Applying migration {path.name}...")
             try:
-                sql = path.read_text(encoding="utf-8")
-                cursor.execute(sql)
+                if path.suffix == ".py":
+                    _run_python_migration(path, conn)
+                else:
+                    cursor.execute(path.read_text(encoding="utf-8"))
                 cursor.execute(
                     "INSERT INTO schema_migrations (version, filename) VALUES (%s, %s);",
                     (version, path.name),
