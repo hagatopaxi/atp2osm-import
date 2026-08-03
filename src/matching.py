@@ -317,6 +317,39 @@ DEPARTEMENT_NAMES = {
 }
 
 
+def pack_departements(counts: dict[str, int], max_size: int) -> list[list[str]]:
+    """Group départements into batches of at most *max_size* POIs.
+
+    Greedy first-fit-decreasing: start a batch with the biggest département left,
+    then keep adding the biggest one that still fits, close the batch when none
+    does. A département bigger than *max_size* gets a batch of its own; the
+    caller truncates it to *max_size* POIs and the remainder waits for the
+    cooldown to expire.
+
+    Returns batches as sorted lists of département codes, biggest batch first.
+    """
+    # clamping makes an oversized département fill a batch on its own
+    remaining = sorted(
+        ((dpt, min(n, max_size)) for dpt, n in counts.items()),
+        key=lambda kv: (-kv[1], kv[0]),
+    )
+    batches = []
+
+    while remaining:
+        batch = [remaining.pop(0)]
+        room = max_size - batch[0][1]
+        # remaining stays sorted by size desc, so the first that fits is the biggest
+        while (
+            i := next((i for i, (_, n) in enumerate(remaining) if n <= room), None)
+        ) is not None:
+            dpt, n = remaining.pop(i)
+            batch.append((dpt, n))
+            room -= n
+        batches.append(sorted(dpt for dpt, _ in batch))
+
+    return batches
+
+
 def get_stats(changes: list) -> dict:
     tag_updates = {}
     total_tag_updates = 0
