@@ -14,7 +14,6 @@ from psycopg.rows import dict_row
 from requests_oauthlib import OAuth2Session
 
 from src.db import get_osmdb, maintenance_since
-from src.extensions import cache
 from src.matching import get_all, get_changes, get_filtered, get_stats
 from src.routes.auth import auth_required
 from src.upload import BulkUpload
@@ -34,7 +33,7 @@ def maintenance_guard():
     mv_places_brand, atp_fr) — the rest of the site stays available."""
     since = maintenance_since(get_osmdb())
     if since is not None:
-        return render_template("errors/503.html", since=since), 503
+        return render_template("errors/503.html", since=since), 503, {"Retry-After": "900"}
     return None
 
 
