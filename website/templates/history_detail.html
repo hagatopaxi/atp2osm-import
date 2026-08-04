@@ -49,7 +49,7 @@
 </div>
 {% endif %}
 
-<a class="btn btn-sm btn-ghost self-start -mt-2 mb-2" href="/history?page={{ from_page }}">
+<a class="btn btn-sm btn-ghost self-start -mt-2 mb-2" href="{{ url_for('history.history', **request.args) }}">
     <i class="iconoir-arrow-left"></i> Retour à l'historique
 </a>
 

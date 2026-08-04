@@ -153,7 +153,7 @@
             <td>{{ entry.departements_count if entry.departements_count else '—' }}</td>
             <td>
                 <div class="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <a class="btn btn-sm btn-ghost rounded-md" href="/history/{{ entry.id }}?page={{ page }}">Voir plus</a>
+                    <a class="btn btn-sm btn-ghost rounded-md" href="{{ url_for('history.history_detail', entry_id=entry.id, page=page, **filters) }}">Voir plus</a>
                 </div>
             </td>
         </tr>

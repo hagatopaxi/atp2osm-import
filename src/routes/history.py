@@ -117,7 +117,6 @@ def history_detail(entry_id):
             dpt["departement_number"], dpt["departement_number"]
         )
 
-    from_page = request.args.get("page", 1, type=int)
     users = fetch_osm_users([entry["osm_user_id"]])
     is_recent = (datetime.now(timezone.utc) - entry["import_date"]) < timedelta(minutes=5)
     # Taux de réussite en départements, seulement si le détail est connu :
@@ -133,6 +132,5 @@ def history_detail(entry_id):
         departements=departements,
         success_rate=success_rate,
         users=users,
-        from_page=from_page,
         is_recent=is_recent,
     )
