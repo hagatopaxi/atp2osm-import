@@ -53,7 +53,9 @@
     <i class="iconoir-arrow-left"></i> Retour à l'historique
 </a>
 
-<div class="grid grid-cols-2 gap-4">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+
+    <div class="flex flex-col gap-4">
 
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body gap-3">
@@ -120,6 +122,54 @@
         </div>
     </div>
 
+    {% if entry.comment %}
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body gap-3">
+            <h2 class="card-title text-base">Commentaire</h2>
+            {% set comments = entry.comment | parse_comment %}
+            {% if comments is iterable and comments is not string %}
+            <ul class="flex flex-col gap-1">
+                {% for c in comments %}
+                <li class="text-sm">
+                    <a class="link font-mono text-xs" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}</a>
+                    {% if c.comment %} — {{ c.comment }}{% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-sm whitespace-pre-wrap">{{ entry.comment }}</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if entry.tags_count %}
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body gap-3">
+            <h2 class="card-title text-base">Tags mis à jour</h2>
+            {% set tag_icons = {
+                "opening_hours": "iconoir-clock",
+                "phone":         "iconoir-phone",
+                "website":       "iconoir-globe",
+                "email":         "iconoir-mail"
+            } %}
+            <div class="flex flex-wrap gap-2">
+                {% for tag, count in entry.tags_count.items() %}
+                <div class="flex items-center gap-2 bg-base-200 rounded-lg px-3 py-2">
+                    <i class="{{ tag_icons.get(tag, 'iconoir-check') }} text-base-content/60"></i>
+                    <div class="flex flex-col leading-tight">
+                        <span class="text-xs text-base-content/50 font-mono">{{ tag }}</span>
+                        <span class="text-sm font-bold">{{ count }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    </div>
+
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body gap-3">
             <h2 class="card-title text-base">Changesets</h2>
@@ -161,52 +211,6 @@
             {% endif %}
         </div>
     </div>
-
-    {% if entry.comment %}
-    <div class="card bg-base-100 shadow-sm col-span-2">
-        <div class="card-body gap-3">
-            <h2 class="card-title text-base">Commentaire</h2>
-            {% set comments = entry.comment | parse_comment %}
-            {% if comments is iterable and comments is not string %}
-            <ul class="flex flex-col gap-1">
-                {% for c in comments %}
-                <li class="text-sm">
-                    <a class="link font-mono text-xs" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}</a>
-                    {% if c.comment %} — {{ c.comment }}{% endif %}
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-sm whitespace-pre-wrap">{{ entry.comment }}</p>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-
-    {% if entry.tags_count %}
-    <div class="card bg-base-100 shadow-sm col-span-2">
-        <div class="card-body gap-3">
-            <h2 class="card-title text-base">Tags mis à jour</h2>
-            {% set tag_icons = {
-                "opening_hours": "iconoir-clock",
-                "phone":         "iconoir-phone",
-                "website":       "iconoir-globe",
-                "email":         "iconoir-mail"
-            } %}
-            <div class="flex flex-wrap gap-2">
-                {% for tag, count in entry.tags_count.items() %}
-                <div class="flex items-center gap-2 bg-base-200 rounded-lg px-3 py-2">
-                    <i class="{{ tag_icons.get(tag, 'iconoir-check') }} text-base-content/60"></i>
-                    <div class="flex flex-col leading-tight">
-                        <span class="text-xs text-base-content/50 font-mono">{{ tag }}</span>
-                        <span class="text-sm font-bold">{{ count }}</span>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
 </div>
 {% endblock %}
