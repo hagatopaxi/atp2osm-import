@@ -4,7 +4,7 @@ import pathlib
 import psycopg
 import pytest
 
-from src.config import get_database
+from src.config import ConfigError, get_database
 from src.db import maintenance_since, set_maintenance
 
 MIGRATION = pathlib.Path(__file__).parent.parent / "migrations" / "014_create_maintenance.sql"
@@ -18,7 +18,7 @@ def conn():
             c.commit()
             yield c
             set_maintenance(c, False)
-    except psycopg.OperationalError as exc:
+    except (psycopg.OperationalError, ConfigError) as exc:
         pytest.skip(f"no database available: {exc}")
 
 
