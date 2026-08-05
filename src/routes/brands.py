@@ -28,7 +28,12 @@ from src.matching import (
 )
 from src.routes.auth import auth_required
 from src.upload import BulkUpload
-from src.utils import _determine_import_status, filter_brands, get_rand_items
+from src.utils import (
+    _determine_import_status,
+    fetch_osm_users,
+    filter_brands,
+    get_rand_items,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +69,26 @@ def _get_blocking_import(brand_wikidata: str):
                 LIMIT 1""",
             (brand_wikidata,),
         ).fetchone()
+
+
+def _get_last_import(brand_wikidata: str):
+    """Latest integration of the brand, or None — shown on /validate so the
+    reviewer knows what went wrong last time (statut et commentaires)."""
+    osmdb = get_osmdb()
+    with osmdb.cursor(row_factory=dict_row) as cursor:
+        last = cursor.execute(
+            """SELECT id, import_date, status, comment, osm_user_id
+               FROM import_history
+               WHERE brand_wikidata = %s
+               ORDER BY import_date DESC
+               LIMIT 1""",
+            (brand_wikidata,),
+        ).fetchone()
+    if last:
+        last["osm_user_name"] = fetch_osm_users([last["osm_user_id"]]).get(
+            last["osm_user_id"]
+        )
+    return last
 
 
 # The ST_DWithin join costs seconds on a big brand (5 s for 3 000 matches), and
@@ -156,6 +181,7 @@ def brands_validate(brand_wikidata):
         size=len(changes),
         scope=scope,
         items=items,
+        last_import=_get_last_import(brand_wikidata),
     )
 
 

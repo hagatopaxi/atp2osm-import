@@ -38,15 +38,63 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
 
 {% block content %}
 <div class="flex flex-col gap-2" data-brand-name="{{ brand }}">
-    <p class="text-xs text-base-content/60">
-        Ce lot couvre {{ scope | length }} département{{ 's' if scope | length > 1 }} —
-        {% for dpt in scope %}{{ dpt.name }} ({{ dpt.count }}){{ ', ' if not loop.last }}{% endfor %}
-        — soit {{ size }} POI{{ 's' if size > 1 }}.
-    </p>
+    <div class="flex items-start justify-between gap-4">
+        <p class="text-xs text-base-content/60">
+            Ce lot couvre {{ scope | length }} département{{ 's' if scope | length > 1 }} —
+            {% for dpt in scope %}{{ dpt.name }} ({{ dpt.count }}){{ ', ' if not loop.last }}{% endfor %}
+            — soit {{ size }} POI{{ 's' if size > 1 }}.
+        </p>
+        <a href="/brands/{{brand_wikidata}}/validate" class="btn btn-outline btn-info btn-sm shrink-0">
+            <i class="iconoir-refresh"></i>Recommencer la saisie
+        </a>
+    </div>
 
-    <a href="/brands/{{brand_wikidata}}/validate" class="btn btn-outline btn-info self-end"><i
-            class="iconoir-refresh"></i>Annulez votre
-        saisie et recommencez</a>
+    {% if last_import %}
+    {% set labels = {"success": "Succès", "partial": "Partiel", "cancelled": "Annulé", "error": "Erreur"} %}
+    {% set colors = {"success": "success", "partial": "warning", "cancelled": "info", "error": "error"} %}
+    {% set c_ = colors.get(last_import.status, 'error') %}
+    <div class="my-4 flex flex-col gap-2 rounded-box bg-{{ c_ }}/10 border border-{{ c_ }}/40 border-dashed p-4">
+        <div class="flex flex-col gap-2 grow">
+            <div class="flex flex-wrap items-center gap-2">
+                <i class="iconoir-chat-bubble-warning text-{{ c_ }} text-2xl shrink-0"></i>
+                <span class="font-semibold text-sm">Notes de la dernière intégration</span>
+                <span class="badge badge-sm badge-{{ c_ }}">{{ labels.get(last_import.status, last_import.status) }}</span>
+                <a class="link text-xs text-base-content/60" href="/history/{{ last_import.id }}">le {{ last_import.import_date.strftime('%d %B %Y') }}</a>
+                <span class="text-xs text-base-content/60">par
+                    {% if last_import.osm_user_name %}
+                    <a class="link" href="{{ api_url }}/user/{{ last_import.osm_user_name }}" target="_blank">{{ last_import.osm_user_name }}</a>
+                    {% else %}{{ last_import.osm_user_id }}{% endif %}
+                </span>
+            </div>
+            {% if last_import.comment %}
+            <p class="text-xs text-base-content/70">Relevé par un contributeur lors du dernier contrôle — vérifiez ces points plus attentivement.</p>
+            {% set comments = last_import.comment | parse_comment %}
+            {% if comments is iterable and comments is not string %}
+            <ul class="flex flex-col gap-2">
+                {% for c in comments %}
+                <li class="border-l-2 border-{{ c_ }}/60 pl-3">
+                    <p class="text-sm italic">{{ c.comment or 'Sans commentaire' }}</p>
+                    <p class="text-xs text-base-content/50 font-mono">
+                        <a class="link" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}</a>
+                    </p>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-sm italic whitespace-pre-wrap border-l-2 border-{{ c_ }}/60 pl-3">{{ last_import.comment }}</p>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="my-4 flex flex-col gap-2 rounded-box bg-warning/10 border border-warning/40 border-dashed p-4">
+        <div class="flex flex-wrap items-center gap-2">
+            <i class="iconoir-warning-triangle text-warning text-2xl shrink-0"></i>
+            <span class="font-semibold text-sm">Première intégration de cette marque</span>
+        </div>
+        <p class="text-xs text-base-content/70">Aucun contrôle précédent ne peut vous guider : soyez particulièrement vigilant sur l'ensemble des tags, et signalez la moindre donnée douteuse.</p>
+    </div>
+    {% endif %}
 
     {% for item in items %}
     <div class="card bg-base-100 border-base-300 gap-4 border shadow-md p-4"

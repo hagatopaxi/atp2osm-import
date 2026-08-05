@@ -36,6 +36,8 @@ else
   offset=$(( $(printf %s "$name" | cksum | cut -d' ' -f1) % 90 + 1 ))
 fi
 port=$((5000 + offset))
+# 5060/5061 (SIP) font partie des ports que les navigateurs refusent d'ouvrir.
+while [ $port = 5060 ] || [ $port = 5061 ]; do port=$((port + 2)); done
 # Hostname propre à chaque worktree : les cookies de session ignorent le port,
 # sinon tous les localhost:50xx partageraient la même session OSM.
 host="localhost"; [ "$wt" = "$main" ] || host="$name.localhost"
