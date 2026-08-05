@@ -61,29 +61,24 @@ BRANDS = [
 ]
 
 
-def test_brands_scope_importable_is_the_default():
-    rows, active = filter_brands(BRANDS, MultiDict(), 50)
-    assert [r["brand"] for r in rows] == ["Carrefour", "Aldi"]
-    assert active == {"scope": "importable"}
-
-
-def test_brands_scope_all_keeps_oversized_brands():
-    rows, _ = filter_brands(BRANDS, MultiDict({"scope": "all"}), 50)
+def test_brands_no_filter_keeps_every_brand_whatever_its_size():
+    rows, active = filter_brands(BRANDS, MultiDict())
     assert len(rows) == 3
+    assert active == {}
 
 
 def test_brands_search_status_and_dates():
-    rows, _ = filter_brands(BRANDS, MultiDict({"scope": "all", "q": "ald"}), 50)
+    rows, _ = filter_brands(BRANDS, MultiDict({"q": "ald"}))
     assert [r["brand"] for r in rows] == ["Aldi"]
 
-    rows, _ = filter_brands(BRANDS, MultiDict({"scope": "all", "status": "error"}), 50)
+    rows, _ = filter_brands(BRANDS, MultiDict({"status": "error"}))
     assert [r["brand"] for r in rows] == ["Aldi"]
 
     # jamais intégrée
-    rows, _ = filter_brands(BRANDS, MultiDict({"scope": "all", "status": "none"}), 50)
+    rows, _ = filter_brands(BRANDS, MultiDict({"status": "none"}))
     assert [r["brand"] for r in rows] == ["Carrefour"]
 
-    rows, _ = filter_brands(BRANDS, MultiDict({"scope": "all", "from": "2026-02-01"}), 50)
+    rows, _ = filter_brands(BRANDS, MultiDict({"from": "2026-02-01"}))
     assert [r["brand"] for r in rows] == ["Lidl"]
 
 

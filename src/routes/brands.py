@@ -15,15 +15,22 @@ from requests_oauthlib import OAuth2Session
 
 from src.db import get_osmdb, maintenance_since
 from src.extensions import cache
-from src.matching import get_all, get_changes, get_filtered, get_stats
+from src.matching import (
+    BATCH_MAX_SIZE,
+    BATCH_SAMPLE_SIZE,
+    BLOCKED_BRANDS_SQL,
+    get_all,
+    get_blocked_departements,
+    get_changes,
+    get_filtered,
+    get_stats,
+    select_batch,
+)
 from src.routes.auth import auth_required
 from src.upload import BulkUpload
 from src.utils import _determine_import_status, filter_brands, get_rand_items
 
 logger = logging.getLogger(__name__)
-
-# Taille maximale d'une intégration disponible en bêta (nb de correspondances)
-MAX_IMPORT_SIZE = 100
 
 brands_bp = Blueprint("brands", __name__)
 
@@ -39,34 +46,39 @@ def maintenance_guard():
 
 
 def _get_blocking_import(brand_wikidata: str):
-    """Return the most recent import still within its cooldown period, or None.
+    """Changeset-less import still under cooldown, or None.
 
-    Cooldowns mirror the visibility rules in get_all():
-      - cancelled / error → 4 weeks
-      - partial           → 2 weeks
-      - success           → 3 months
+    Only ever blocks the whole brand: a cancellation, or a pre-migration row,
+    points at no département in particular. Per-département blocking lives in
+    get_blocked_departements().
+
+    Same cooldowns as get_all(): it is the very same query constant.
     """
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         return cursor.execute(
-            """SELECT id, import_date, status FROM import_history
-               WHERE brand_wikidata = %s
-                 AND (
-                   (status IN ('cancelled', 'error') AND import_date > NOW() - INTERVAL '4 weeks')
-                   OR (status = 'partial'            AND import_date > NOW() - INTERVAL '2 weeks')
-                   OR (status = 'success'            AND import_date > NOW() - INTERVAL '3 months')
-                 )
-               ORDER BY import_date DESC
-               LIMIT 1""",
+            f"""SELECT id, import_date, status
+                FROM ({BLOCKED_BRANDS_SQL}) blocking
+                WHERE brand_wikidata = %s
+                ORDER BY import_date DESC
+                LIMIT 1""",
             (brand_wikidata,),
         ).fetchone()
 
 
-def get_changes_by_brand_wikidata(brand_wikidata):
+def get_batch(brand_wikidata):
+    """Matches of the next batch, and its scope per département.
+
+    Recomposed on every call from the current state: two calls with no import in
+    between give the same batch.
+    """
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         get_filtered(cursor, brand=brand_wikidata)
-        return get_changes(cursor)
+        changes = get_changes(cursor)
+        blocked = get_blocked_departements(cursor, brand_wikidata)
+
+    return select_batch(changes, blocked)
 
 
 @brands_bp.route("/brands")
@@ -76,19 +88,16 @@ def brands():
     # Filtered in Python rather than through a WHERE in get_all(): the page shows
     # the filtered rows AND counts over the unfiltered set (the "Available / All"
     # badges). Filtering in SQL would need a second query for those counts,
-    # replaying get_all()'s visibility rules (4 weeks / 2 weeks / 3 months
-    # cooldowns). Worth switching if the list grows enough that fetching it whole
-    # costs.
+    # replaying get_all()'s cooldowns. Worth switching if the list grows enough
+    # that fetching it whole costs.
     all_brands = get_all(osmdb)
-    rows, filters = filter_brands(all_brands, request.args, MAX_IMPORT_SIZE)
+    rows, filters = filter_brands(all_brands, request.args)
     return render_template(
         "brands.html",
         rows=rows,
         total_brands=len(all_brands),
-        count_importable=sum(1 for r in all_brands if r["total"] <= MAX_IMPORT_SIZE),
         shown=len(rows),
         filters=filters,
-        max_import_size=MAX_IMPORT_SIZE,
     )
 
 
@@ -96,7 +105,7 @@ def brands():
 @auth_required
 # @cache.cached(query_string=True, key_prefix="brands/")
 def brands_validate(brand_wikidata):
-    changes = get_changes_by_brand_wikidata(brand_wikidata)
+    changes, scope = get_batch(brand_wikidata)
 
     if len(changes) == 0:
         osmdb = get_osmdb()
@@ -114,39 +123,8 @@ def brands_validate(brand_wikidata):
             osmdb.commit()
         return render_template("brands/:brand_wikidata/empty.html")
 
-    # Garde-fou : la liste des marques (mv_places_brand) et /validate doivent
-    # compter le même nombre de POIs. Si /validate dépasse la limite, c'est que
-    # les deux comptages ont divergé — on met l'intégration en erreur pour
-    # sortir la marque de la liste au lieu de laisser le bug se reproduire.
-    if len(changes) > MAX_IMPORT_SIZE:
-        osmdb = get_osmdb()
-        with osmdb.cursor() as cursor:
-            cursor.execute(
-                """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, brand_name)
-                   VALUES (%s, %s, 'error', %s, %s)""",
-                (
-                    brand_wikidata,
-                    session["user"]["osm_id"],
-                    f"Comptage incohérent : {len(changes)} POIs à intégrer pour une limite de {MAX_IMPORT_SIZE}",
-                    changes[0]["atp_brand"],
-                ),
-            )
-            osmdb.commit()
-        logger.error(
-            "Comptage incohérent pour %s : %d POIs > limite %d",
-            brand_wikidata,
-            len(changes),
-            MAX_IMPORT_SIZE,
-        )
-        return render_template(
-            "brands/:brand_wikidata/oversized.html",
-            size=len(changes),
-            max_import_size=MAX_IMPORT_SIZE,
-        )
-
-    # 5 POIs par lot : un lot valant au plus BATCH_MAX_SIZE POIs, c'est au moins
-    # 2,5 % de relu. get_rand_items() renvoie tout quand le lot est plus petit.
-    items = get_rand_items(changes, n=5)
+    # get_rand_items() returns the whole batch when it holds fewer POIs than that.
+    items = get_rand_items(changes, n=BATCH_SAMPLE_SIZE)
     brand = items[0]["atp_brand"]
     for idx, item in enumerate(items):
         item["title"] = (
@@ -161,6 +139,7 @@ def brands_validate(brand_wikidata):
         brand_wikidata=brand_wikidata,
         brand=brand,
         size=len(changes),
+        scope=scope,
         items=items,
     )
 
@@ -168,7 +147,7 @@ def brands_validate(brand_wikidata):
 @brands_bp.route("/brands/<brand_wikidata>/confirm")
 @auth_required
 def brands_confirm(brand_wikidata):
-    changes = get_changes_by_brand_wikidata(brand_wikidata)
+    changes, _ = get_batch(brand_wikidata)
 
     if len(changes) == 0:
         return redirect(
@@ -218,8 +197,10 @@ def upload_changes(brand_wikidata):
             mimetype="application/json",
         )
 
-    changes = get_changes_by_brand_wikidata(brand_wikidata)
-    if len(changes) > MAX_IMPORT_SIZE:
+    changes, _ = get_batch(brand_wikidata)
+    # What select_batch truncates, upload must never exceed: last check before an
+    # irreversible send.
+    if len(changes) > BATCH_MAX_SIZE:
         return Response(
             json.dumps({"error": "Import too large"}),
             status=403,

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import osmapi
 from src.config import get_settings
-from src.matching import DEPARTEMENT_NAMES
+from src.matching import BATCH_MAX_SIZE, DEPARTEMENT_NAMES
 from osmapi.errors import ApiError
 from requests_oauthlib import OAuth2Session
 
@@ -21,6 +21,15 @@ class BulkUpload:
     """
 
     def __init__(self, changes: list, session: OAuth2Session):
+        # Last gate before an irreversible send, and the only one at the point
+        # where changesets are actually created. select_batch already truncates
+        # to that size and the route checks it again; if both were ever wrong,
+        # nothing must leave for OSM.
+        if len(changes) > BATCH_MAX_SIZE:
+            raise ValueError(
+                f"refusing to upload {len(changes)} POIs, over the {BATCH_MAX_SIZE} limit"
+            )
+
         self.changes = changes
         self.brand_name = changes[0]["atp_brand"]
         self.brand_wikidata = changes[0]["tag"].get("brand:wikidata") or "unknown"

@@ -62,7 +62,7 @@ class BackfillImportDepartements(Migration):
                    WHERE status <> 'cancelled'
                      AND (items_count IS NULL OR items_count > 0)
                      AND NOT EXISTS (
-                         SELECT 1 FROM import_departements ic WHERE ic.import_id = import_history.id
+                         SELECT 1 FROM import_departements dpt WHERE dpt.import_id = import_history.id
                      )
                    ORDER BY import_date"""
             )
