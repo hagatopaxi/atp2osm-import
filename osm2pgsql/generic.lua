@@ -100,9 +100,29 @@ local function is_definitely_not_a_place(tags)
     return false
 end
 
+-- The ATP <-> OSM join requires an equality on one of these attributes, and NULL
+-- never equals anything: an object carrying none of them can never be matched.
+-- Skipping them here drops ~95% of the rows (20.3M -> 1.1M), which is time and
+-- disk saved on every weekly import. mv_places filters on the same keys, so a
+-- stale import cannot bring them back either.
+local matchable_keys = {
+    'name', 'brand', 'brand:wikidata',
+    'email', 'contact:email',
+    'phone', 'contact:phone',
+    'website', 'contact:website',
+}
+
+local function has_no_matchable_tag(tags)
+    for _, key in ipairs(matchable_keys) do
+        if tags[key] then return false end
+    end
+    return true
+end
+
 function osm2pgsql.process_way(object)
     local tags = object.tags
     if is_definitely_not_a_place(tags) then return end
+    if has_no_matchable_tag(tags) then return end
 
     if object.is_closed then
         tables.polygons:insert({
@@ -118,6 +138,7 @@ end
 function osm2pgsql.process_node(object)
     local tags = object.tags
     if is_definitely_not_a_place(tags) then return end
+    if has_no_matchable_tag(tags) then return end
 
     tables.points:insert({
         tags = object.tags,
@@ -129,6 +150,7 @@ end
 function osm2pgsql.process_relation(object)
     local tags = object.tags
     if is_definitely_not_a_place(tags) then return end
+    if has_no_matchable_tag(tags) then return end
 
     local relation_type = object.tags['type']
 
