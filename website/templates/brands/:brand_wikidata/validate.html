@@ -10,26 +10,29 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
 {% endblock %}
 
 {% macro render_tag(key, label, icon, item) %}
-{% if key in item["tag"] %}
+{# The diff never adds email/phone/website when the contact:* variant is already
+   there, so display that variant instead of hiding the value entirely. #}
+{% set k = key if key in item["tag"] else "contact:" ~ key %}
+{% if k in item["tag"] %}
 <div class="flex items-start">
     <i class="{{icon}} mr-2 mt-1"></i>
     <div>
-        <strong>{{label}} :</strong>{% if key == 'opening_hours' %}<span class="tooltip tooltip-right align-middle" data-tip="Valeur insérée dans OSM : {{ item['tag']['opening_hours'] }}"><i class="iconoir-info-circle text-info text-xs cursor-help ml-1"></i></span>{% endif %}
+        <strong>{{label}} :</strong>{% if k.startswith('contact:') %} <span class="badge badge-xs badge-ghost font-mono">{{ k }}</span>{% endif %}{% if key == 'opening_hours' %}<span class="tooltip tooltip-right align-middle" data-tip="Valeur insérée dans OSM : {{ item['tag']['opening_hours'] }}"><i class="iconoir-info-circle text-info text-xs cursor-help ml-1"></i></span>{% endif %}
 
         {% if key == 'website' %}
-        <p class="{{'text-success' if key in item['new_tags_keys']}}"><a href="{{ item['tag'][key] }}" target="_blank"
+        <p class="{{'text-success' if k in item['new_tags_keys']}}"><a href="{{ item['tag'][k] }}" target="_blank"
                 class="link">{{
-                item["tag"][key]
+                item["tag"][k]
                 }}</a></p>
         {% elif key == 'opening_hours' %}
-        <div class="{{'text-success' if key in item['new_tags_keys']}}">
-            {% set opening_hours_parts = item["tag"]["opening_hours"].split(';') %}
+        <div class="{{'text-success' if k in item['new_tags_keys']}}">
+            {% set opening_hours_parts = item["tag"][k].split(';') %}
             {% for part in opening_hours_parts %}
             <p>{{ part }}</p>
             {% endfor %}
         </div>
         {% else %}
-        <p class="{{'text-success' if key in item['new_tags_keys']}}">{{ item["tag"][key] }}</p>
+        <p class="{{'text-success' if k in item['new_tags_keys']}}">{{ item["tag"][k] }}</p>
         {% endif %}
     </div>
 </div>
