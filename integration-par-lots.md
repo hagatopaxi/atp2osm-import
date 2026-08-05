@@ -89,18 +89,16 @@ d'ensemble et continuent de bloquer la marque entière. `changeset_ids` est
 conservée pour ces lignes ; les nouvelles intégrations la laissent nulle et
 remplissent la table fille.
 
-**Ce que cet historique sans lignes filles coûte aux algorithmes : presque
-rien.** La branche « intégration sans changeset » existe de toute façon pour les
-abandons (`cancelled`), et les anciennes lignes l'empruntent telle quelle —
-aucune requête ni aucun branchement de plus. Le surcoût propre se limite à deux
-valeurs supplémentaires dans les cooldowns (`partial_*` et la règle des
-2 semaines) et à un test d'affichage pour le taux de réussite.
+**Ce que cet historique sans lignes filles coûte aux algorithmes : rien.** La
+branche « intégration sans changeset » existe de toute façon pour les abandons
+(`cancelled`) et pour les marques sans rien à intégrer, et les anciennes lignes
+l'empruntent telle quelle — aucune requête ni aucun branchement de plus.
 
-Il est de surcroît temporaire : le cooldown le plus long étant de 3 mois, aucune
-ligne antérieure ne peut plus rien bloquer trois mois après la mise en
-production. La règle des 2 semaines et les `partial_*` hérités deviennent alors
-du code mort, à supprimer. Seul le test d'affichage subsiste, le temps qu'on
-souhaite garder ces intégrations lisibles.
+La reprise depuis les logs a en outre détaillé toutes les intégrations
+partielles : il ne reste aucune ligne `partial` sans enfants, et aucune
+intégration n'en produit plus. La règle des 2 semaines n'a donc jamais eu à
+exister ; le cooldown des lignes sans enfants se limite à 4 semaines
+(`cancelled`, `error`) et 3 mois (`success`).
 
 ## Processus fonctionnels
 
@@ -220,8 +218,7 @@ changesets ou non.
 **Intégrations avec changesets — blocage par département.** Les durées de
 cooldown sont inchangées ; le statut consulté est celui du changeset, pas celui
 de l'intégration. Un changeset ayant abouti ou non, il n'existe pas de statut
-partiel à ce niveau : la règle des 2 semaines n'a plus d'objet pour les
-nouvelles intégrations et ne subsiste que pour l'historique ancien.
+partiel à ce niveau : la règle des 2 semaines n'a plus d'objet.
 
 ```sql
 SELECT DISTINCT ic.departement_number
@@ -235,8 +232,9 @@ WHERE ih.brand_wikidata = %s
 **Intégrations sans changeset — blocage de la marque entière.** Un abandon
 (`cancelled`) signale une donnée jugée fautive, pas un département en
 particulier : il est juste que toute la marque s'efface pendant 4 semaines,
-comme aujourd'hui. Les lignes antérieures à la migration, dépourvues d'enfants,
-relèvent du même cas et conservent la règle des 2 semaines pour `partial_*`.
+comme aujourd'hui. Une marque sans rien à intégrer, et les rares lignes
+antérieures que la reprise n'a pas su détailler, relèvent du même cas. `partial`
+n'y figure pas : il suppose des lignes filles, et n'en manque plus aucune.
 
 ```sql
 SELECT 1
@@ -260,8 +258,22 @@ disparu des correspondances et il n'y a plus rien à bloquer.
 intégrables** (départements bloqués exclus) et non le total. Sinon la liste
 affiche 3 000 POIs pour une marque dont 200 seulement sont accessibles.
 
-Cela suppose un comptage par `(marque, département)` : une vue matérialisée
-`mv_places_brand_dpt` à côté de `mv_places_brand`.
+Cela suppose un comptage par `(marque, département)`. Pas de seconde vue :
+`mv_places_brand` gagne `departement_number` dans son `GROUP BY`, et `get_all`
+somme les départements non bloqués. Le total par marque reste dérivable
+(`SUM(total)`), donc rien ne se dédouble entre deux objets à garder en phase.
+
+```sql
+CREATE MATERIALIZED VIEW mv_places_brand AS
+SELECT
+    STRING_AGG(DISTINCT atp_brand, ' / ' ORDER BY atp_brand) AS brand,
+    atp_brand_wikidata AS brand_wikidata,
+    departement_number,
+    COUNT(*) AS total
+FROM (<MATCHED_POI_SQL>) matched
+WHERE is_importable
+GROUP BY atp_brand_wikidata, departement_number
+```
 
 ```sql
 WITH blocked AS (
@@ -271,13 +283,29 @@ WITH blocked AS (
   WHERE <conditions par changeset, comme ci-dessus>
   GROUP BY ih.brand_wikidata
 )
-SELECT b.brand_wikidata, SUM(b.total) AS available
-FROM mv_places_brand_dpt b
+SELECT b.brand_wikidata, MAX(b.brand) AS brand, SUM(b.total) AS available
+FROM mv_places_brand b
 LEFT JOIN blocked ON blocked.brand_wikidata = b.brand_wikidata
 WHERE NOT (b.departement_number = ANY(COALESCE(blocked.dpts, '{}')))
   AND <la marque n'a pas d'intégration bloquante sans changeset>
 GROUP BY b.brand_wikidata
 ```
+
+**Libellé de la marque :** groupé par département, `brand` devient local au
+département et n'est plus ré-agrégeable proprement (`STRING_AGG` sur des
+libellés déjà agrégés donnerait « A / B / A »). `MAX(b.brand)` suffit : c'est
+un libellé d'affichage, prendre la variante d'un département est acceptable.
+
+**Coût :** nul à la construction — le temps est entièrement dans le
+`ST_DWithin` de `MATCHED_POI_SQL`, pas dans l'agrégation ; une clé de plus au
+`GROUP BY` ne change ni le plan ni le volume lu. À la lecture, la vue passe à
+~1 ligne par (marque, département), plafonné à 96 départements par marque —
+quelques dizaines de milliers de lignes au pire, une agrégation de quelques
+millisecondes.
+
+**En dev :** la vue se reconstruit seule, sans rejouer tout le pipeline —
+`python -m src.pipeline step mv-brand` (le `DROP … IF EXISTS` la rend
+rejouable à volonté).
 
 Les deux niveaux de blocage se cumulent : les départements bloqués sont exclus
 du comptage, et les marques sous blocage global disparaissent de la liste.
@@ -364,16 +392,16 @@ préféré.
 
 0. **Migration préalable** : table `import_departements`, écriture d'une ligne par
    changeset dans `upload_changes`, statut d'historique dérivé, affichage du
-   détail dans l'historique. Livrable autonome, sans lien avec les lots.
+   détail dans l'historique. Livrable autonome, sans lien avec les lots — **fait**.
 1. `pack_departements` + tests — **fait**.
-2. Composition du lot à partir des départements non bloqués.
+2. Composition du lot à partir des départements non bloqués — **fait**.
 3. Blocage par département dans `_get_blocking_import`, composition et
    troncature du lot dans `brands_validate` / `brands_confirm` /
    `upload_changes`. Le garde-fou « comptage incohérent » qui met la marque en
    erreur au-delà de la limite ne peut plus se déclencher via un département
    surdimensionné : il ne surveille plus qu'une divergence réelle entre les
-   deux comptages.
-4. `mv_places_brand_dpt` et nouvelle requête `get_all`.
+   deux comptages — **fait**.
+4. `departement_number` dans `mv_places_brand` et nouvelle requête `get_all` — **fait**.
 5. Interface : bandeau de périmètre sur `validate`, départements dans
-   l'historique, retrait du filtre de portée sur la liste des marques.
-6. Textes de documentation (`docs.html`, `validate.html` : « 1 % du lot »).
+   l'historique, retrait du filtre de portée sur la liste des marques — **fait**.
+6. Textes de documentation (`docs.html`, `validate.html` : « 1 % du lot ») — **fait**.
