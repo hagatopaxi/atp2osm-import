@@ -50,9 +50,9 @@ def get_version() -> str:
             .decode()
             .strip()
         )
-        return f"Beta-{rev}"
+        return f"Gamma-{rev}"
     except Exception:
-        return "Beta"
+        return "Gamma"
 
 
 @dataclass(frozen=True)
