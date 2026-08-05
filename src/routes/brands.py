@@ -66,16 +66,31 @@ def _get_blocking_import(brand_wikidata: str):
         ).fetchone()
 
 
+# The ST_DWithin join costs seconds on a big brand (5 s for 3 000 matches), and
+# /validate, /confirm then /upload all replay it identically. Its result only
+# moves with the weekly refresh, so it is cached; blocking, which does move after
+# an import, is read live below.
+MATCHES_TIMEOUT = 30 * 60
+
+
+@cache.memoize(timeout=MATCHES_TIMEOUT)
+def brand_matches(brand_wikidata):
+    """Every match of a brand, whatever its département — the expensive part."""
+    osmdb = get_osmdb()
+    with osmdb.cursor(row_factory=dict_row) as cursor:
+        get_filtered(cursor, brand=brand_wikidata)
+        return get_changes(cursor)
+
+
 def get_batch(brand_wikidata):
     """Matches of the next batch, and its scope per département.
 
     Recomposed on every call from the current state: two calls with no import in
     between give the same batch.
     """
+    changes = brand_matches(brand_wikidata)
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
-        get_filtered(cursor, brand=brand_wikidata)
-        changes = get_changes(cursor)
         blocked = get_blocked_departements(cursor, brand_wikidata)
 
     return select_batch(changes, blocked)
@@ -211,6 +226,9 @@ def upload_changes(brand_wikidata):
     bulk_upload = BulkUpload(changes, session=osm_session)
     errors = bulk_upload.upload()
     bulk_upload.save_log_file()
+    # The uploaded POIs now carry their tags: the next batch must be composed on
+    # freshly read matches, not on what we had before sending.
+    cache.delete_memoized(brand_matches, brand_wikidata)
 
     error_messages = [msg for _, msg in errors]
     status = _determine_import_status(bulk_upload.results)
