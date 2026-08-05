@@ -22,6 +22,7 @@ function renderInvalidations() {
       <div>
         <p class="font-semibold">${item.title}</p>
         ${item.comment ? `<p class="text-base-content/70 mt-1">${item.comment}</p>` : ""}
+        ${item.atp_id ? `<p class="text-xs text-base-content/50 font-mono mt-1">ATP ${item.spider_id ? item.spider_id + "/" : ""}${item.atp_id}</p>` : ""}
       </div>
     `;
     container.appendChild(card);
@@ -40,6 +41,8 @@ async function confirmRejection() {
   const comment = data.map((item) => ({
     osm_id: item.osm_id,
     osm_type: item.osm_type,
+    atp_id: item.atp_id,
+    spider_id: item.spider_id,
     comment: item.comment,
   }));
 

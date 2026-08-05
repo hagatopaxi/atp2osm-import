@@ -117,6 +117,8 @@ function publishComment() {
   invalidations.push({
     osm_id: collapse ? parseInt(collapse.dataset.osmId) : null,
     osm_type: nodeType,
+    atp_id: collapse ? collapse.dataset.atpId : null,
+    spider_id: collapse ? collapse.dataset.spiderId : null,
     title,
     comment,
   });

@@ -76,6 +76,7 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
                     <p class="text-sm italic">{{ c.comment or 'Sans commentaire' }}</p>
                     <p class="text-xs text-base-content/50 font-mono">
                         <a class="link" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}</a>
+                        {% if c.atp_id %}· ATP {{ c.spider_id ~ "/" if c.spider_id }}{{ c.atp_id }}{% endif %}
                     </p>
                 </li>
                 {% endfor %}
@@ -99,7 +100,7 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
     {% for item in items %}
     <div class="card bg-base-100 border-base-300 gap-4 border shadow-md p-4"
         data-item-id="{{item['node_type']}}-{{item['id']}}" data-osm-id="{{item['id']}}"
-        data-node-type="{{item['node_type']}}">
+        data-node-type="{{item['node_type']}}" data-atp-id="{{item['atp_id']}}" data-spider-id="{{item['spider_id']}}">
         <div class="title font-semibold">
             {{ loop.index }} - {{ item["title"] }}
         </div>

@@ -132,6 +132,7 @@
                 {% for c in comments %}
                 <li class="text-sm">
                     <a class="link font-mono text-xs" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}</a>
+                    {% if c.atp_id %}<span class="font-mono text-xs text-base-content/50">(ATP {{ c.spider_id ~ "/" if c.spider_id }}{{ c.atp_id }})</span>{% endif %}
                     {% if c.comment %} — {{ c.comment }}{% endif %}
                 </li>
                 {% endfor %}
