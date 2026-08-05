@@ -1,6 +1,8 @@
+import re
+
 from psycopg import Cursor
 from psycopg.rows import dict_row
-from typing import Any
+from typing import Any, NamedTuple
 
 
 # Requête unique de correspondance ATP <-> OSM, partagée par /validate
@@ -87,15 +89,71 @@ def get_filtered(
     return cursor.execute(query.format(where_options=where_options), params)
 
 
+# Cooldowns: how long an import keeps hiding what it just touched, until the
+# weekly refresh drops the integrated POIs from the matches.
+SUCCESS_COOLDOWN = "3 months"
+ERROR_COOLDOWN = "4 weeks"
+
+# Cooldowns are code constants, never values coming from a request: splicing
+# them into the SQL below cannot inject anything. The format is checked at import
+# time so that it stays that way.
+assert all(
+    re.fullmatch(r"\d+ (days|weeks|months)", cooldown)
+    for cooldown in (SUCCESS_COOLDOWN, ERROR_COOLDOWN)
+)
+
+
+def _within(cooldown: str) -> str:
+    """SQL condition: the import is still within its cooldown."""
+    return f"ih.import_date > NOW() - INTERVAL '{cooldown}'"
+
+
+# Départements still under cooldown, one row per (brand, département). Shared
+# between get_all() (the list count) and get_blocked_departements() (batch
+# composition): both must block exactly the same ones.
+BLOCKED_DEPARTEMENTS_SQL = f"""
+    SELECT ih.brand_wikidata, dpt.departement_number
+    FROM import_departements dpt
+    JOIN import_history ih ON ih.id = dpt.import_id
+    WHERE (dpt.status IN ('error_osm_api','error_unknown') AND {_within(ERROR_COOLDOWN)})
+       OR (dpt.status = 'success'                          AND {_within(SUCCESS_COOLDOWN)})
+"""
+
+# Imports with no changeset at all: a cancellation, a brand with nothing left to
+# integrate, or a pre-migration row the backfill could not detail. They point at
+# no département in particular, so they hide the whole brand for the cooldown.
+#
+# `partial` is absent: it implies some départements succeeded and others failed,
+# hence child rows. The backfill (migration 016) detailed them all, and no import
+# produces a childless one any more.
+BLOCKED_BRANDS_SQL = f"""
+    SELECT ih.*
+    FROM import_history ih
+    WHERE NOT EXISTS (SELECT 1 FROM import_departements dpt WHERE dpt.import_id = ih.id)
+      AND (
+        (ih.status IN ('cancelled', 'error') AND {_within(ERROR_COOLDOWN)})
+        OR (ih.status = 'success'            AND {_within(SUCCESS_COOLDOWN)})
+      )
+"""
+
+
 def get_all(osmdb):
-    query = """
+    # `total` is the number of POIs *left to integrate*: départements under
+    # cooldown are excluded, and brands blocked as a whole drop out entirely.
+    query = f"""
+        WITH blocked AS (
+            SELECT brand_wikidata, ARRAY_AGG(DISTINCT departement_number) AS dpts
+            FROM ({BLOCKED_DEPARTEMENTS_SQL}) b
+            GROUP BY brand_wikidata
+        )
         SELECT
-            mvb.brand AS brand,
+            MAX(mvb.brand) AS brand,
             mvb.brand_wikidata AS brand_wikidata,
-            mvb.total AS total,
+            SUM(mvb.total) AS total,
             ih.last_import,
             ih.last_status
         FROM mv_places_brand mvb
+        LEFT JOIN blocked ON blocked.brand_wikidata = mvb.brand_wikidata
         LEFT JOIN (
             SELECT DISTINCT ON (brand_wikidata)
                 brand_wikidata,
@@ -105,15 +163,15 @@ def get_all(osmdb):
             ORDER BY brand_wikidata, import_date DESC
         ) ih ON ih.brand_wikidata = mvb.brand_wikidata
         WHERE (mvb.brand IS NOT NULL AND mvb.brand_wikidata IS NOT NULL)
-          AND (
-            ih.last_import IS NULL
-            OR (ih.last_status IN ('cancelled', 'error') AND ih.last_import < NOW() - INTERVAL '4 weeks')
-            OR (ih.last_status = 'partial' AND ih.last_import < NOW() - INTERVAL '2 weeks')
-            OR (ih.last_status = 'success' AND ih.last_import < NOW() - INTERVAL '3 months')
+          AND NOT (COALESCE(mvb.departement_number, '') = ANY(COALESCE(blocked.dpts, '{{}}')))
+          AND NOT EXISTS (
+              SELECT 1 FROM ({BLOCKED_BRANDS_SQL}) blocked_brands
+              WHERE blocked_brands.brand_wikidata = mvb.brand_wikidata
           )
+        GROUP BY mvb.brand_wikidata, ih.last_import, ih.last_status
         ORDER BY
-            last_import ASC NULLS FIRST,
-            total DESC;
+            SUM(mvb.total) DESC,
+            ih.last_import ASC NULLS FIRST;
     """
 
     with osmdb.cursor(row_factory=dict_row) as cursor:
@@ -350,13 +408,25 @@ def pack_departements(counts: dict[str, int], max_size: int) -> list[list[str]]:
     return batches
 
 
-# Taille maximale d'un lot, en POIs. Un lot = un ensemble de départements
-# entiers, un changeset par département.
-BATCH_MAX_SIZE = 200
+# Biggest batch, in POIs. A batch = a set of whole départements, one changeset
+# per département.
+#
+# Capped at 100 during the beta: this is what a single human action uploads at
+# once. The spec plans for 200, to be raised once the platform has matured.
+BATCH_MAX_SIZE = 100
+
+# Hard ceiling: past that, a batch is refused rather than uploaded. Composition
+# targets BATCH_MAX_SIZE, so the gap between the two is pure slack — it lets the
+# beta cap be lowered without the safety nets firing on a legitimate batch.
+MAX_UPLOAD_SIZE = 200
+
+# POIs reviewed per batch, whatever its size — a batch smaller than that is
+# reviewed in full.
+BATCH_SAMPLE_SIZE = 3
 
 
 def count_by_departement(changes: list[dict]) -> dict[str, int]:
-    """Effectif par département d'une liste de correspondances."""
+    """Match count per département."""
     counts = {}
     for change in changes:
         dpt = change["departement_number"]
@@ -365,34 +435,67 @@ def count_by_departement(changes: list[dict]) -> dict[str, int]:
 
 
 def get_blocked_departements(cursor: Cursor, brand_wikidata: str) -> set[str]:
-    """Départements de la marque encore sous cooldown.
+    """Départements of the brand still under cooldown.
 
-    Le statut consulté est celui du changeset, pas celui de l'intégration : un
-    changeset a abouti ou non, il n'y a pas de statut partiel à ce niveau.
+    The status that counts is the changeset's, not the import's: a changeset
+    either went through or did not, there is no partial status at that level.
     """
     rows = cursor.execute(
-        """SELECT DISTINCT ic.departement_number AS dpt
-           FROM import_departements ic
-           JOIN import_history ih ON ih.id = ic.import_id
-           WHERE ih.brand_wikidata = %s
-             AND ( (ic.status IN ('error_osm_api','error_unknown') AND ih.import_date > NOW() - INTERVAL '4 weeks')
-                OR (ic.status = 'success'                          AND ih.import_date > NOW() - INTERVAL '3 months') )""",
+        f"""SELECT DISTINCT departement_number AS dpt
+            FROM ({BLOCKED_DEPARTEMENTS_SQL}) b
+            WHERE brand_wikidata = %s""",
         (brand_wikidata,),
     ).fetchall()
-    return {row["dpt"] for row in rows}  # cursor en dict_row, comme partout ici
+    return {row["dpt"] for row in rows}  # dict_row cursor, as everywhere here
 
 
 def compose_batch(
     counts: dict[str, int], blocked: set[str], max_size: int = BATCH_MAX_SIZE
 ) -> list[str]:
-    """Départements du prochain lot à intégrer.
+    """Départements of the next batch to integrate.
 
-    Jamais persisté : recalculé à chaque visite à partir de l'état courant.
-    Renvoie une liste vide quand tous les départements sont bloqués.
+    Never persisted: recomputed on every visit from the current state. Returns an
+    empty list when every département is blocked.
     """
     available = {dpt: n for dpt, n in counts.items() if dpt not in blocked}
     batches = pack_departements(available, max_size)
     return batches[0] if batches else []
+
+
+class Batch(NamedTuple):
+    changes: list[dict]  # what will be integrated
+    scope: list[dict]    # its départements, for display: number, name, count
+
+
+def select_batch(
+    changes: list[dict], blocked: set[str], max_size: int = BATCH_MAX_SIZE
+) -> Batch:
+    """Narrow matches down to the next batch.
+
+    A batch is made of whole départements: one that does not fit in the room left
+    moves to the next batch, it is never cut. A batch below *max_size* is
+    therefore normal — it happens as soon as no remaining département fills the
+    gap.
+
+    The only possible truncation is a département bigger than *max_size* on its
+    own: it then forms a batch by itself (pack_departements leaves it no room),
+    and its extra POIs wait for the cooldown to expire.
+
+    """
+    batch = set(compose_batch(count_by_departement(changes), blocked, max_size))
+    changes = [c for c in changes if c["departement_number"] in batch]
+    # A no-op on a multi-département batch, which fits in max_size by
+    # construction. Truncating before the sample is drawn keeps the review on
+    # POIs that will actually be integrated.
+    changes = changes[:max_size]
+
+    scope = [
+        {"number": dpt, "name": DEPARTEMENT_NAMES.get(dpt, dpt), "count": count}
+        for dpt, count in sorted(
+            count_by_departement(changes).items(), key=lambda kv: (-kv[1], kv[0])
+        )
+    ]
+    return Batch(changes, scope)
 
 
 def get_stats(changes: list) -> dict:

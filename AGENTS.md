@@ -56,7 +56,7 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 **Data pipeline** (runs outside the web server, via `run-pipeline.sh` and `src/pipeline/`):
 1. `run-pipeline.sh` — Entry point of the weekly refresh: runs `src/pipeline` inside the container via podman. Copied into the project directory on every deploy. Triggered by a systemd timer (Monday 04:00).
 2. `src/pipeline/` — Python module orchestrating the whole pipeline: OSM PBF download from Geofabrik, osm2pgsql import, ATP parquet download, load into `atp_fr` through DuckDB, materialized view refresh.
-3. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points` and `polygons` tables in PostGIS (SRID 9794, Lambert-93 projection)
+3. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points` and `polygons` tables in PostGIS (SRID 4326). Two filters run there: objects that are definitely not places (roads, boundaries, transport…) and objects carrying none of the attributes a match can key on — no name, brand, email, phone or website. The second one drops ~95% of the objects.
 
 **Deploy** (`deploy/run` — git hook `post-receive`):
 - Builds the container image, writes the `atp2osm.container` Quadlet, writes the `refresh.service` + `refresh.timer` systemd units from the `deploy/` templates, then runs `daemon-reload` + `restart` + `enable timer` directly.
@@ -64,20 +64,22 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 
 **Web application** (`src/app.py`, Flask):
 - Uses PostGIS with psycopg3, connection per-request via Flask `g`
-- OSM OAuth2 authentication; tokens stored in-memory (`token_store` dict)
+- OSM OAuth2 authentication; the token lives in the Flask session cookie, signed with `secret_key` (nothing server-side to share between workers)
 - Templates in `website/templates/`, static assets in `static/`
 - SQL migrations in `migrations/` auto-run at startup (`src/migrate.py`), tracked in `schema_migrations` table
 
 **Core modules:**
-- `src/matching.py` — Spatial join queries between `mv_places` and `atp_fr`, tag diffing logic (`apply_on_node`), stats aggregation
+- `src/matching.py` — Spatial join queries between `mv_places` and `atp_fr` (`MATCHED_POI_SQL`, shared with the `mv_places_brand` view and never duplicated), tag diffing logic (`apply_on_node`), batch composition (`pack_departements`, `select_batch`), cooldown SQL, stats aggregation
 - `src/upload.py` — `BulkUpload` class that creates OSM changesets grouped by department, uploads via `osmapi`
 - `src/migrate.py` — Simple sequential SQL migration runner
 
 **Key database objects:**
 - `points`, `polygons` — Raw OSM data (from osm2pgsql)
-- `mv_places` — Materialized view joining both with normalized columns
+- `mv_places` — Materialized view joining both with normalized columns, restricted to objects a match can key on (same filter as `generic.lua`, kept as a safety net)
+- `mv_places_brand` — Match count per (brand, département); `get_all` sums the départements that are not under cooldown
 - `atp_fr` — ATP data filtered to metropolitan France
-- `import_history` — Tracks import runs per brand
+- `import_history` — One row per human integration action
+- `import_departements` — One row per changeset: département, count, status. Carries the per-département blocking and the history detail
 
 ## Environment Variables
 

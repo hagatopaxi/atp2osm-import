@@ -57,8 +57,8 @@ def history():
 
         entries = cursor.execute(
             f"""SELECT *,
-                       (SELECT COUNT(*) FROM import_departements ic
-                        WHERE ic.import_id = import_history.id) AS departements_count
+                       (SELECT COUNT(*) FROM import_departements dpt
+                        WHERE dpt.import_id = import_history.id) AS departements_count
                 FROM import_history {where} ORDER BY import_date DESC LIMIT %s OFFSET %s""",
             params + [HISTORY_PER_PAGE, offset],
         ).fetchall()

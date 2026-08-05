@@ -1,4 +1,13 @@
-from src.matching import compose_batch, count_by_departement, pack_departements
+import pytest
+
+from src.matching import (
+    BATCH_MAX_SIZE,
+    compose_batch,
+    count_by_departement,
+    pack_departements,
+    select_batch,
+)
+from src.upload import BulkUpload
 
 
 def test_empty():
@@ -43,6 +52,54 @@ def test_compose_batch_first_batch_only():
 
 def test_compose_batch_all_blocked():
     assert compose_batch({"69": 10}, blocked={"69"}, max_size=200) == []
+
+
+def _changes(**by_dpt):
+    return [{"departement_number": d} for d, n in by_dpt.items() for _ in range(n)]
+
+
+def test_select_batch_keeps_only_the_first_batch_and_describes_it():
+    changes, scope = select_batch(_changes(d69=6, d59=4, d23=3), set(), max_size=10)
+
+    assert len(changes) == 10
+    assert [c["departement_number"] for c in changes].count("d69") == 6
+    assert scope == [
+        {"number": "d69", "name": "d69", "count": 6},
+        {"number": "d59", "name": "d59", "count": 4},
+    ]
+
+
+def test_select_batch_never_cuts_a_departement_in_two():
+    # 6 + 3 = 9: d59 (4) does not fit in the 4 slots left, so it moves whole to
+    # the next batch rather than being cut, and the batch stays under the limit.
+    changes, scope = select_batch(_changes(d69=6, d59=4, d23=3), set(), max_size=9)
+
+    assert len(changes) == 9
+    assert [d["number"] for d in scope] == ["d69", "d23"]
+
+
+def test_select_batch_truncates_an_oversized_departement():
+    changes, scope = select_batch(_changes(d69=15), set(), max_size=10)
+
+    assert len(changes) == 10
+    assert scope == [{"number": "d69", "name": "d69", "count": 10}]
+
+
+def test_select_batch_returns_nothing_when_everything_is_blocked():
+    assert select_batch(_changes(d69=3), blocked={"d69"}, max_size=10) == ([], [])
+
+
+def test_select_batch_never_exceeds_max_size():
+    # What upload_changes relies on: whatever the counts, a batch fits.
+    for counts in ({"a": 300}, {"a": 60, "b": 60, "c": 60}, {"a": 99, "b": 1}):
+        assert len(select_batch(_changes(**counts), set(), max_size=100).changes) <= 100
+
+
+def test_bulk_upload_refuses_an_oversized_batch():
+    # The chain guarantees it upstream; BulkUpload refuses anyway, before any
+    # changeset is created.
+    with pytest.raises(ValueError):
+        BulkUpload([{"atp_brand": "x", "tag": {}}] * (BATCH_MAX_SIZE + 1), session=None)
 
 
 def test_count_by_departement():

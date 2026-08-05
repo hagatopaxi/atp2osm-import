@@ -183,21 +183,16 @@ def build_filters(args, spec):
     return ("WHERE " + " AND ".join(where) if where else ""), params, active
 
 
-def filter_brands(rows, args, max_import_size):
+def filter_brands(rows, args):
     """Filter the brand list from the query string.
 
     Counterpart of build_filters() for an already in-memory list — see the comment
-    in the /brands view for why. Two filters only exist here: `scope` (import size)
-    and the 'never imported' status.
+    in the /brands view for why. The only filter proper to this list is the
+    'never imported' status.
 
     Returns (filtered_rows, active_filters).
     """
     active = {}
-
-    scope = args.get("scope", "importable")
-    if scope == "importable":
-        rows = [r for r in rows if r["total"] <= max_import_size]
-    active["scope"] = scope
 
     q = args.get("q", "").strip()
     if q:
