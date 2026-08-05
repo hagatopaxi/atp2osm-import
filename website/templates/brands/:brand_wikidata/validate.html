@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 
 {% block title %}1/2 - Validation des données de {{ brand }} ({{brand_wikidata}}){% endblock %}
-{% block subtitle %}Validez 1% des {{size}} points d'intérêt destinés à l'intégration. Les tags en <span
+{% block subtitle %}Validez {{ items | length }} des {{size}} points d'intérêt de ce lot, tirés au hasard. Les tags en <span
     class="text-success">verts</span> sont les nouvelles valeurs ajoutées issues de ATP, les autres sont déjà présentent
 dans OSM et ne seront pas mises à jour.{% endblock %}
 
@@ -38,6 +38,12 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
 
 {% block content %}
 <div class="flex flex-col gap-2" data-brand-name="{{ brand }}">
+    <p class="text-xs text-base-content/60">
+        Ce lot couvre {{ scope | length }} département{{ 's' if scope | length > 1 }} —
+        {% for dpt in scope %}{{ dpt.name }} ({{ dpt.count }}){{ ', ' if not loop.last }}{% endfor %}
+        — soit {{ size }} POI{{ 's' if size > 1 }}.
+    </p>
+
     <a href="/brands/{{brand_wikidata}}/validate" class="btn btn-outline btn-info self-end"><i
             class="iconoir-refresh"></i>Annulez votre
         saisie et recommencez</a>
