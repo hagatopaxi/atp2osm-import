@@ -3,14 +3,15 @@
 {% block title %}Marque à jour{% endblock %}
 {% block subtitle %}Cette marque a été marquée comme à jour.{% endblock %}
 
+{% from '_info_card.html' import info_card %}
+
 {% block content %}
-<div class="alert alert-success">
-    <i class="iconoir-check-circle"></i>
-    <div>
-        <p>Aucune différence n'a été détectée entre les données OSM et ATP pour cette marque.</p>
-        <p>Les tags OSM sont déjà à jour : la marque a été automatiquement marquée comme intégrée avec succès.</p>
-    </div>
+{% call info_card('success') %}
+<div>
+    <p>Aucune différence n'a été détectée entre les données OSM et ATP pour cette marque.</p>
+    <p>Les tags OSM sont déjà à jour : la marque a été automatiquement marquée comme intégrée avec succès.</p>
 </div>
+{% endcall %}
 
 <a class="btn btn-accent mt-4" href="/brands">Retourner à la liste des marques</a>
 {% endblock %}

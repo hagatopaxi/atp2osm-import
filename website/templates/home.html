@@ -105,7 +105,7 @@
 
 <h2 class="text-xl font-semibold mt-6 mb-3">Statistiques</h2>
 
-<div class="grid grid-cols-4 gap-4 max-w-3xl">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-3xl">
     {% for icon, label, value in [
         ("iconoir-database-check", "Noeuds mis à jour",  stats["total_nodes_updated"]),
         ("iconoir-check-circle",   "Intégrations réussies", stats["successful_imports"]),
@@ -122,7 +122,7 @@
     {% endfor %}
 </div>
 
-<div class="grid grid-cols-4 gap-4 max-w-3xl mt-4">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-3xl mt-4">
     {% for icon, key, label in [
         ("iconoir-clock",        "opening_hours_added", "Horaires"),
         ("iconoir-phone",        "phone_added",         "Téléphone"),
@@ -142,7 +142,7 @@
 
 <section class="mt-8 max-w-3xl">
     <h2 class="text-lg font-semibold mb-3">État des données</h2>
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {% for type, label in [("osm", "OpenStreetMap"), ("atp", "All The
         Places")] %} {% set row = data_imports.get(type) %}
         <div class="card bg-base-100 shadow-sm">

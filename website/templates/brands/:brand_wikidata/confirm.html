@@ -1,4 +1,5 @@
 {% extends '_base.html' %}
+{% from '_info_card.html' import info_card %}
 
 {% block title %}2/2 - Confirmation de l'intégration{% endblock %}
 {% block subtitle %}Dernière étape avant l'intégration.{% endblock %}
@@ -18,20 +19,20 @@
 
 {% block content %}
 <h2 class="text-lg">Taille de l'intégration</h2>
-<div class="grid grid-cols-5 gap-2">
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
     {{ render_stat_card("Nombre de POI", stats["size"]) }}
     {{ render_stat_card("Nombre de tag", stats["total_tag_updates"]) }}
 </div>
 
 <h2 class="text-lg">Nombre de mise à jour par tag</h2>
-<div class="grid grid-cols-5 gap-2">
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
     {% for stat in stats["by_tag"] %}
     {{ render_stat_card(stat, stats["by_tag"][stat]) }}
     {% endfor %}
 </div>
 
 <h2 class="text-lg">Nombre de mise à jour par département</h2>
-<div class="overflow-x-auto">
+<div class="overflow-x-auto shrink-0">
     <table class="table table-zebra w-full">
         <thead>
             <tr>
@@ -56,10 +57,9 @@
 <dialog id="last_confirm_modal" class="modal">
     <div class="modal-box">
         <h3 class="font-bold text-lg">Attention cette action est irréversible ?</h3>
-        <div id="warning" role="alert" class="alert alert-warning">
-            <i class="iconoir-warning-triangle"></i>
-            <span>Attention ! Les changements seront irréversibles.</span>
-        </div>
+        {% call info_card('warning', '', 'id="warning"') %}
+        <span>Attention ! Les changements seront irréversibles.</span>
+        {% endcall %}
 
         <div class="modal-action">
             <button id="submit_importation" class="btn btn-error" onclick="confirm_import()">

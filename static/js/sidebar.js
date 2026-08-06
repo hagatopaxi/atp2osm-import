@@ -1,16 +1,21 @@
 const LG_BREAKPOINT = 1024;
+const MD_BREAKPOINT = 768;
 const STORAGE_KEY = 'sidebar_collapsed';
 
 const toggle = document.getElementById('sidebar-toggle');
 const sidebar = document.getElementById('sidebar');
 
+const isMobile = () => window.innerWidth < MD_BREAKPOINT;
+
 toggle.addEventListener('change', function () {
-    localStorage.setItem(STORAGE_KEY, this.checked ? '0' : '1');
+    // ponytail: on mobile the overlay always starts closed, so nothing to persist.
+    if (!isMobile()) localStorage.setItem(STORAGE_KEY, this.checked ? '0' : '1');
 });
 
 (function () {
     const stored = localStorage.getItem(STORAGE_KEY);
-    const open = stored !== null ? stored !== '1' : window.innerWidth >= LG_BREAKPOINT;
+    const open = isMobile() ? false
+        : stored !== null ? stored !== '1' : window.innerWidth >= LG_BREAKPOINT;
     sidebar.style.transition = 'none';
     toggle.checked = open;
     sidebar.offsetWidth;

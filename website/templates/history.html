@@ -104,6 +104,7 @@
 </p>
 {% else %}
 <p class="text-sm text-base-content/60 mb-2">{{ total }} intégration{{ 's' if total > 1 }}</p>
+<div class="overflow-x-auto shrink-0">
 <table class="table table-compact bg-base-100 rounded-2">
     <thead>
         <tr>
@@ -152,24 +153,36 @@
             <td>{{ entry.items_count if entry.items_count is not none else '—' }}</td>
             <td>{{ entry.departements_count if entry.departements_count else '—' }}</td>
             <td>
-                <div class="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <a class="btn btn-sm btn-ghost rounded-md" href="{{ url_for('history.history_detail', entry_id=entry.id, page=page, **filters) }}">Voir plus</a>
+                <div class="row-actions">
+                    <a class="btn btn-sm btn-soft btn-primary rounded-md whitespace-nowrap" href="{{ url_for('history.history_detail', entry_id=entry.id, page=page, **filters) }}">Voir plus</a>
                 </div>
             </td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
+</div>
 
 {% if total_pages > 1 %}
+{# First page, last page and the two neighbours of the current one; the gaps
+   between them become an ellipsis. #}
+{% set shown_pages = [1, total_pages] | list %}
+{% for p in range(page - 2, page + 3) if 1 <= p <= total_pages %}
+{% set _ = shown_pages.append(p) %}
+{% endfor %}
 <div class="join self-center mt-4">
     {% if page > 1 %}
     <a class="join-item btn" href="{{ url_for('history.history', page=page - 1, **filters) }}">«</a>
     {% endif %}
 
-    {% for p in range(1, total_pages + 1) %}
+    {% set ns = namespace(previous=0) %}
+    {% for p in shown_pages | unique | sort %}
+    {% if p > ns.previous + 1 %}
+    <span class="join-item btn btn-disabled">…</span>
+    {% endif %}
     <a class="join-item btn {{ 'btn-active' if p == page }}"
         href="{{ url_for('history.history', page=p, **filters) }}">{{ p }}</a>
+    {% set ns.previous = p %}
     {% endfor %}
 
     {% if page < total_pages %}

@@ -3,50 +3,47 @@
 {% block title %}Intégration #{{ entry.id }}{% endblock %}
 {% block subtitle %}Détails de l'intégration du {{ entry.import_date.strftime('%d/%m/%Y à %H:%M') }}.{% endblock %}
 
+{% from '_info_card.html' import info_card %}
+
 {% block content %}
 {% set banner_statuses = ['success', 'partial', 'cancelled', 'error'] %}
 {% if is_recent and 'user' in session and session['user']['osm_id'] == entry['osm_user_id'] and entry['status'] in banner_statuses %}
 
 {% set s = entry['status'] %}
 {% if s == 'success' %}
-  {% set banner_color = 'alert-success' %}
-  {% set banner_icon = 'iconoir-trophy' %}
+  {% set banner_kind = 'success' %}
   {% set banner_text %}Votre intégration a été effectuée avec succès —
     {% if entry['items_count'] %}<strong>{{ entry['items_count'] }} POI{{ 's' if entry['items_count'] > 1 }}</strong> enrichi{{ 's' if entry['items_count'] > 1 }} dans OpenStreetMap.
     {% else %}les données ont été envoyées dans OpenStreetMap.{% endif %}{% endset %}
   {% set banner_btn_label = 'Intégrer une autre marque' %}
   {% set banner_btn_href = '/brands' %}
 {% elif s == 'partial' %}
-  {% set banner_color = 'alert-warning' %}
-  {% set banner_icon = 'iconoir-check-circle' %}
+  {% set banner_kind = 'warning' %}
   {% set banner_text %}L'intégration s'est terminée partiellement —
     {% if entry['items_count'] %}<strong>{{ entry['items_count'] }} POI{{ 's' if entry['items_count'] > 1 }}</strong> enrichi{{ 's' if entry['items_count'] > 1 }}, mais {% endif %}certains départements n'ont pas pu être intégrés.{% endset %}
   {% set banner_btn_label = 'Intégrer une autre marque' %}
   {% set banner_btn_href = '/brands' %}
 {% elif s == 'cancelled' %}
-  {% set banner_color = 'alert-info' %}
-  {% set banner_icon = 'iconoir-heart' %}
+  {% set banner_kind = 'info' %}
   {% set banner_text %}Votre signalement a bien été enregistré. Ces retours sont précieux pour améliorer la qualité des données AllThePlaces.{% endset %}
   {% set banner_btn_label = 'Voir les marques disponibles' %}
   {% set banner_btn_href = '/brands' %}
 {% else %}
-  {% set banner_color = 'alert-warning' %}
-  {% set banner_icon = 'iconoir-info-circle' %}
+  {% set banner_kind = 'warning' %}
   {% set banner_text %}Une erreur technique indépendante de notre volonté a empêché l'intégration de se terminer. Aucune modification n'a été envoyée à OpenStreetMap.{% endset %}
   {% set banner_btn_label = 'Voir les marques disponibles' %}
   {% set banner_btn_href = '/brands' %}
 {% endif %}
 
-<div class="alert {{ banner_color }} alert-soft shadow-lg mb-6 py-6">
-    <i class="{{ banner_icon }} text-4xl shrink-0"></i>
-    <div class="flex-1">
-        <p class="text-xl font-bold">Merci {{ session['user']['name'] }} !</p>
-        <p class="text-base mt-1">{{ banner_text }}</p>
-    </div>
-    <a href="{{ banner_btn_href }}" class="btn btn-lg shrink-0">
-        {{ banner_btn_label }} <i class="iconoir-arrow-right"></i>
-    </a>
+{% call info_card(banner_kind, 'shadow-lg mb-6 py-6') %}
+<div>
+    <p class="text-xl font-bold">Merci {{ session['user']['name'] }} !</p>
+    <p class="text-base mt-1">{{ banner_text }}</p>
 </div>
+<a href="{{ banner_btn_href }}" class="btn btn-lg w-full md:w-auto">
+    {{ banner_btn_label }} <i class="iconoir-arrow-right"></i>
+</a>
+{% endcall %}
 {% endif %}
 
 <a class="btn btn-sm btn-ghost self-start -mt-2 mb-2" href="{{ url_for('history.history', **request.args) }}">
@@ -175,7 +172,7 @@
         <div class="card-body gap-3">
             <h2 class="card-title text-base">Changesets</h2>
             {% if departements %}
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto shrink-0">
                 <table class="table table-sm">
                     <thead>
                         <tr>

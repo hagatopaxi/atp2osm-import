@@ -25,18 +25,19 @@ endblock %}
 <script src="/static/js/filters.js?v={{ app_version }}"></script>
 {% endblock %}
 
+{% from '_info_card.html' import info_card %}
+
 {% block content %}
 {% if 'user' not in session %}
-<div role="alert" class="alert alert-info alert-soft mb-4 max-w-3xl">
-    <i class="iconoir-log-in text-xl shrink-0"></i>
-    <div>
-        <p class="font-semibold">Connexion requise</p>
-        <p class="text-sm">Connectez-vous avec votre compte OpenStreetMap pour lancer une intégration.</p>
-    </div>
-    <button onclick="login('/brands')" class="btn btn-sm btn-primary rounded-full shrink-0">
-        <i class="iconoir-log-in"></i> Se connecter avec OSM
-    </button>
+{% call info_card('info', 'mb-4 max-w-3xl') %}
+<div>
+    <p class="font-semibold">Connexion requise</p>
+    <p class="text-sm">Connectez-vous avec votre compte OpenStreetMap pour lancer une intégration.</p>
 </div>
+<button onclick="login('/brands')" class="btn btn-sm btn-primary rounded-full self-start">
+    <i class="iconoir-log-in"></i> Se connecter avec OSM
+</button>
+{% endcall %}
 {% endif %}
 
 <form method="get" data-autosubmit>
@@ -89,6 +90,7 @@ endblock %}
 <p class="text-base-content/60">Aucune marque ne correspond à ces filtres.</p>
 {% endif %}
 
+<div class="overflow-x-auto shrink-0">
 <table class="table table-compact bg-base-100 rounded-2">
     <thead>
         <tr>
@@ -107,7 +109,7 @@ endblock %}
                 {{ row["brand_wikidata"] }}
             </td>
 
-            <td class="w-1/2 max-w-0 truncate" title="{{ row['brand'] }}">
+            <td class="whitespace-nowrap md:w-1/2 md:max-w-0 md:truncate" title="{{ row['brand'] }}">
                 {{ row["brand"] }}
             </td>
 
@@ -144,14 +146,14 @@ endblock %}
             </td>
 
             <td>
-                <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="row-actions">
                     {% if 'user' not in session %}
                     {% set tooltip = "Vous devez vous connecter" %}
                     {% endif %}
                     {% set disabled = tooltip is defined %}
                     <div class="{{ 'tooltip tooltip-left' if disabled }}" {{ ('data-tip="' + tooltip + '"') | safe if disabled }}>
                         <a {% if not disabled %}href="/brands/{{ row['brand_wikidata'] }}/validate"{% endif %}
-                        {{ 'disabled' if disabled }} class="btn {{ 'btn-accent' if not disabled }} btn-sm rounded-md">
+                        {{ 'disabled' if disabled }} class="btn btn-sm rounded-md whitespace-nowrap {{ 'btn-soft btn-accent' if not disabled }}">
                         <i class="iconoir-double-check"></i>
                         Intégrer
                         </a>
@@ -162,4 +164,5 @@ endblock %}
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}

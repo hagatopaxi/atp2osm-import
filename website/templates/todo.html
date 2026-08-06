@@ -1,4 +1,5 @@
 {% extends '_base.html' %}
+{% from '_info_card.html' import info_card %}
 
 {% block meta_description %}Liste des marques françaises absentes d'AllThePlaces. Contribuez en signalant les enseignes manquantes pour enrichir OpenStreetMap.{% endblock %}
 {% block page_title %}Marques manquantes{% endblock %}
@@ -50,10 +51,9 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
               {% if 'user' not in session %}disabled{% endif %} />
           </label>
         </div>
-        <div id="duplicate-warning" class="alert alert-warning hidden py-2 text-sm">
-          <i class="iconoir-warning-triangle"></i>
-          <span id="duplicate-warning-text"></span>
-        </div>
+        {% call info_card('warning', 'hidden py-2 text-sm', 'id="duplicate-warning"') %}
+        <span id="duplicate-warning-text"></span>
+        {% endcall %}
 <div>
           {% if 'user' in session %}
           <button type="submit" class="btn btn-primary btn-sm">
@@ -115,7 +115,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
   <p class="text-base-content/60">Aucune marque ne correspond à ces filtres.</p>
   {% endif %}
 
-  <div class="overflow-x-auto">
+  <div class="overflow-x-auto shrink-0">
     <table class="table table-zebra w-full">
       <thead>
         <tr>

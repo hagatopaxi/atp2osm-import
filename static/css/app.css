@@ -2,7 +2,8 @@
 #sidebar {
     width: 256px;
     flex-shrink: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     transition: width 300ms ease;
 }
 body:has(#sidebar-toggle:not(:checked)) #sidebar {
@@ -38,6 +39,122 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
 }
 #sidebar .menu a i {
     font-size: 1rem;
+}
+
+/* Mobile: the sidebar is entirely hidden and slides in as a full-screen overlay.
+   The top bar — logo, name and the burger opening it — is the only thing left. */
+#topbar {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    #topbar {
+        display: flex;
+        position: fixed;
+        inset: 0 0 auto 0;
+        z-index: 30;
+    }
+
+    #sidebar {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        border-radius: 0;
+        z-index: 40;
+        transition: transform 300ms ease;
+    }
+
+    body:has(#sidebar-toggle:not(:checked)) #sidebar {
+        width: 100%;
+        transform: translateX(-100%);
+    }
+
+    /* The overlay is always fully expanded: never fall back to the icon-only
+       collapsed layout. */
+    body:has(#sidebar-toggle:not(:checked)) .sidebar-hide {
+        display: revert;
+    }
+    .sidebar-show {
+        display: none;
+    }
+}
+
+/* Info cards, see templates/_info_card.html. Built on the daisyUI alert, whose
+   variant tints everything: we keep that tint for the icon and the background
+   but leave the text in the regular reading colour. */
+.info-card-content {
+    color: var(--color-base-content);
+}
+
+/* On desktop the wrapper vanishes and its children become grid items again,
+   which is exactly the daisyUI layout. On mobile the whole alert would stack
+   and centre, icon included; we keep the icon on the left and stack only the
+   content in the remaining column. */
+@media (min-width: 768px) {
+    .info-card-content {
+        display: contents;
+    }
+
+    /* display: contents drops the element from the box tree, so the colour has
+       to be restored on the children. */
+    .info-card > :not(:first-child) {
+        color: var(--color-base-content);
+    }
+}
+
+@media (max-width: 767px) {
+    .info-card-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-width: 0;
+    }
+
+    .info-card {
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-auto-flow: row;
+        justify-items: start;
+        text-align: start;
+    }
+
+    .info-card > :first-child {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .info-card > :not(:first-child) {
+        grid-column: 2;
+        width: 100%;
+    }
+
+    /* Long labels would otherwise push the button past the card. daisyUI pins
+       .btn to flex-shrink: 0, so it would keep its max-content width. */
+    .info-card .btn {
+        /* Grow past the daisyUI height when the label wraps, never below it —
+           a btn-lg has to stay a btn-lg. */
+        height: auto;
+        min-height: var(--size);
+        white-space: normal;
+        flex-shrink: 1;
+        max-width: 100%;
+    }
+}
+
+/* Row action buttons: hidden until hover on desktop, always visible on mobile. */
+.row-actions {
+    opacity: 0;
+    transition: opacity 150ms ease;
+}
+
+.group:hover .row-actions,
+.row-actions:focus-within {
+    opacity: 1;
+}
+
+@media (max-width: 767px) {
+    .row-actions {
+        opacity: 1;
+    }
 }
 
 /* Map clickable affordance */

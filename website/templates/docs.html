@@ -1,4 +1,5 @@
 {% extends '_base.html' %}
+{% from '_info_card.html' import info_card %}
 
 {% block page_title %}Documentation{% endblock %}
 {% block meta_description %}Documentation d'atp2osm : comment est structuré la base AllThePlaces, la correspondance spatiale avec les données d'OpenStreetMap et le processus d'intégration collaborative.{% endblock %}
@@ -74,21 +75,20 @@
                     et d'étendre cette confiance à l'ensemble du jeu de données.
                 </p>
 
-                <div role="alert" class="alert alert-info alert-soft p-3">
-                    <i class="iconoir-info-circle text-lg shrink-0"></i>
-                    <div class="flex flex-col gap-2">
-                        <p class="text-sm">Une enseigne est absente ? Son spider ATP n'existe peut-être pas encore.</p>
-                        <div class="flex flex-wrap gap-2">
-                            <a href="/todo" class="btn btn-xs btn-primary rounded-full">
-                                <i class="iconoir-list"></i> La signaler dans les marques manquantes
-                            </a>
-                            <a href="https://github.com/alltheplaces/alltheplaces" target="_blank" rel="noopener"
-                                class="btn btn-xs btn-outline rounded-full">
-                                <i class="iconoir-github"></i> Écrire un spider sur GitHub
-                            </a>
-                        </div>
-                    </div>
+                {% call info_card('info', 'p-3') %}
+                <div class="flex flex-col gap-2">
+                <p class="text-sm">Une enseigne est absente ? Son spider ATP n'existe peut-être pas encore.</p>
+                <div class="flex flex-wrap gap-2">
+                    <a href="/todo" class="btn btn-xs btn-primary rounded-full">
+                        <i class="iconoir-list"></i> La signaler dans les marques manquantes
+                    </a>
+                    <a href="https://github.com/alltheplaces/alltheplaces" target="_blank" rel="noopener"
+                        class="btn btn-xs btn-outline rounded-full">
+                        <i class="iconoir-github"></i> Écrire un spider sur GitHub
+                    </a>
                 </div>
+                </div>
+                {% endcall %}
 
             </div>
         </div>
@@ -96,7 +96,7 @@
 
     <section>
         <h2 class="text-lg font-semibold mb-3">Résumé</h2>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-2">
                     <h3 class="font-semibold text-success text-sm flex items-center gap-1"><i class="iconoir-check-circle"></i> Ce qui est fait</h3>
@@ -222,10 +222,9 @@
 
     <section>
         <h2 class="text-lg font-semibold mb-3">Validation des marques</h2>
-        <div role="alert" class="alert alert-warning mb-4">
-            <i class="iconoir-warning-triangle text-xl shrink-0"></i>
-            <p class="text-sm">Seuls <strong>3 éléments par lot</strong> sont validés manuellement, tirés au hasard parmi les établissements de ce lot.</p>
-        </div>
+        {% call info_card('warning', 'mb-4') %}
+        <p class="text-sm">Seuls <strong>3 éléments par lot</strong> sont validés manuellement, tirés au hasard parmi les établissements de ce lot.</p>
+        {% endcall %}
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
             La validation se fait <strong>lot par lot</strong> : une marque est découpée en lots de départements entiers,
             et avant d'intégrer un lot vous en contrôlez 3 établissements, tirés au hasard.

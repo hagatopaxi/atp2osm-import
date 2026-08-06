@@ -1,0 +1,22 @@
+{# Info card. One layout for every variant — the variant only picks the colour
+   and the icon. The icon stays on the left at every width; the content sits on
+   one row on desktop and stacks on mobile.
+   Usage:
+     {% from '_info_card.html' import info_card %}
+     {% call info_card('warning') %}<p>…</p>{% endcall %}
+#}
+{% set INFO_CARD_ICONS = {
+    'info':    'iconoir-info-circle',
+    'success': 'iconoir-check-circle',
+    'warning': 'iconoir-warning-triangle',
+    'error':   'iconoir-xmark-circle'
+} %}
+
+{% macro info_card(kind='info', class='', attrs='') %}
+<div role="alert" class="info-card alert alert-{{ kind }} alert-soft {{ class }}" {{ attrs | safe }}>
+    <i class="{{ INFO_CARD_ICONS[kind] }} text-xl shrink-0"></i>
+    <div class="info-card-content">
+        {{ caller() }}
+    </div>
+</div>
+{% endmacro %}

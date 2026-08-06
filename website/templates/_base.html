@@ -44,13 +44,22 @@
 
 <body class="flex h-screen w-screen bg-base-300 gap-2 p-2">
     <input type="checkbox" id="sidebar-toggle" class="hidden" checked />
+    <header id="topbar" class="relative bg-base-200 shadow-sm items-center justify-center gap-2 px-2 py-2">
+        <label for="sidebar-toggle" class="btn btn-sm btn-square btn-ghost absolute left-2"
+            title="Ouvrir la barre latérale">
+            <i class="iconoir-menu text-xl"></i>
+        </label>
+        <img src="/static/img/logo.svg" alt="atp2osm logo" class="w-6 h-6 shrink-0" />
+        <span class="text-lg font-bold font-mono">atp2osm</span>
+        {% if is_dev %}<span class="badge badge-warning badge-sm">DEV</span>{% endif %}
+    </header>
     {% include '_aside.html' %}
 
-    <main class="flex flex-col bg-base-200 rounded-md flex-grow p-3 overflow-x-auto gap-2">
+    <main class="flex flex-col bg-base-200 rounded-md flex-grow p-3 pt-14 md:pt-3 overflow-x-auto gap-2">
         <div class="mb-4">
             <h1 class="text-xl font-bold mb-4 font-mono flex items-center"><i class="iconoir-nav-arrow-right"></i>{%
                 block title %}{% endblock %}</h1>
-            <p class="text-sm text-gray-500 w-2/3">{% block subtitle %}{% endblock %}</p>
+            <p class="text-sm text-gray-500 w-full md:w-2/3">{% block subtitle %}{% endblock %}</p>
         </div>
 
         {% block content %}{% endblock %}
