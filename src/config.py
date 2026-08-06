@@ -1,7 +1,6 @@
 import logging
 import os
 import pathlib
-import subprocess
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Optional
@@ -37,22 +36,13 @@ def get_float(name: str, default: float) -> float:
 
 
 def get_version() -> str:
-    """Get application version from env or git."""
-    if v := os.environ.get("APP_VERSION"):
-        return v
-    try:
-        rev = (
-            subprocess.check_output(
-                ["git", "rev-parse", "--short=6", "HEAD"],
-                cwd=PROJECT_ROOT,
-                stderr=subprocess.DEVNULL,
-            )
-            .decode()
-            .strip()
-        )
-        return f"Gamma-{rev}"
-    except Exception:
+    """Get application version. GIT_COMMIT is set by the container build."""
+    rev = os.environ.get("GIT_COMMIT")
+    if not rev:
+        if os.environ.get("APP_ENV", "").upper() == "PRODUCTION":
+            raise ConfigError("GIT_COMMIT must be set in production")
         return "Gamma"
+    return f"Gamma-{rev}"
 
 
 @dataclass(frozen=True)

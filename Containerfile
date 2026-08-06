@@ -20,9 +20,9 @@ COPY website/ website/
 COPY static/ static/
 COPY migrations/ migrations/
 
-ARG GIT_COMMIT=unknown
+ARG GIT_COMMIT
 LABEL git-commit=${GIT_COMMIT}
-ENV APP_VERSION=Beta-${GIT_COMMIT}
+ENV GIT_COMMIT=${GIT_COMMIT}
 
 ARG PORT=8000
 ENV PORT=${PORT}
