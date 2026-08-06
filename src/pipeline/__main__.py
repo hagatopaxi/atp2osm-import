@@ -1,9 +1,6 @@
 import logging
-import sys
 
 from src.config import get_database
-from src.db import set_maintenance
-from src.pipeline._db import connect
 from src.pipeline.dag import PIPELINE, record_failure
 from src.pipeline.runner import StepFormatter, main
 
@@ -17,17 +14,7 @@ logging.root.addHandler(handler)
 
 get_database()  # fail fast if the DB env vars are missing
 
-if sys.argv[1:2] == ["list"]:  # read-only command, no DB, no maintenance flag
-    main(PIPELINE, record_failure)
-    raise SystemExit(0)
-
-# Maintenance mode covers the whole run: the web app serves a 503 page instead
-# of 500s while the tables are rebuilt. Cleared only on success — a crashed or
-# failed run stays in maintenance until an admin relaunches the pipeline.
-conn = connect()
-try:
-    set_maintenance(conn, True)
-    main(PIPELINE, record_failure)
-    set_maintenance(conn, False)
-finally:
-    conn.close()
+# No maintenance flag to set here: each datasource opens and closes its own
+# data_imports row (see _db.start_import), which is what puts the web app in
+# maintenance.
+main(PIPELINE, record_failure)

@@ -7,23 +7,20 @@ from src.config import get_database
 def maintenance_since(conn):
     """Return when the current maintenance started, or None if there is none.
 
-    The marker is set by the pipeline when it starts and removed only when a
-    run succeeds — a failed or interrupted run deliberately keeps the site in
-    maintenance until an admin fixes it and relaunches the pipeline.
-    See migrations/014_create_maintenance.sql for the manual override.
+    Maintenance is on while a datasource's *latest* row is 'pending': it posts
+    one when it starts syncing and resolves it when it ends. An interrupted run
+    leaves it pending, so the site stays in maintenance until the pipeline is
+    relaunched — which supersedes the row on its own, nothing to clean up.
+    See migrations/018_data_imports_pending.sql for the manual override.
     """
     with conn.cursor() as cur:
-        cur.execute("SELECT started_at FROM maintenance ORDER BY started_at LIMIT 1")
-        row = cur.fetchone()
-        return row[0] if row else None
-
-
-def set_maintenance(conn, active):
-    with conn.cursor() as cur:
-        cur.execute("DELETE FROM maintenance")
-        if active:
-            cur.execute("INSERT INTO maintenance (started_at) VALUES (NOW())")
-    conn.commit()
+        cur.execute("""
+            SELECT MIN(created_at) FROM (
+                SELECT DISTINCT ON (type) status, created_at
+                FROM data_imports ORDER BY type, created_at DESC
+            ) latest WHERE status = 'pending'
+        """)
+        return cur.fetchone()[0]
 
 
 def get_osmdb():

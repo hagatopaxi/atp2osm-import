@@ -12,7 +12,7 @@ from src.pipeline.constants import (
 import requests
 
 from src.config import get_database, get_pipeline
-from src.pipeline._db import connect, last_import_date, record_import
+from src.pipeline._db import connect, last_import_date, record_import, start_import
 from src.utils import delete_file_if_exists, download_large_file
 
 logger = logging.getLogger(__name__)
@@ -68,6 +68,7 @@ def download_pbf():
     conn = connect()
     try:
         last_date = last_import_date(conn, "osm")
+        start_import(conn, "osm")  # puts the site in maintenance mode
 
         if last_date and last_date >= newest_ts:
             logger.info(

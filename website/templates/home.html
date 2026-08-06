@@ -150,6 +150,8 @@
                 <h3 class="card-title text-sm font-mono">{{ label }}</h3>
                 {% if row %} {% if row.status == "error" %}
                 <div class="badge badge-error badge-sm">Erreur</div>
+                {% elif row.status == "pending" %}
+                <div class="badge badge-warning badge-sm">Synchronisation</div>
                 {% else %}
                 <div class="badge badge-success badge-sm">OK</div>
                 {% endif %}

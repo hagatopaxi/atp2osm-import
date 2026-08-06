@@ -17,7 +17,7 @@
 import logging
 import traceback
 
-from src.pipeline._db import connect
+from src.pipeline._db import connect, record_import
 from src.pipeline.atp import (
     cleanup_atp,
     create_parquet_atp,
@@ -48,9 +48,12 @@ PIPELINE = {
 
 
 def record_failure(step_name, exc):
-    """Failure hook for the runner: persist a failing step as an error row
-    holding the step name and its full stack trace, so a refresh can be
-    diagnosed later.
+    """Failure hook for the runner: close the branch's open row on the failing
+    step, keeping its full stack trace so a refresh can be diagnosed later.
+
+    Left 'pending', not 'error': it stays the datasource's latest row, so the
+    site stays in maintenance rather than exposing half-rebuilt tables until
+    the next run supersedes it.
 
     Opens its own connection (the step's own one may be in a broken
     transaction) and never raises — masking the original error would be worse.
@@ -65,13 +68,7 @@ def record_failure(step_name, exc):
     try:
         conn = connect()
         try:
-            with conn.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO data_imports (type, date, status, comment) "
-                    "VALUES (%s, NULL, 'error', %s)",
-                    (import_type, comment),
-                )
-            conn.commit()
+            record_import(conn, import_type, None, "pending", comment)
         finally:
             conn.close()
     except Exception:

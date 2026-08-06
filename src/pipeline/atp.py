@@ -15,7 +15,7 @@ import duckdb
 import requests
 
 from src.config import get_database
-from src.pipeline._db import connect, last_import_date, record_import
+from src.pipeline._db import connect, last_import_date, record_import, start_import
 from src.pipeline.ndgeojson_to_parquet import convert_to_parquet
 from src.utils import delete_file_if_exists, download_large_file
 
@@ -48,6 +48,7 @@ def download_atp():
     conn = connect()
     try:
         last_date = last_import_date(conn, "atp")
+        start_import(conn, "atp")  # puts the site in maintenance mode
 
         resp = requests.get(ATP_HISTORY_URL, timeout=30)
         resp.raise_for_status()
