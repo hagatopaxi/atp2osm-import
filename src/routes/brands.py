@@ -17,13 +17,13 @@ from src.db import get_osmdb, maintenance_since
 from src.extensions import cache
 from src.matching import (
     BATCH_MAX_SIZE,
-    BATCH_SAMPLE_SIZE,
     BLOCKED_BRANDS_SQL,
     get_all,
     get_blocked_departements,
     get_changes,
     get_filtered,
     get_stats,
+    sample_for_review,
     select_batch,
 )
 from src.routes.auth import auth_required
@@ -32,7 +32,6 @@ from src.utils import (
     _determine_import_status,
     fetch_osm_users,
     filter_brands,
-    get_rand_items,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,7 +72,7 @@ def _get_blocking_import(brand_wikidata: str):
 
 def _get_last_import(brand_wikidata: str):
     """Latest integration of the brand, or None — shown on /validate so the
-    reviewer knows what went wrong last time (statut et commentaires)."""
+    reviewer knows what went wrong last time (status and comments)."""
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         last = cursor.execute(
@@ -163,8 +162,7 @@ def brands_validate(brand_wikidata):
             osmdb.commit()
         return render_template("brands/:brand_wikidata/empty.html")
 
-    # get_rand_items() returns the whole batch when it holds fewer POIs than that.
-    items = get_rand_items(changes, n=BATCH_SAMPLE_SIZE)
+    items = sample_for_review(changes)
     brand = items[0]["atp_brand"]
     for idx, item in enumerate(items):
         item["title"] = (

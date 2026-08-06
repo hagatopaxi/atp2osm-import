@@ -1,3 +1,4 @@
+import random
 import re
 
 from psycopg import Cursor
@@ -420,9 +421,39 @@ BATCH_MAX_SIZE = 100
 # beta cap be lowered without the safety nets firing on a legitimate batch.
 MAX_UPLOAD_SIZE = 200
 
-# POIs reviewed per batch, whatever its size — a batch smaller than that is
-# reviewed in full.
+# Floor of POIs reviewed per batch — the sample may exceed it to cover every
+# changed tag. A batch smaller than that is reviewed in full.
 BATCH_SAMPLE_SIZE = 3
+
+
+def changed_tags(change: dict) -> set[str]:
+    """Keys whose value differs between the existing POI and the proposal."""
+    tag = change.get("tag", {})
+    old_tag = change.get("old_tag", {})
+    return {k for k in tag.keys() | old_tag.keys() if tag.get(k) != old_tag.get(k)}
+
+
+def sample_for_review(changes: list[dict], min_size: int = BATCH_SAMPLE_SIZE) -> list[dict]:
+    """Sample reviewed before integration: at least one POI per changed tag.
+
+    Its size therefore follows the number of tags involved, topped up at
+    random up to *min_size*.
+    """
+    by_tag: dict[str, list[int]] = {}
+    for i, change in enumerate(changes):
+        for tag in changed_tags(change):
+            by_tag.setdefault(tag, []).append(i)
+
+    picked: set[int] = set()
+    # ponytail: naive greedy, not a minimal cover — a few POIs too many at
+    # worst, and the tag count stays single-digit.
+    for candidates in by_tag.values():
+        if not picked.intersection(candidates):
+            picked.add(random.choice(candidates))
+
+    rest = [i for i in range(len(changes)) if i not in picked]
+    picked.update(random.sample(rest, max(0, min(min_size - len(picked), len(rest)))))
+    return [changes[i] for i in sorted(picked)]
 
 
 def count_by_departement(changes: list[dict]) -> dict[str, int]:
@@ -505,13 +536,9 @@ def get_stats(changes: list) -> dict:
 
     for change in changes:
         # Count tag updates
-        tag = change.get("tag", {})
-        old_tag = change.get("old_tag", {})
-        updated_tags = set(tag.keys()).union(set(old_tag.keys()))
-        for t in updated_tags:
-            if tag.get(t) != old_tag.get(t):
-                tag_updates[t] = tag_updates.get(t, 0) + 1
-                total_tag_updates += 1
+        for t in changed_tags(change):
+            tag_updates[t] = tag_updates.get(t, 0) + 1
+            total_tag_updates += 1
 
         # Count changes by department
         dpt = change.get("departement_number")

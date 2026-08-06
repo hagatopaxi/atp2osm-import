@@ -2,7 +2,6 @@ import os
 import time
 import logging
 import requests
-import random
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -274,34 +273,11 @@ def fetch_osm_users(user_ids):
     return cached | fetched
 
 
-def get_rand_items(arr: list, n: int) -> list:
-    """
-    Returns a new array which contains n random items.
-    No duplicate
-    """
-    if n >= len(arr):
-        return arr
-
-    items_idx = []
-    length = len(arr)
-    for _ in range(n):
-        rand_idx = random.randint(0, length - 1)
-        max_iter = 15
-        i = 0
-        while rand_idx in items_idx and i < max_iter:
-            rand_idx = random.randint(0, length - 1)
-            i += 1
-
-        if i != max_iter:
-            items_idx.append(rand_idx)
-    return [arr[idx] for idx in items_idx]
-
-
 def _determine_import_status(results: list[dict]) -> str:
     """Derive the import_history status from its département rows.
 
-    All succeeded → success ; none → error ; a mix → partial. Le type d'erreur
-    (API OSM ou inattendue) reste sur la ligne du département.
+    All succeeded → success ; none → error ; a mix → partial. The error kind
+    (OSM API or unexpected) stays on the département row.
     """
     statuses = {r["status"] for r in results}
     if statuses <= {"success"}:
