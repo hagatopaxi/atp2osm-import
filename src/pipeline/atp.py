@@ -23,6 +23,27 @@ from src.utils import delete_file_if_exists, download_large_file
 logger = logging.getLogger(__name__)
 
 
+# ISO 3166-1 alpha-2 codes, minus FR. ATP names its country-specific spiders
+# `<brand>_<cc>` (e.g. `aldi_de`), so a foreign suffix means no French POI.
+_FOREIGN_COUNTRY_CODES = frozenset(
+    """ad ae af ag ai al am ao aq ar as at au aw ax az ba bb bd be bf bg bh bi bj bl bm
+    bn bo bq br bs bt bv bw by bz ca cc cd cf cg ch ci ck cl cm cn co cr cu cv cw cx cy
+    cz de dj dk dm do dz ec ee eg eh er es et fi fj fk fm fo ga gb gd ge gf gg gh gi gl
+    gm gn gp gq gr gs gt gu gw gy hk hm hn hr ht hu id ie il im in io iq ir is it je jm
+    jo jp ke kg kh ki km kn kp kr kw ky kz la lb lc li lk lr ls lt lu lv ly ma mc md me
+    mf mg mh mk ml mm mn mo mp mq mr ms mt mu mv mw mx my mz na nc ne nf ng ni nl no np
+    nr nu nz om pa pe pf pg ph pk pl pm pn pr ps pt pw py qa re ro rs ru rw sa sb sc sd
+    se sg sh si sj sk sl sm sn so sr ss st sv sx sy sz tc td tf tg th tj tk tl tm tn to
+    tr tt tv tw tz ua ug um us uy uz va vc ve vg vi vn vu wf ws ye yt za zm zw""".split()
+)
+
+
+def is_relevant_spider(filename: str) -> bool:
+    """True unless the spider name carries a non-French country suffix."""
+    stem = filename.rsplit("/", 1)[-1].removesuffix(".geojson")
+    return stem.rsplit("_", 1)[-1].lower() not in _FOREIGN_COUNTRY_CODES
+
+
 def download_atp():
     conn = connect()
     try:
@@ -90,7 +111,8 @@ def extract_atp():
     GEOJSON_DIR.mkdir(parents=True)
 
     with zipfile.ZipFile(zip_path, "r") as zf:
-        zf.extractall(GEOJSON_DIR)
+        members = [n for n in zf.namelist() if is_relevant_spider(n)]
+        zf.extractall(GEOJSON_DIR, members)
 
     geojson_files = list(GEOJSON_DIR.rglob("*.geojson"))
     if not geojson_files:
