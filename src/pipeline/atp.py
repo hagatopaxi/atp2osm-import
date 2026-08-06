@@ -171,7 +171,7 @@ def import_atp():
                     properties->>'$.opening_hours'    AS opening_hours,
                     properties->>'$.website'          AS website,
                     properties->>'$.phone'            AS phone,
-                    properties->>'$.email'            AS email,
+                    LOWER(properties->>'$.email')     AS email,
                     properties->>'$.end_date'         AS end_date,
                     properties->>'$.@spider'          AS spider_id,
                     NULL::VARCHAR                     AS source_type,
