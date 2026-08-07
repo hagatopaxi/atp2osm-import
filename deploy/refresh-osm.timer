@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily timer for ${PROJECT_NAME} OSM-only data refresh
+
+[Timer]
+# Monday is skipped: refresh.timer runs the full ATP+OSM pipeline that day
+# (running both would rebuild mv_places_brand twice).
+OnCalendar=Tue..Sun *-*-* 04:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
