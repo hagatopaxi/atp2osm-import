@@ -223,13 +223,21 @@
     <section>
         <h2 class="text-lg font-semibold mb-3">Validation des marques</h2>
         {% call info_card('warning', 'mb-4') %}
-        <p class="text-sm">Seuls <strong>3 éléments par lot</strong> sont validés manuellement, tirés au hasard parmi les établissements de ce lot.</p>
+        <p class="text-sm">Seuls <strong>3 éléments au minimum</strong> sont validés manuellement par lot, tirés au hasard parmi les établissements de ce lot.</p>
         {% endcall %}
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
             La validation se fait <strong>lot par lot</strong> : une marque est découpée en lots de départements entiers,
-            et avant d'intégrer un lot vous en contrôlez 3 établissements, tirés au hasard.
+            et avant d'intégrer un lot vous en contrôlez un échantillon tiré au hasard.
             Si les données de cet échantillon sont correctes, la fiabilité est considérée comme acquise pour
             l'ensemble des établissements du lot.
+        </p>
+        <p class="text-sm text-base-content/80 leading-relaxed mb-3">
+            L'échantillon contient <strong>au moins un exemple de chaque tag modifié</strong> par le lot : si le lot
+            ajoute par exemple <code>phone</code>, <code>website</code>, <code>opening_hours</code> et
+            <code>email</code>, l'échantillon comprendra un POI portant chacun de ces tags. Chaque tag est donc vu au
+            moins une fois avant l'intégration, et l'échantillon est complété au hasard jusqu'à 3 éléments s'il en
+            compte moins. Selon les tags concernés, vous pouvez ainsi avoir <strong>4 POIs à vérifier</strong>, voire
+            davantage.
         </p>
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
             Avant de valider, assurez-vous que les éléments vérifiés sont représentatifs : testez plusieurs établissements
