@@ -19,6 +19,7 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
 -- Based on tags wiki list, that removes every POI which are definitely not places
 -- https://wiki.openstreetmap.org/wiki/Map_features
 local function is_definitely_not_a_place(tags)
+    if tags["advertising"] then return true end
     if tags["aerialway"] then return true end
     if tags["aeroway"] then return true end
     if tags["barrier"] then return true end
