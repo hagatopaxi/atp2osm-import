@@ -1,0 +1,250 @@
+{% extends '_base.html' %}
+
+{% block meta_description %}Statistiques des intégrations AllThePlaces vers OpenStreetMap : volume de POIs, tags enrichis, fiabilité des spiders, marques et contributeurs.{% endblock %}
+{% block page_title %}Statistiques{% endblock %}
+{% block og_title %}Statistiques des intégrations — atp2osm{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "{{ request.host_url }}" },
+    { "@type": "ListItem", "position": 2, "name": "Statistiques" }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block custom_css %}
+<link rel="stylesheet" href="/static/css/stats.css?v={{ app_version }}" type="text/css" />
+{% endblock %}
+
+{% block custom_js %}
+<script src="/static/js/filters.js?v={{ app_version }}"></script>
+{% endblock %}
+
+{% block title %}Statistiques{% endblock %}
+{% block subtitle %}Ce que les intégrations ont apporté à OpenStreetMap : volumes, tags enrichis, fiabilité des spiders et des changesets.{% endblock %}
+
+{# Barres horizontales triées : la forme la plus lisible pour comparer des
+   catégories nommées. Libellé et valeur sont du texte, rien à doubler pour les
+   lecteurs d'écran. #}
+{% macro bar_list(rows, empty='Aucune donnée sur cette période.') %}
+{% set top = rows[0].value if rows else 0 %}
+{% if rows %}
+<ul class="bar-list">
+    {% for row in rows %}
+    <li>
+        <span class="bar-label" title="{{ row.label }}">{{ row.label }}</span>
+        <span class="bar-track"><span class="bar-fill" style="--bar: {{ (100 * row.value / top) | round(1) }}%"></span></span>
+        <span class="bar-value">{{ row.value }}</span>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-sm text-base-content/60">{{ empty }}</p>
+{% endif %}
+{% endmacro %}
+
+{% macro card(title, hint='') %}
+<figure class="card bg-base-100 shadow-sm p-4 h-full">
+    <figcaption class="mb-3">
+        <span class="font-semibold text-sm">{{ title }}</span>
+        {% if hint %}<span class="block text-xs text-base-content/50">{{ hint }}</span>{% endif %}
+    </figcaption>
+    {{ caller() }}
+</figure>
+{% endmacro %}
+
+{% block content %}
+<form method="get" data-autosubmit class="flex flex-wrap items-end gap-3 mb-4">
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">Marque</legend>
+        <label class="input input-sm w-56">
+            <i class="iconoir-search opacity-50"></i>
+            <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="Nom ou code Wikidata"
+                {{ 'autofocus' if filters.q }} />
+        </label>
+    </fieldset>
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">Utilisateur</legend>
+        <select name="user" class="select select-sm">
+            <option value="">Tous</option>
+            {% for uid, name in filter_users %}
+            <option value="{{ uid }}" {{ 'selected' if filters.user == uid }}>{{ name }}</option>
+            {% endfor %}
+        </select>
+    </fieldset>
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">Période</legend>
+        <div class="join">
+            {% for value, (label, _, _) in ranges.items() %}
+            <input class="btn btn-sm join-item" type="radio" name="range" value="{{ value }}"
+                aria-label="{{ label }}" {{ 'checked' if range_key == value }} />
+            {% endfor %}
+        </div>
+    </fieldset>
+    <fieldset class="fieldset">
+        <legend class="fieldset-legend">&nbsp;</legend>
+        <div class="join">
+            <button type="submit" class="btn btn-sm btn-primary join-item">Filtrer</button>
+            {% if is_filtered %}
+            <a href="{{ url_for('stats.stats', range=default_range) }}" class="btn btn-sm btn-soft join-item">Réinitialiser</a>
+            {% endif %}
+        </div>
+    </fieldset>
+</form>
+
+<div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
+    {% for icon, value, label in [
+        ("iconoir-database-check", kpi.pois,         "POIs intégrés"),
+        ("iconoir-label",          tags_total,       "Tags ajoutés"),
+        ("iconoir-double-check",   kpi.imports,      "Intégrations"),
+        ("iconoir-shop",           kpi.brands,       "Marques"),
+        ("iconoir-community",      kpi.contributors, "Contributeurs"),
+        ("iconoir-check-circle",   (spiders_reliability ~ ' %') if spiders_reliability is not none else '—', "Fiabilité spiders")
+    ] %}
+    <div class="card bg-base-100 shadow-sm">
+        <div class="card-body items-center text-center p-4">
+            <i class="{{ icon }} text-2xl text-base-content/40"></i>
+            <p class="text-2xl font-bold">{{ value }}</p>
+            <h2 class="font-mono text-xs text-base-content/60">{{ label }}</h2>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if series_max > 0 %}
+<figure class="card bg-base-100 shadow-sm p-4 mb-4">
+    {% set unit_label = {'day': 'jour', 'week': 'semaine', 'month': 'mois'}[unit] %}
+    <figcaption class="mb-3">
+        <span class="font-semibold text-sm">Rythme et progression</span>
+        <span class="block text-xs text-base-content/50">
+            Ce que chaque {{ unit_label }} a apporté à OpenStreetMap, et ce que l'ensemble totalise.
+            Les deux séries partagent la même échelle : la hauteur d'une barre se lit directement
+            comme la part de cette période dans le total.
+        </span>
+        <span class="flex flex-wrap gap-4 text-xs text-base-content/50 mt-1">
+            <span class="flex items-center gap-1"><span class="legend-swatch legend-swatch-bar"></span> POIs intégrés par {{ unit_label }}</span>
+            <span class="flex items-center gap-1"><span class="legend-swatch legend-swatch-line"></span> Total cumulé</span>
+        </span>
+    </figcaption>
+    <div class="series-scroll">
+        <div class="series-width" style="--bars: {{ series | length }}">
+            {# Une colonne pleine hauteur par période : le survol attrape la
+               période entière, pas seulement le sommet d'une barre écrasée. #}
+            <div class="series-chart" role="img"
+                aria-label="{% for p in series %}{{ p.period.strftime('%d/%m/%Y') }} : {{ p.pois }} POIs, cumul {{ p.cumulative }}. {% endfor %}">
+                {% for p in series %}
+                <div class="series-col" data-value="{{ p.pois }}"
+                    style="--bar: {{ (100 * p.pois / cumulative_max) | round(1) if cumulative_max else 0 }}%; --cumul: {{ (100 * p.cumulative / cumulative_max) | round(1) if cumulative_max else 0 }}%"
+>
+                    <span class="series-tip">{{ p.period.strftime('%d/%m/%Y') }} — {{ p.pois }} POIs ({{ p.imports }} intégration{{ 's' if p.imports > 1 }}), cumul {{ p.cumulative }}</span>
+                    <span class="series-bar"></span>
+                    {% if cumulative_max > 0 %}
+                    <span class="series-dot" data-cumul="{{ p.cumulative }}"></span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% if cumulative_max > 0 and series | length > 1 %}
+                {# La courbe passe par le centre des colonnes, où sont les pastilles. #}
+                <svg class="series-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <polyline points="{% for p in series %}{{ (100 * (loop.index0 + 0.5) / (series | length)) | round(2) }},{{ (100 - 100 * p.cumulative / cumulative_max) | round(2) }} {% endfor %}" />
+                </svg>
+                {% endif %}
+            </div>
+            <div class="flex justify-between gap-4 text-xs text-base-content/50 mt-1 whitespace-nowrap">
+                <span>{{ series[0].period.strftime('%d/%m/%Y') }}</span>
+                <span>{{ series[-1].period.strftime('%d/%m/%Y') }}</span>
+            </div>
+        </div>
+    </div>
+</figure>
+{% endif %}
+
+<div class="mb-4">
+    {% call card("Contributeurs", "POIs intégrés par contributeur OSM.") %}
+    {{ bar_list(users) }}
+    {% endcall %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+    {% call card("Tags enrichis") %}
+    {{ bar_list(tags) }}
+    {% endcall %}
+
+    {% call card("Marques les plus intégrées") %}
+    {{ bar_list(brands) }}
+    {% endcall %}
+
+    {% call card("Fiabilité des données ATP",
+                 "Part des marques dont l'intégration a été validée, par " ~ unit_label ~ ". Une marque
+                  compte une fois, quel que soit le volume derrière ; une période sans données est vide.") %}
+    <ul class="flex flex-wrap gap-4 mb-3 text-xs text-base-content/50">
+        <li class="flex items-center gap-1"><span class="legend-swatch bg-success"></span> Marques intégrées</li>
+        <li class="flex items-center gap-1"><span class="legend-swatch bg-error"></span> Marques rejetées</li>
+    </ul>
+    {% if spider_series | selectattr('reliability', 'ne', None) | list %}
+    <div class="series-scroll series-grow">
+        <div class="series-width" style="--bars: {{ spider_series | length }}">
+            <div class="series-chart series-chart-mini" role="img"
+                aria-label="{% for p in spider_series if p.reliability is not none %}{{ p.period.strftime('%d/%m/%Y') }} : {{ p.reliability }} % de fiabilité. {% endfor %}">
+                {% for p in spider_series %}
+                <div class="series-col" data-value="{{ (p.reliability ~ ' %') if p.reliability is not none else '' }}"
+                    style="--bar: {{ 100 if p.reliability is not none else 0 }}%; --ok: {{ p.reliability or 0 }}%">
+                    <span class="series-tip">{{ p.period.strftime('%d/%m/%Y') }} — {{ p.integrated }} marque{{ 's' if p.integrated > 1 }} intégrée{{ 's' if p.integrated > 1 }}, {{ p.rejected }} rejetée{{ 's' if p.rejected > 1 }}</span>
+                    {% if p.reliability is not none %}
+                    <span class="series-stack-ok"></span>
+                    <span class="series-stack-ko"></span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="flex justify-between gap-4 text-xs text-base-content/50 mt-1 whitespace-nowrap">
+                <span>{{ spider_series[0].period.strftime('%d/%m/%Y') }}</span>
+                <span>{{ spider_series[-1].period.strftime('%d/%m/%Y') }}</span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-sm text-base-content/60">Aucune relecture sur cette période.</p>
+    {% endif %}
+    {% endcall %}
+    {% call card("Fiabilité des données OSM", "Un changeset refusé l'est presque toujours parce que la copie locale d'OpenStreetMap a vieilli : l'un des POI n'a plus la même version entre OSM et la base atp2osm. L'API rejette le changeset dans son intégralité à ce moment.") %}
+    <ul class="flex flex-wrap gap-4 mb-3 text-xs text-base-content/50">
+        <li class="flex items-center gap-1"><span class="legend-swatch bg-success"></span> Acceptés</li>
+        <li class="flex items-center gap-1"><span class="legend-swatch bg-error"></span> Refusés</li>
+    </ul>
+    {% if changesets_max %}
+    <div class="series-scroll series-grow">
+        <div class="series-width" style="--bars: {{ changesets | length }}">
+            {# Colonnes normalisées : la lecture porte sur la part de réussite,
+               pas sur le volume, que le graphe du haut donne déjà. #}
+            <div class="series-chart series-chart-mini" role="img"
+                aria-label="{% for c in changesets if c.rate is not none %}{{ c.period.strftime('%d/%m/%Y') }} : {{ c.rate }} % de changesets acceptés. {% endfor %}">
+                {% for c in changesets %}
+                <div class="series-col" data-value="{{ (c.rate ~ ' %') if c.rate is not none else '' }}"
+                    style="--bar: {{ 100 if c.rate is not none else 0 }}%; --ok: {{ c.rate or 0 }}%"
+>
+                    <span class="series-tip">{{ c.period.strftime('%d/%m/%Y') }} — {{ c.ok }} accepté{{ 's' if c.ok > 1 }}, {{ c.ko }} refusé{{ 's' if c.ko > 1 }}</span>
+                    {% if c.rate is not none %}
+                    <span class="series-stack-ok"></span>
+                    <span class="series-stack-ko"></span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <div class="flex justify-between gap-4 text-xs text-base-content/50 mt-1 whitespace-nowrap">
+                <span>{{ changesets[0].period.strftime('%d/%m/%Y') }}</span>
+                <span>{{ changesets[-1].period.strftime('%d/%m/%Y') }}</span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-sm text-base-content/60">Aucun changeset sur cette période.</p>
+    {% endif %}
+    {% endcall %}
+</div>
+{% endblock %}

@@ -220,24 +220,3 @@ body:has(#sidebar-toggle:not(:checked)) #sidebar .menu a {
 .input-sm input {
     font-size: inherit;
 }
-
-/* Weekly integration chart on /history. One flex bar per week, height driven by
-   the --bar custom property set inline (the only per-bar data). */
-.weekly-chart {
-    display: flex;
-    align-items: flex-end;
-    gap: 2px;
-    height: 6rem;
-}
-
-.weekly-chart-bar {
-    flex: 1;
-    min-height: 2px;
-    height: var(--bar);
-    border-radius: 2px 2px 0 0;
-    background: var(--color-primary);
-}
-
-.weekly-chart-bar:hover {
-    background: var(--color-primary-content);
-}

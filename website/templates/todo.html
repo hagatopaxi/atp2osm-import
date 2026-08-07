@@ -105,7 +105,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
       <legend class="fieldset-legend">&nbsp;</legend>
       <div class="join">
         <button type="submit" class="btn btn-sm btn-primary join-item">Filtrer</button>
-        <a href="{{ url_for('todo.todo') }}" class="btn btn-sm btn-ghost join-item">Réinitialiser</a>
+        <a href="{{ url_for('todo.todo') }}" class="btn btn-sm btn-soft join-item">Réinitialiser</a>
       </div>
     </fieldset>
     <span class="text-sm text-base-content/60 ml-auto mb-2">{{ entries|length }} marque{{ 's' if entries|length > 1 }}</span>

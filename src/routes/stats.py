@@ -1,0 +1,255 @@
+import logging
+
+from flask import Blueprint, redirect, render_template, request, url_for
+from psycopg.rows import dict_row
+
+from src.db import get_osmdb
+from src.utils import build_filters, fetch_osm_users
+
+logger = logging.getLogger(__name__)
+
+stats_bp = Blueprint("stats", __name__)
+
+# The time filter is not declared here: this page uses quick ranges, built below.
+FILTERS = {
+    "q": ("brand_name", "brand_wikidata"),
+    "user": "osm_user_id",
+}
+
+# Quick time ranges: (label, bar granularity, first period shown). The
+# granularity follows from the range, so the charts always hold 5 to 8 bars.
+RANGES = {
+    "7days": ("7 jours", "day", "date_trunc('day', NOW()) - INTERVAL '6 days'"),
+    "8weeks": ("8 semaines", "week", "date_trunc('week', NOW()) - INTERVAL '7 weeks'"),
+    "all": ("Total", "month", "date_trunc('month', (SELECT MIN(import_date) FROM import_history))"),
+}
+DEFAULT_RANGE = "8weeks"
+
+TOP_N = 15
+
+KPI_SQL = """
+    SELECT COALESCE(SUM(items_count), 0)::int AS pois,
+           COUNT(*)                           AS imports,
+           COUNT(DISTINCT brand_wikidata)     AS brands,
+           COUNT(DISTINCT osm_user_id)        AS contributors
+    FROM import_history {where}
+"""
+
+# generate_series keeps the periods without any integration in the result.
+# {unit} and {start} come from RANGES, never from the request.
+SERIES_SQL = """
+    WITH periods AS (
+        SELECT generate_series(
+            {start},
+            date_trunc('{unit}', NOW()),
+            '1 {unit}'
+        )::date AS period
+    )
+    SELECT p.period,
+           COALESCE(SUM(h.items_count), 0)::int AS pois,
+           COUNT(h.id)                          AS imports
+    FROM periods p
+    LEFT JOIN import_history h
+           ON date_trunc('{unit}', h.import_date)::date = p.period
+          {extra}
+    GROUP BY p.period
+    ORDER BY p.period
+"""
+
+# tags_count is a JSONB map {tag: number of POIs where it was added}.
+TAGS_SQL = """
+    SELECT t.key AS label, SUM(t.value::int)::int AS value
+    FROM import_history h,
+         LATERAL jsonb_each_text(COALESCE(h.tags_count, '{{}}'::jsonb)) t
+    {where}
+    GROUP BY t.key
+    ORDER BY value DESC
+"""
+
+BRANDS_SQL = """
+    SELECT COALESCE(brand_name, brand_wikidata) AS label,
+           SUM(items_count)::int                AS value
+    FROM import_history {where}
+    GROUP BY 1
+    HAVING SUM(items_count) > 0
+    ORDER BY value DESC
+"""
+
+USERS_SQL = """
+    SELECT osm_user_id AS label, SUM(items_count)::int AS value
+    FROM import_history {where}
+    GROUP BY 1
+    HAVING SUM(items_count) > 0
+    ORDER BY value DESC
+"""
+
+# Same reading as SPIDERS_SQL, period by period: what counts is the brand, not
+# how many batches it took.
+SPIDER_SERIES_SQL = """
+    WITH periods AS (
+        SELECT generate_series(
+            {start},
+            date_trunc('{unit}', NOW()),
+            '1 {unit}'
+        )::date AS period
+    ),
+    per_brand AS (
+        SELECT date_trunc('{unit}', h.import_date)::date            AS period,
+               h.brand_wikidata,
+               COUNT(*) FILTER (WHERE h.status IN ('success', 'partial')) AS ok,
+               COUNT(*) FILTER (WHERE h.status = 'cancelled')             AS ko
+        FROM import_history h
+        {where}
+        GROUP BY 1, 2
+    )
+    SELECT p.period,
+           COUNT(b.brand_wikidata) FILTER (WHERE b.ok > 0)              AS integrated,
+           COUNT(b.brand_wikidata) FILTER (WHERE b.ok = 0 AND b.ko > 0) AS rejected
+    FROM periods p
+    LEFT JOIN per_brand b ON b.period = p.period
+    GROUP BY p.period
+    ORDER BY p.period
+"""
+
+# One spider = one ATP brand, and a cancelled integration is a human refusing
+# what it produced — the reliability signal.
+SPIDERS_SQL = """
+    SELECT COALESCE(brand_name, brand_wikidata)                      AS label,
+           COUNT(*) FILTER (WHERE status IN ('success', 'partial'))  AS integrated,
+           COUNT(*) FILTER (WHERE status = 'cancelled')              AS cancelled
+    FROM import_history {where}
+    GROUP BY 1
+"""
+
+# One import_departements row = one changeset. A refused changeset says nothing
+# about the spider: it is the local OSM copy that has drifted since the import.
+CHANGESETS_SQL = """
+    WITH periods AS (
+        SELECT generate_series(
+            {start},
+            date_trunc('{unit}', NOW()),
+            '1 {unit}'
+        )::date AS period
+    )
+    SELECT p.period,
+           COUNT(d.id) FILTER (WHERE d.status = 'success')  AS ok,
+           COUNT(d.id) FILTER (WHERE d.status <> 'success') AS ko
+    FROM periods p
+    LEFT JOIN import_history h
+           ON date_trunc('{unit}', h.import_date)::date = p.period
+          {extra}
+    LEFT JOIN import_departements d ON d.import_id = h.id
+    GROUP BY p.period
+    ORDER BY p.period
+"""
+
+
+@stats_bp.route("/stats")
+def stats():
+    osmdb = get_osmdb()
+    # Defaults included, every filter lives in the URL so a view can be shared.
+    if not request.args:
+        return redirect(url_for("stats.stats", range=DEFAULT_RANGE))
+
+    where, params, filters = build_filters(request.args, FILTERS)
+
+    range_key = request.args.get("range", DEFAULT_RANGE)
+    if range_key not in RANGES:
+        range_key = DEFAULT_RANGE
+    _, unit, start = RANGES[range_key]
+    if range_key != "all":
+        where = f"{where} AND import_date >= {start}" if where else f"WHERE import_date >= {start}"
+    filters["range"] = range_key
+
+    # Queries that name import_history explicitly need the qualified clause.
+    aliased = _alias(where)
+
+    with osmdb.cursor(row_factory=dict_row) as cursor:
+        kpi = cursor.execute(KPI_SQL.format(where=where), params).fetchone()
+        series = cursor.execute(
+            SERIES_SQL.format(
+                unit=unit, start=start, extra=aliased.replace("WHERE ", "AND ", 1)
+            ),
+            params,
+        ).fetchall()
+        tags = cursor.execute(TAGS_SQL.format(where=aliased), params).fetchall()
+        brands = cursor.execute(BRANDS_SQL.format(where=where), params).fetchall()
+        users = cursor.execute(USERS_SQL.format(where=where), params).fetchall()
+        spiders = cursor.execute(SPIDERS_SQL.format(where=where), params).fetchall()
+        spider_series = cursor.execute(
+            SPIDER_SERIES_SQL.format(unit=unit, start=start, where=aliased), params
+        ).fetchall()
+        changesets = cursor.execute(
+            CHANGESETS_SQL.format(
+                unit=unit, start=start, extra=aliased.replace("WHERE ", "AND ", 1)
+            ),
+            params,
+        ).fetchall()
+        all_user_ids = [
+            r["osm_user_id"]
+            for r in cursor.execute(
+                "SELECT DISTINCT osm_user_id FROM import_history"
+            ).fetchall()
+        ]
+
+    names = fetch_osm_users(all_user_ids)
+    for row in users:
+        row["label"] = names.get(row["label"], str(row["label"]))
+
+    # A spider is rejected only when nothing of it ever made it through: one
+    # cancelled batch followed by a successful one is not a bad spider.
+    integrated = sum(1 for s in spiders if s["integrated"])
+    rejected = sum(1 for s in spiders if not s["integrated"] and s["cancelled"])
+    reliability = (
+        round(100 * integrated / (integrated + rejected)) if integrated + rejected else None
+    )
+
+    for row in spider_series:
+        judged = row["integrated"] + row["rejected"]
+        # None rather than zero when no brand was judged: an idle period is not
+        # a failed one.
+        row["reliability"] = round(100 * row["integrated"] / judged) if judged else None
+
+    for row in changesets:
+        sent = row["ok"] + row["ko"]
+        row["rate"] = round(100 * row["ok"] / sent) if sent else None
+
+    # The bars show the rhythm, the running total shows the progress.
+    total = 0
+    for row in series:
+        total += row["pois"]
+        row["cumulative"] = total
+
+    return render_template(
+        "stats.html",
+        kpi=kpi,
+        series=series,
+        series_max=max((r["pois"] for r in series), default=0),
+        cumulative_max=total,
+        unit=unit,
+        tags=tags[:TOP_N],
+        tags_total=sum(t["value"] for t in tags),
+        brands=brands[:TOP_N],
+        users=users[:TOP_N],
+        spider_series=spider_series,
+        spiders_reliability=reliability,
+        changesets=changesets,
+        changesets_max=max((c["ok"] + c["ko"] for c in changesets), default=0),
+        ranges=RANGES,
+        range_key=range_key,
+        filters=filters,
+        default_range=DEFAULT_RANGE,
+        # The URL always spells the defaults out, so it cannot serve as the test.
+        is_filtered=bool(filters.get("q") or filters.get("user")) or range_key != DEFAULT_RANGE,
+        filter_users=sorted(
+            ((uid, names.get(uid, str(uid))) for uid in all_user_ids),
+            key=lambda u: u[1].lower(),
+        ),
+    )
+
+
+def _alias(where, alias="h"):
+    """Qualify the filtered columns with the import_history alias."""
+    for column in ("brand_name", "brand_wikidata", "osm_user_id", "import_date"):
+        where = where.replace(column, f"{alias}.{column}")
+    return where

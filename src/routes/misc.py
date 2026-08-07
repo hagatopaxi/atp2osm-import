@@ -21,6 +21,7 @@ PUBLIC_PAGES = [
     ("misc.home", "Accueil", "présentation et statistiques d'intégration."),
     ("brands.brands", "Marques à intégrer", "enseignes ATP disponibles à l'intégration."),
     ("history.history", "Historique des intégrations", "intégrations réalisées, dates et statuts."),
+    ("stats.stats", "Statistiques", "métriques et graphiques des intégrations réalisées."),
     ("todo.todo", "Marques manquantes", "enseignes françaises absentes d'ATP."),
     ("misc.docs", "Documentation", "fonctionnement et guide de contribution."),
 ]
@@ -34,13 +35,11 @@ def home():
         stats = cursor.execute("""
             SELECT
                 COALESCE(SUM(items_count), 0) AS total_nodes_updated,
-                COUNT(*) FILTER (WHERE status = 'success') AS successful_imports,
                 COUNT(DISTINCT brand_wikidata) FILTER (WHERE status = 'success') AS brands_imported,
                 COUNT(DISTINCT osm_user_id) AS contributors,
-                COALESCE(SUM((tags_count->>'opening_hours')::int), 0) AS opening_hours_added,
-                COALESCE(SUM((tags_count->>'phone')::int), 0) AS phone_added,
-                COALESCE(SUM((tags_count->>'website')::int), 0) AS website_added,
-                COALESCE(SUM((tags_count->>'email')::int), 0) AS email_added
+                COALESCE((SELECT SUM(v.value::int)
+                          FROM import_history h,
+                               LATERAL jsonb_each_text(COALESCE(h.tags_count, '{}'::jsonb)) v), 0) AS tags_added
             FROM import_history
         """).fetchone()
         data_imports = cursor.execute("""

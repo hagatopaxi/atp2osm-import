@@ -14,6 +14,7 @@ from src.routes.auth import auth_bp
 from src.routes.brands import brands_bp
 from src.routes.history import history_bp
 from src.routes.misc import misc_bp
+from src.routes.stats import stats_bp
 from src.routes.todo import todo_bp
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(brands_bp)
 app.register_blueprint(history_bp)
 app.register_blueprint(misc_bp)
+app.register_blueprint(stats_bp)
 app.register_blueprint(todo_bp)
 
 app.teardown_appcontext(teardown_osmdb)

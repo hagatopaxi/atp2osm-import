@@ -22,26 +22,6 @@ FILTERS = {
     "date": "import_date",
 }
 
-WEEKLY_CHART_WEEKS = 26
-
-# Weeks with no integration must still show as an empty bar, hence the series.
-WEEKLY_CHART_SQL = """
-    WITH weeks AS (
-        SELECT generate_series(
-            date_trunc('week', NOW()) - make_interval(weeks => %s - 1),
-            date_trunc('week', NOW()),
-            '1 week'
-        )::date AS week
-    )
-    SELECT w.week, COALESCE(SUM(h.items_count), 0)::int AS count
-    FROM weeks w
-    LEFT JOIN import_history h
-           ON date_trunc('week', h.import_date)::date = w.week
-          {extra}
-    GROUP BY w.week
-    ORDER BY w.week
-"""
-
 
 @history_bp.route("/history")
 def history():
@@ -63,11 +43,6 @@ def history():
             params + [HISTORY_PER_PAGE, offset],
         ).fetchall()
 
-        weekly = cursor.execute(
-            WEEKLY_CHART_SQL.format(extra=where.replace("WHERE ", "AND ", 1)),
-            [WEEKLY_CHART_WEEKS] + params,
-        ).fetchall()
-
         all_user_ids = [
             r["osm_user_id"]
             for r in cursor.execute(
@@ -81,8 +56,6 @@ def history():
     return render_template(
         "history.html",
         entries=entries,
-        weekly=weekly,
-        weekly_max=max((w["count"] for w in weekly), default=0),
         users=users,
         page=page,
         total_pages=total_pages,

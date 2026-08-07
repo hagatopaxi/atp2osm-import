@@ -103,38 +103,25 @@
     </a>
 </section>
 
-<h2 class="text-xl font-semibold mt-6 mb-3">Statistiques</h2>
+<h2 class="text-xl font-semibold mt-6 mb-3 flex items-center gap-3">
+    Statistiques
+    <a href="/stats" class="btn btn-xs btn-soft btn-primary rounded-full">
+        <i class="iconoir-graph-up"></i> Tout voir
+    </a>
+</h2>
 
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-3xl">
     {% for icon, label, value in [
-        ("iconoir-database-check", "Noeuds mis à jour",  stats["total_nodes_updated"]),
-        ("iconoir-check-circle",   "Intégrations réussies", stats["successful_imports"]),
-        ("iconoir-shop",           "Marques intégrées",     stats["brands_imported"]),
-        ("iconoir-community",      "Contributeurs",         stats["contributors"])
+        ("iconoir-database-check", "POIs intégrés",     stats["total_nodes_updated"]),
+        ("iconoir-label",      "Tags ajoutés",      stats["tags_added"]),
+        ("iconoir-shop",           "Marques intégrées", stats["brands_imported"]),
+        ("iconoir-community",      "Contributeurs",     stats["contributors"])
     ] %}
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body items-center text-center">
             <i class="{{ icon }} text-2xl text-base-content/40"></i>
             <p class="text-3xl font-bold">{{ value }}</p>
             <h2 class="font-mono text-sm text-base-content/60">{{ label }}</h2>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-3xl mt-4">
-    {% for icon, key, label in [
-        ("iconoir-clock",        "opening_hours_added", "Horaires"),
-        ("iconoir-phone",        "phone_added",         "Téléphone"),
-        ("iconoir-globe",        "website_added",       "Site web"),
-        ("iconoir-mail",         "email_added",         "Email")
-    ] %}
-    <div class="card bg-base-100 shadow-sm">
-        <div class="card-body items-center text-center">
-            <i class="{{ icon }} text-2xl text-base-content/40"></i>
-            <p class="text-3xl font-bold">{{ stats[key] }}</p>
-            <h2 class="font-mono text-sm text-base-content/60">{{ label }}</h2>
-            <p class="text-xs text-base-content/50">tags ajoutés</p>
         </div>
     </div>
     {% endfor %}
