@@ -74,7 +74,10 @@ def download_atp():
                     run_id,
                     end_time.date(),
                 )
-                record_import(conn, "atp", end_time, "skipped")
+                # last_date, not end_time: this run is older than what we
+                # already have, recording it would make the displayed source
+                # date go backwards.
+                record_import(conn, "atp", last_date, "skipped")
                 return
 
             zip_url = run.get("output_url")
@@ -153,7 +156,7 @@ def import_atp():
             logger.info(
                 "Parquet not newer than last import (%s), skipping", last_date.date()
             )
-            record_import(conn, "atp", parquet_mtime, "skipped")
+            record_import(conn, "atp", last_date, "skipped")
             return
 
         try:
