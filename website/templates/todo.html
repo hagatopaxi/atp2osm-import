@@ -26,6 +26,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
 
 {% block custom_js %}
 <script src="/static/js/filters.js?v={{ app_version }}"></script>
+<script src="/static/js/infinite-scroll.js?v={{ app_version }}" defer></script>
 <script src="/static/js/todo.js?v={{ app_version }}"></script>
 {% endblock %}
 
@@ -128,7 +129,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
   {% else %}
   <p class="text-sm text-base-content/60 mb-2">{{ entries|length }} marque{{ 's' if entries|length > 1 }}</p>
   <div class="overflow-x-auto shrink-0">
-    <table class="table table-compact bg-base-100 rounded-2">
+    <table data-infinite-scroll class="table table-compact bg-base-100 rounded-2">
       <thead>
         <tr>
           {{ sort_th('todo.todo', 'name', 'Nom') }}

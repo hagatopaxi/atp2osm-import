@@ -21,6 +21,7 @@
 
 {% block custom_js %}
 <script src="/static/js/filters.js?v={{ app_version }}"></script>
+<script src="/static/js/infinite-scroll.js?v={{ app_version }}" defer></script>
 {% endblock %}
 
 {% block title %}Historique des intégrations{% endblock %}
@@ -156,32 +157,9 @@
 </table>
 </div>
 
-{% if total_pages > 1 %}
-{# First page, last page and the two neighbours of the current one; the gaps
-   between them become an ellipsis. #}
-{% set shown_pages = [1, total_pages] | list %}
-{% for p in range(page - 2, page + 3) if 1 <= p <= total_pages %}
-{% set _ = shown_pages.append(p) %}
-{% endfor %}
-<div class="join self-center mt-4">
-    {% if page > 1 %}
-    <a class="join-item btn" href="{{ url_for('history.history', sort=sort, dir=direction, page=page - 1, **filters) }}">«</a>
-    {% endif %}
-
-    {% set ns = namespace(previous=0) %}
-    {% for p in shown_pages | unique | sort %}
-    {% if p > ns.previous + 1 %}
-    <span class="join-item btn btn-disabled">…</span>
-    {% endif %}
-    <a class="join-item btn {{ 'btn-active' if p == page }}"
-        href="{{ url_for('history.history', sort=sort, dir=direction, page=p, **filters) }}">{{ p }}</a>
-    {% set ns.previous = p %}
-    {% endfor %}
-
-    {% if page < total_pages %}
-    <a class="join-item btn" href="{{ url_for('history.history', sort=sort, dir=direction, page=page + 1, **filters) }}">»</a>
-    {% endif %}
-</div>
+{% if page < total_pages %}
+<div id="scroll-sentinel" data-page="{{ page }}" data-total-pages="{{ total_pages }}"
+    class="mx-auto w-fit mt-4 loading loading-dots loading-md"></div>
 {% endif %}
 
 {% endif %}

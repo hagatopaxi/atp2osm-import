@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 history_bp = Blueprint("history", __name__)
 
-HISTORY_PER_PAGE = 20
+HISTORY_PER_PAGE = 50
 
 SORT_COLUMNS = {
     "date": "import_date",

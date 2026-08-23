@@ -24,6 +24,7 @@ endblock %}
 
 {% block custom_js %}
 <script src="/static/js/filters.js?v={{ app_version }}"></script>
+<script src="/static/js/infinite-scroll.js?v={{ app_version }}" defer></script>
 {% endblock %}
 
 {% from '_info_card.html' import info_card %}
@@ -94,7 +95,7 @@ endblock %}
 {% endif %}
 
 <div class="overflow-x-auto shrink-0">
-<table class="table table-compact bg-base-100 rounded-2">
+<table data-infinite-scroll class="table table-compact bg-base-100 rounded-2">
     <thead>
         <tr>
             {{ sort_th('brands.brands', 'wikidata', 'Code Wikidata') }}
