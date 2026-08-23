@@ -44,7 +44,7 @@ podman-compose up -d
 # Import OSM PBF data into PostGIS (local dev, via container)
 podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -d o2p -U o2p -H 127.0.0.1 -P 5432 /data/osm/<file>.osm.pbf
 
-# Refresh all data (ATP + OSM) — runs weekly via systemd timer in production
+# Refresh all data (ATP + OSM) — runs daily via systemd timer in production
 # Manual trigger on server:
 #   systemctl --user start atp2osm-gwenael-leger-fr-refresh.service
 # Manual trigger locally:
@@ -54,7 +54,7 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 ## Architecture
 
 **Data pipeline** (runs outside the web server, via `run-pipeline.sh` and `src/pipeline/`):
-1. `run-pipeline.sh` — Entry point of the weekly refresh: runs `src/pipeline` inside the container via podman. Copied into the project directory on every deploy. Triggered by a systemd timer (Monday 04:00).
+1. `run-pipeline.sh` — Entry point of the daily refresh: runs `src/pipeline` inside the container via podman. Copied into the project directory on every deploy. Triggered by a systemd timer (04:00). The ATP branch no-ops when the published export is not newer than the last import.
 2. `src/pipeline/` — Python module orchestrating the whole pipeline: OSM PBF download from Geofabrik, osm2pgsql import, ATP parquet download, load into `atp_fr` through DuckDB, materialized view refresh.
 3. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points` and `polygons` tables in PostGIS (SRID 4326). Two filters run there: objects that are definitely not places (roads, boundaries, transport…) and objects carrying none of the attributes a match can key on — no name, brand, email, phone or website. The second one drops ~95% of the objects.
 

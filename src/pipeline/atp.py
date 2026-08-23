@@ -44,6 +44,28 @@ def is_relevant_spider(filename: str) -> bool:
     return stem.rsplit("_", 1)[-1].lower() not in _FOREIGN_COUNTRY_CODES
 
 
+def select_run(runs, last_date):
+    """Newest ATP run worth downloading, or None if we already have it.
+
+    `runs` comes newest-first. A run whose end_time is not strictly newer than
+    the last recorded import means ATP published nothing since — the whole ATP
+    branch then no-ops for the rest of the pipeline.
+    """
+    for run in runs:
+        if not run.get("parquet_url"):
+            continue
+        end_time_raw = run.get("end_time")
+        end_time = (
+            datetime.fromisoformat(end_time_raw.replace("Z", "+00:00"))
+            if end_time_raw
+            else None
+        )
+        if last_date is not None and end_time is not None and end_time <= last_date:
+            return None
+        return run
+    raise RuntimeError("No ATP run could be downloaded")
+
+
 def download_atp():
     conn = connect()
     try:
@@ -56,49 +78,28 @@ def download_atp():
 
         ATP_DIR.mkdir(parents=True, exist_ok=True)
 
-        for run in runs:
-            end_time_raw = run.get("end_time")
-            end_time = (
-                datetime.fromisoformat(end_time_raw.replace("Z", "+00:00"))
-                if end_time_raw
-                else None
-            )
-            parquet_url = run.get("parquet_url")
-            run_id = run.get("run_id")
-
-            if not parquet_url:
-                continue
-            if last_date is not None and end_time is not None and end_time <= last_date:
-                logger.info(
-                    "ATP already up-to-date (run %s, %s), skipping",
-                    run_id,
-                    end_time.date(),
-                )
-                # last_date, not end_time: this run is older than what we
-                # already have, recording it would make the displayed source
-                # date go backwards.
-                record_import(conn, "atp", last_date, "skipped")
-                return
-
-            zip_url = run.get("output_url")
-            stats_url = run.get("stats_url")
-
-            delete_file_if_exists(ATP_DIR / "output.zip")
-            delete_file_if_exists(SPIDERS_PATH)
-
-            download_large_file(zip_url, ATP_DIR / "output.zip")
-
-            if stats_url:
-                stats_path = ATP_DIR / "stats.json"
-                download_large_file(stats_url, stats_path)
-                with open(stats_path) as infile, open(SPIDERS_PATH, "w") as out:
-                    out.write(json.dumps(json.loads(infile.read())["results"]))
-                stats_path.unlink()
-
-            logger.info("Downloaded ATP run %s", run_id)
+        run = select_run(runs, last_date)
+        if run is None:
+            logger.info("ATP already up-to-date, skipping")
+            # last_date, not the run's end_time: recording an older run would
+            # make the displayed source date go backwards.
+            record_import(conn, "atp", last_date, "skipped")
             return
 
-        raise RuntimeError("No ATP run could be downloaded")
+        delete_file_if_exists(ATP_DIR / "output.zip")
+        delete_file_if_exists(SPIDERS_PATH)
+
+        download_large_file(run["output_url"], ATP_DIR / "output.zip")
+
+        stats_url = run.get("stats_url")
+        if stats_url:
+            stats_path = ATP_DIR / "stats.json"
+            download_large_file(stats_url, stats_path)
+            with open(stats_path) as infile, open(SPIDERS_PATH, "w") as out:
+                out.write(json.dumps(json.loads(infile.read())["results"]))
+            stats_path.unlink()
+
+        logger.info("Downloaded ATP run %s", run.get("run_id"))
 
     finally:
         conn.close()
@@ -153,10 +154,11 @@ def import_atp():
         last_date = last_import_date(conn, "atp")
 
         if last_date is not None and parquet_mtime <= last_date:
+            # download_atp already closed the row it opened with 'skipped':
+            # recording here too would add a second row for the same run.
             logger.info(
                 "Parquet not newer than last import (%s), skipping", last_date.date()
             )
-            record_import(conn, "atp", last_date, "skipped")
             return
 
         try:
@@ -256,6 +258,8 @@ def import_atp():
 
 
 def cleanup_atp():
+    # latest.parquet is deliberately kept: it is what lets import_atp no-op on
+    # a run where ATP published nothing new.
     for name in ["output.zip", "geojson", "ndgeojson", "split", "stats.json"]:
         path = ATP_DIR / name
         if not path.exists():

@@ -92,7 +92,7 @@ def _get_last_import(brand_wikidata: str):
 
 # The ST_DWithin join costs seconds on a big brand (5 s for 3 000 matches), and
 # /validate, /confirm then /upload all replay it identically. Its result only
-# moves with the weekly refresh, so it is cached; blocking, which does move after
+# moves with the daily refresh, so it is cached; blocking, which does move after
 # an import, is read live below.
 MATCHES_TIMEOUT = 30 * 60
 

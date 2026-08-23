@@ -1,5 +1,5 @@
 [Unit]
-Description=Weekly ATP + OSM data refresh for ${PROJECT_NAME}
+Description=Daily ATP + OSM data refresh for ${PROJECT_NAME}
 After=network.target
 
 [Service]
