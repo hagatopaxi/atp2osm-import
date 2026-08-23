@@ -91,7 +91,7 @@ def get_filtered(
 
 
 # Cooldowns: how long an import keeps hiding what it just touched, until the
-# weekly refresh drops the integrated POIs from the matches.
+# daily refresh drops the integrated POIs from the matches.
 SUCCESS_COOLDOWN = "3 months"
 ERROR_COOLDOWN = "4 weeks"
 
