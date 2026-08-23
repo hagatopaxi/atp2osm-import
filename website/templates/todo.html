@@ -25,6 +25,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
 
 {% block custom_js %}
 <script src="/static/js/filters.js?v={{ app_version }}"></script>
+<script src="/static/js/infinite-scroll.js?v={{ app_version }}" defer></script>
 <script src="/static/js/todo.js?v={{ app_version }}"></script>
 {% endblock %}
 
@@ -126,7 +127,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
   {% endif %}
 
   <div class="overflow-x-auto shrink-0">
-    <table class="table table-zebra w-full">
+    <table data-infinite-scroll class="table table-zebra w-full">
       <thead>
         <tr>
           <th>Nom</th>
