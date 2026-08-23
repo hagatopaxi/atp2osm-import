@@ -1,0 +1,14 @@
+{# Sortable table header. Links back to `endpoint` with the current query string,
+   toggling ?sort=/&dir= — `sort` and `direction` come from the view. #}
+{% macro sort_th(endpoint, key, label, extra_class='') %}
+{% set active = sort == key %}
+{% set args = dict(request.args, sort=key, dir='asc' if not active or direction == 'desc' else 'desc') %}
+{% set _ = args.pop('page', None) %}
+<th class="p-0 {{ extra_class }}">
+  <a class="flex items-center gap-1 px-4 py-3 hover:bg-base-200 {{ 'text-primary' if active }}"
+    href="{{ url_for(endpoint, **args) }}">
+    {{ label }}
+    <i class="{{ 'iconoir-nav-arrow-up' if active and direction == 'asc' else 'iconoir-nav-arrow-down' }} {{ '' if active else 'opacity-20' }}"></i>
+  </a>
+</th>
+{% endmacro %}

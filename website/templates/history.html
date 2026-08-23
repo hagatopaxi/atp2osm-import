@@ -1,5 +1,6 @@
 {% extends '_base.html' %}
 {% from '_export_menu.html' import export_menu %}
+{% from '_sort_th.html' import sort_th with context %}
 
 {% block meta_description %}Historique des intégrations AllThePlaces vers OpenStreetMap réalisées via atp2osm : marques intégrées, dates et statuts.{% endblock %}
 {% block page_title %}Historique des intégrations{% endblock %}
@@ -33,6 +34,8 @@
     ('error',     'Erreur',  'btn-error')
 ] %}
 <form method="get" data-autosubmit class="flex flex-wrap items-end gap-3 mb-4">
+    <input type="hidden" name="sort" value="{{ sort }}" />
+    <input type="hidden" name="dir" value="{{ direction }}" />
     <fieldset class="fieldset">
         <legend class="fieldset-legend">Marque</legend>
         <label class="input input-sm w-56">
@@ -98,12 +101,12 @@
 <table class="table table-compact bg-base-100 rounded-2">
     <thead>
         <tr>
-            <th>Date</th>
-            <th>Marque (Wikidata)</th>
-            <th>Statut</th>
-            <th>Utilisateur OSM</th>
-            <th>POIs intégrés</th>
-            <th>Changesets</th>
+            {{ sort_th('history.history', 'date', 'Date') }}
+            {{ sort_th('history.history', 'brand', 'Marque (Wikidata)') }}
+            {{ sort_th('history.history', 'status', 'Statut') }}
+            {{ sort_th('history.history', 'user', 'Utilisateur OSM') }}
+            {{ sort_th('history.history', 'items', 'POIs intégrés') }}
+            {{ sort_th('history.history', 'departements', 'Changesets') }}
             <th>Action</th>
         </tr>
     </thead>
@@ -162,7 +165,7 @@
 {% endfor %}
 <div class="join self-center mt-4">
     {% if page > 1 %}
-    <a class="join-item btn" href="{{ url_for('history.history', page=page - 1, **filters) }}">«</a>
+    <a class="join-item btn" href="{{ url_for('history.history', sort=sort, dir=direction, page=page - 1, **filters) }}">«</a>
     {% endif %}
 
     {% set ns = namespace(previous=0) %}
@@ -171,12 +174,12 @@
     <span class="join-item btn btn-disabled">…</span>
     {% endif %}
     <a class="join-item btn {{ 'btn-active' if p == page }}"
-        href="{{ url_for('history.history', page=p, **filters) }}">{{ p }}</a>
+        href="{{ url_for('history.history', sort=sort, dir=direction, page=p, **filters) }}">{{ p }}</a>
     {% set ns.previous = p %}
     {% endfor %}
 
     {% if page < total_pages %}
-    <a class="join-item btn" href="{{ url_for('history.history', page=page + 1, **filters) }}">»</a>
+    <a class="join-item btn" href="{{ url_for('history.history', sort=sort, dir=direction, page=page + 1, **filters) }}">»</a>
     {% endif %}
 </div>
 {% endif %}

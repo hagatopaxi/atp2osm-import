@@ -1,6 +1,7 @@
 {% extends '_base.html' %}
 {% from '_info_card.html' import info_card %}
 {% from '_export_menu.html' import export_menu %}
+{% from '_sort_th.html' import sort_th with context %}
 
 {% block meta_description %}Liste des marques françaises absentes d'AllThePlaces. Contribuez en signalant les enseignes manquantes pour enrichir OpenStreetMap.{% endblock %}
 {% block page_title %}Marques manquantes{% endblock %}
@@ -76,6 +77,8 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
   <p class="text-base-content/60">Aucune marque dans la liste pour le moment.</p>
   {% else %}
   <form method="get" data-autosubmit class="flex flex-wrap items-end gap-3">
+    <input type="hidden" name="sort" value="{{ sort }}" />
+    <input type="hidden" name="dir" value="{{ direction }}" />
     <fieldset class="fieldset">
       <legend class="fieldset-legend">Marque</legend>
       <label class="input input-sm w-56">
@@ -117,29 +120,28 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
         <a href="{{ url_for('todo.todo') }}" class="btn btn-sm btn-soft join-item">Réinitialiser</a>
       </div>
     </fieldset>
-    <span class="text-sm text-base-content/60 ml-auto mb-2">{{ entries|length }} marque{{ 's' if entries|length > 1 }}</span>
-    <div class="mb-2">{{ export_menu('todo', filters) }}</div>
+    <div class="ml-auto mb-2">{{ export_menu('todo', filters) }}</div>
   </form>
 
   {% if entries|length == 0 %}
   <p class="text-base-content/60">Aucune marque ne correspond à ces filtres.</p>
-  {% endif %}
-
+  {% else %}
+  <p class="text-sm text-base-content/60 mb-2">{{ entries|length }} marque{{ 's' if entries|length > 1 }}</p>
   <div class="overflow-x-auto shrink-0">
-    <table class="table table-zebra w-full">
+    <table class="table table-compact bg-base-100 rounded-2">
       <thead>
         <tr>
-          <th>Nom</th>
-          <th>Wikidata</th>
-          <th>Estimation</th>
-          <th>Ajouté par</th>
-          <th>Date</th>
+          {{ sort_th('todo.todo', 'name', 'Nom') }}
+          {{ sort_th('todo.todo', 'wikidata', 'Wikidata') }}
+          {{ sort_th('todo.todo', 'estimation', 'Estimation') }}
+          {{ sort_th('todo.todo', 'user', 'Ajouté par') }}
+          {{ sort_th('todo.todo', 'date', 'Date') }}
           <th></th>
         </tr>
       </thead>
       <tbody>
         {% for entry in entries %}
-        <tr>
+        <tr class="group">
           <td>{{ entry.brand_name }}</td>
           <td>
             {% if entry.brand_wikidata %}
@@ -162,9 +164,12 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
           <td class="whitespace-nowrap">{{ entry.created_at.strftime('%d/%m/%Y') }}</td>
           <td>
             {% if current_user_id == entry.osm_user_id %}
-            <button class="btn btn-ghost btn-sm btn-square text-error" onclick="deleteEntry({{ entry.id }})">
-              <i class="iconoir-trash"></i>
-            </button>
+            <div class="row-actions">
+              <button class="btn btn-sm btn-soft btn-error rounded-md" onclick="deleteEntry({{ entry.id }})"
+                aria-label="Supprimer">
+                <i class="iconoir-trash"></i>
+              </button>
+            </div>
             {% endif %}
           </td>
         </tr>
@@ -172,6 +177,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
       </tbody>
     </table>
   </div>
+  {% endif %}
   {% endif %}
 
 </div>

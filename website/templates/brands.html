@@ -1,4 +1,5 @@
 {% extends '_base.html' %}
+{% from '_sort_th.html' import sort_th with context %}
 
 {% block meta_description %}Liste des {{ total_brands }} marques disponibles à l'intégration dans OpenStreetMap via atp2osm. Données issues d'AllThePlaces, validées par les contributeurs OSM.{% endblock %}
 {% block page_title %}Marques à intégrer{% endblock %}
@@ -41,6 +42,8 @@ endblock %}
 {% endif %}
 
 <form method="get" data-autosubmit>
+<input type="hidden" name="sort" value="{{ sort or '' }}" />
+<input type="hidden" name="dir" value="{{ direction }}" />
     <div class="flex flex-wrap items-end gap-3 mb-4">
         <fieldset class="fieldset">
             <legend class="fieldset-legend">Marque</legend>
@@ -94,11 +97,11 @@ endblock %}
 <table class="table table-compact bg-base-100 rounded-2">
     <thead>
         <tr>
-            <th>Code Wikidata</th>
-            <th>Nom</th>
-            <th>POIs à intégrer</th>
-            <th>Précédent statut</th>
-            <th>Dernière intégration</th>
+            {{ sort_th('brands.brands', 'wikidata', 'Code Wikidata') }}
+            {{ sort_th('brands.brands', 'brand', 'Nom') }}
+            {{ sort_th('brands.brands', 'total', 'POIs à intégrer') }}
+            {{ sort_th('brands.brands', 'status', 'Précédent statut') }}
+            {{ sort_th('brands.brands', 'last_import', 'Dernière intégration') }}
             <th>Actions</th>
         </tr>
     </thead>
