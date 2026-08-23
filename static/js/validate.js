@@ -65,11 +65,38 @@ function validateData(itemId) {
   }
 }
 
+function toggleReason(button) {
+  const on = button.classList.toggle("btn-active");
+  button.classList.toggle("btn-outline", !on);
+  button.classList.toggle("btn-soft", on);
+  button.classList.toggle("btn-primary", on);
+  const other = document
+    .querySelector('.reason-btn[data-reason="other"]')
+    .classList.contains("btn-active");
+  const comment = document.getElementById("invalidation_comment");
+  comment.classList.toggle("hidden", !other);
+  // « Autre » only means something once it is explained.
+  comment.required = other;
+}
+
 function invalidateData(itemId) {
   currentInvalidItemId = itemId;
-  document.getElementById("invalidation_comment").value = "";
+  const comment = document.getElementById("invalidation_comment");
+  comment.value = "";
+  comment.classList.add("hidden");
+  comment.required = false;
+  document.querySelectorAll(".reason-btn").forEach((b) => {
+    b.classList.remove("btn-active", "btn-soft", "btn-primary");
+    b.classList.add("btn-outline");
+  });
   document.getElementById("invalidation_modal").showModal();
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  document
+    .querySelectorAll(".reason-btn")
+    .forEach((b) => b.addEventListener("click", () => toggleReason(b)));
+});
 
 function checkAllValidated() {
   const cards = document.querySelectorAll("[data-item-id]");
@@ -104,7 +131,12 @@ function checkAllValidated() {
 }
 
 function publishComment() {
-  const comment = document.getElementById("invalidation_comment").value;
+  const commentField = document.getElementById("invalidation_comment");
+  if (!commentField.reportValidity()) return;
+
+  const selected = Array.from(document.querySelectorAll(".reason-btn.btn-active"));
+  const reasons = selected.map((b) => b.dataset.reason);
+  const comment = reasons.includes("other") ? commentField.value : "";
 
   const collapse = document.querySelector(
     `[data-item-id="${currentInvalidItemId}"]`,
@@ -120,6 +152,8 @@ function publishComment() {
     atp_id: collapse ? collapse.dataset.atpId : null,
     spider_id: collapse ? collapse.dataset.spiderId : null,
     title,
+    reasons,
+    reason_labels: selected.map((b) => b.textContent.trim()),
     comment,
   });
 
