@@ -103,6 +103,14 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
       </div>
     </fieldset>
     <fieldset class="fieldset">
+      <legend class="fieldset-legend">Présence dans ATP</legend>
+      <label class="label cursor-pointer gap-2 h-8">
+        <input type="checkbox" name="show_in_atp" value="1" class="toggle toggle-sm"
+          {{ 'checked' if filters.show_in_atp }} />
+        <span class="label-text">Afficher celles déjà dans ATP</span>
+      </label>
+    </fieldset>
+    <fieldset class="fieldset">
       <legend class="fieldset-legend">&nbsp;</legend>
       <div class="join">
         <button type="submit" class="btn btn-sm btn-primary join-item">Filtrer</button>

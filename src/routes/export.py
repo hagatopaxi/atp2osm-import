@@ -14,7 +14,7 @@ from flask import Blueprint, Response, request
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
-from src.utils import HISTORY_FILTERS, TODO_FILTERS, build_filters
+from src.utils import HISTORY_FILTERS, TODO_FILTERS, build_filters, hide_brands_in_atp
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,8 @@ def export(dataset, fmt):
 
     columns, table, filter_spec, order_by = DATASETS[dataset]
     where, params, _ = build_filters(request.args, filter_spec)
+    if dataset == "todo":
+        where = hide_brands_in_atp(where, request.args)
 
     with get_osmdb().cursor(row_factory=dict_row) as cursor:
         rows = cursor.execute(
