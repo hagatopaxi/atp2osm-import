@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /static/lib/
+Disallow: /api/
 
 Sitemap: {{ sitemap_url }}

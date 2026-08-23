@@ -1,5 +1,7 @@
 """The export API must expose only what atp2osm produces, and nothing else."""
 
+import pathlib
+
 import pytest
 
 from src.routes.export import DATASETS, _csv_value
@@ -27,3 +29,15 @@ def test_csv_value_flattens_json_columns():
     assert _csv_value([1, 2]) == "[1, 2]"
     assert _csv_value("Zara") == "Zara"
     assert _csv_value(None) is None
+
+
+def test_export_routes_stay_out_of_the_sitemap():
+    """Le sitemap se construit depuis PUBLIC_PAGES : l'API n'a rien à y faire."""
+    from src.routes.misc import PUBLIC_PAGES
+
+    assert not any(endpoint.startswith("export.") for endpoint, _, _ in PUBLIC_PAGES)
+
+
+def test_robots_disallows_the_api():
+    robots = pathlib.Path("website/templates/robots.txt").read_text()
+    assert "Disallow: /api/" in robots

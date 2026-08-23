@@ -5,8 +5,8 @@
     <i class="iconoir-download"></i> Exporter
   </div>
   <ul tabindex="0" class="dropdown-content menu menu-sm bg-base-100 rounded-box z-10 w-40 p-2 shadow">
-    <li><a href="{{ url_for('export.export', dataset=dataset, fmt='csv', **filters) }}">CSV</a></li>
-    <li><a href="{{ url_for('export.export', dataset=dataset, fmt='json', **filters) }}">JSON</a></li>
+    <li><a rel="nofollow" href="{{ url_for('export.export', dataset=dataset, fmt='csv', **filters) }}">CSV</a></li>
+    <li><a rel="nofollow" href="{{ url_for('export.export', dataset=dataset, fmt='json', **filters) }}">JSON</a></li>
     <li><a href="{{ url_for('misc.docs') }}#export" class="text-base-content/60">À propos</a></li>
   </ul>
 </div>

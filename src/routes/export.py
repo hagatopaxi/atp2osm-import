@@ -79,6 +79,10 @@ def export(dataset, fmt):
         headers={
             "Content-Disposition": f'attachment; filename="atp2osm-{dataset}.{fmt}"',
             "Access-Control-Allow-Origin": "*",  # open API: usable from any client
+            # Ouvert aux clients, mais hors index : le bouton d'export sème des
+            # liens vers ces URL dans le HTML des pages, que robots.txt seul
+            # n'empêche pas d'indexer une fois découverts.
+            "X-Robots-Tag": "noindex",
         },
     )
 
