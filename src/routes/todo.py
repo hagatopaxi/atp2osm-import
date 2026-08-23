@@ -6,7 +6,12 @@ from psycopg.rows import dict_row
 
 from src.db import get_osmdb
 from src.routes.auth import auth_required
-from src.utils import TODO_FILTERS as FILTERS, build_filters, fetch_osm_users
+from src.utils import (
+    TODO_FILTERS as FILTERS,
+    build_filters,
+    fetch_osm_users,
+    hide_brands_in_atp,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +22,7 @@ todo_bp = Blueprint("todo", __name__)
 def todo():
     osmdb = get_osmdb()
     where, params, filters = build_filters(request.args, FILTERS)
+    where = hide_brands_in_atp(where, request.args, filters)
     with osmdb.cursor(row_factory=dict_row) as cursor:
         entries = cursor.execute(
             f"SELECT * FROM todo_brands {where} ORDER BY created_at DESC", params

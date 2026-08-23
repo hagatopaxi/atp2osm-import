@@ -143,6 +143,25 @@ TODO_FILTERS = {
 }
 
 
+# La liste des marques manquantes masque par défaut celles qu'ATP connaît déjà :
+# c'est son objet même. ?show_in_atp=1 les réaffiche. Partagé entre la page et
+# son export, qui doivent renvoyer les mêmes lignes.
+TODO_NOT_IN_ATP_SQL = """NOT EXISTS (
+    SELECT 1 FROM atp_fr a
+    WHERE a.brand_wikidata = todo_brands.brand_wikidata
+       OR LOWER(a.brand) = LOWER(todo_brands.brand_name)
+)"""
+
+
+def hide_brands_in_atp(where, args, active=None):
+    """Append the "not in ATP" clause unless ?show_in_atp=1 asks for them."""
+    if args.get("show_in_atp"):
+        if active is not None:
+            active["show_in_atp"] = True
+        return where
+    return (f"{where} AND " if where else "WHERE ") + TODO_NOT_IN_ATP_SQL
+
+
 def build_filters(args, spec):
     """Build a SQL WHERE clause from the query string.
 
