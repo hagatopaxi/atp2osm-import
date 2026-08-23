@@ -1,5 +1,6 @@
 {% extends '_base.html' %}
 {% from '_info_card.html' import info_card %}
+{% from '_export_menu.html' import export_menu %}
 
 {% block meta_description %}Liste des marques françaises absentes d'AllThePlaces. Contribuez en signalant les enseignes manquantes pour enrichir OpenStreetMap.{% endblock %}
 {% block page_title %}Marques manquantes{% endblock %}
@@ -109,6 +110,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
       </div>
     </fieldset>
     <span class="text-sm text-base-content/60 ml-auto mb-2">{{ entries|length }} marque{{ 's' if entries|length > 1 }}</span>
+    <div class="mb-2">{{ export_menu('todo', filters) }}</div>
   </form>
 
   {% if entries|length == 0 %}
