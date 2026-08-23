@@ -1,4 +1,5 @@
 {% extends '_base.html' %}
+{% from '_export_menu.html' import export_menu %}
 
 {% block meta_description %}Historique des intégrations AllThePlaces vers OpenStreetMap réalisées via atp2osm : marques intégrées, dates et statuts.{% endblock %}
 {% block page_title %}Historique des intégrations{% endblock %}
@@ -77,6 +78,7 @@
             {% endif %}
         </div>
     </fieldset>
+    <div class="ml-auto mb-2">{{ export_menu('history', filters) }}</div>
 </form>
 
 <p class="text-sm text-base-content/60 mb-4">

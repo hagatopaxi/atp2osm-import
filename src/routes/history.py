@@ -6,22 +6,13 @@ from psycopg.rows import dict_row
 
 from src.db import get_osmdb
 from src.matching import DEPARTEMENT_NAMES
-from src.utils import build_filters, fetch_osm_users
+from src.utils import HISTORY_FILTERS as FILTERS, build_filters, fetch_osm_users
 
 logger = logging.getLogger(__name__)
 
 history_bp = Blueprint("history", __name__)
 
 HISTORY_PER_PAGE = 20
-
-# Filters this page exposes, and the columns they apply to.
-FILTERS = {
-    "q": ("brand_name", "brand_wikidata"),
-    "status": "status",
-    "user": "osm_user_id",
-    "date": "import_date",
-}
-
 
 @history_bp.route("/history")
 def history():

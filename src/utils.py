@@ -125,6 +125,24 @@ def status_group(status: str | None) -> str:
     return status if status in IMPORT_STATUSES else "none"
 
 
+# Les filtres exposés par les pages historique et marques manquantes, et les
+# colonnes auxquelles ils s'appliquent. Définis ici parce que la page et son
+# export doivent proposer exactement les mêmes filtres.
+HISTORY_FILTERS = {
+    "q": ("brand_name", "brand_wikidata"),
+    "status": "status",
+    "user": "osm_user_id",
+    "date": "import_date",
+}
+
+# Pas de statut ici : une marque encore à intégrer n'en a pas.
+TODO_FILTERS = {
+    "q": ("brand_name", "brand_wikidata"),
+    "user": "osm_user_id",
+    "date": "created_at",
+}
+
+
 def build_filters(args, spec):
     """Build a SQL WHERE clause from the query string.
 

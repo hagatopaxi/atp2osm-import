@@ -6,19 +6,11 @@ from psycopg.rows import dict_row
 
 from src.db import get_osmdb
 from src.routes.auth import auth_required
-from src.utils import build_filters, fetch_osm_users
+from src.utils import TODO_FILTERS as FILTERS, build_filters, fetch_osm_users
 
 logger = logging.getLogger(__name__)
 
 todo_bp = Blueprint("todo", __name__)
-
-# Filters this page exposes: no status here, a brand still to import has none.
-FILTERS = {
-    "q": ("brand_name", "brand_wikidata"),
-    "user": "osm_user_id",
-    "date": "created_at",
-}
-
 
 @todo_bp.route("/todo")
 def todo():
