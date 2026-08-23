@@ -26,16 +26,20 @@ from src.pipeline.atp import (
     import_atp,
 )
 from src.pipeline.atp2osm import create_mv_places_brand
+from src.pipeline.nsi import download_nsi, import_nsi
 from src.pipeline.ndgeojson_to_parquet import convert_atp, split_atp
 from src.pipeline.osm import download_pbf, run_osm2pgsql, setup_mv_places
 
 logger = logging.getLogger(__name__)
 
 PIPELINE = {
-    "start": (None, ["osm-download", "atp-download"]),
+    "start": (None, ["osm-download", "atp-download", "nsi-download"]),
     "osm-download": (download_pbf, ["osm-import"], {"lock": "network"}),
     "osm-import": (run_osm2pgsql, ["osm-views"], {"lock": "cpu"}),
     "osm-views": (setup_mv_places, ["mv-brand"]),
+    "nsi-download": (download_nsi, ["nsi-import"], {"lock": "network"}),
+    # Before osm-views: setup_mv_places completes brand:wikidata from nsi_brands.
+    "nsi-import": (import_nsi, ["osm-views"]),
     "atp-download": (download_atp, ["atp-extract"], {"lock": "network"}),
     "atp-extract": (extract_atp, ["atp-convert"], {"lock": "cpu"}),
     "atp-convert": (convert_atp, ["atp-split"], {"lock": "cpu"}),
@@ -61,9 +65,9 @@ def record_failure(step_name, exc):
     comment = f"step '{step_name}' failed\n" + "".join(
         traceback.format_exception(type(exc), exc, exc.__traceback__)
     )
-    # mv-brand, cleanup, … don't belong to the osm/atp branches.
+    # mv-brand, cleanup, … don't belong to the osm/atp/nsi branches.
     import_type = step_name.split("-", 1)[0]
-    if import_type not in ("osm", "atp"):
+    if import_type not in ("osm", "atp", "nsi"):
         import_type = "pipeline"
     try:
         conn = connect()

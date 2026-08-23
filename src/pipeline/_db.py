@@ -19,6 +19,18 @@ def last_import_date(conn, import_type):
         return row[0] if row else None
 
 
+def last_import_comment(conn, import_type):
+    """Comment of the last resolved import — NSI stores its npm version there."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT comment FROM data_imports WHERE type=%s AND status <> 'pending'"
+            " ORDER BY created_at DESC LIMIT 1",
+            (import_type,),
+        )
+        row = cur.fetchone()
+        return row[0] if row else None
+
+
 def start_import(conn, import_type):
     """Mark this datasource as syncing: the app stays in maintenance mode as
     long as the row is pending (see src/db.py:maintenance_since)."""
