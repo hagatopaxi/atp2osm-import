@@ -14,6 +14,7 @@ history_bp = Blueprint("history", __name__)
 
 HISTORY_PER_PAGE = 20
 
+
 @history_bp.route("/history")
 def history():
     osmdb = get_osmdb()

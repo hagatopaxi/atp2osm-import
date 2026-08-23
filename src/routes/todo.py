@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 todo_bp = Blueprint("todo", __name__)
 
+
 @todo_bp.route("/todo")
 def todo():
     osmdb = get_osmdb()
