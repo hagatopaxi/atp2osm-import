@@ -23,6 +23,15 @@ SPIDERS_PATH = ATP_DIR / "spiders.json"
 ATP_HISTORY_URL = "https://data.alltheplaces.xyz/runs/history.json"
 GEOFABRIK_BASE = "https://download.geofabrik.de"
 
+# NSI (name-suggestion-index). dist/ is no longer committed on the GitHub main
+# branch, so npm + jsDelivr is the only channel. The version is always pinned:
+# `@latest` would let the file drift away from the version recorded in the
+# data_imports row.
+NSI_DIR = PROJECT_ROOT / "data" / "nsi"
+NSI_PATH = NSI_DIR / "nsi.json"
+NSI_REGISTRY_URL = "https://registry.npmjs.org/name-suggestion-index"
+NSI_CDN_URL = "https://cdn.jsdelivr.net/npm/name-suggestion-index@{version}/dist/nsi.json"
+
 # Each entry: geofabrik path suffix (without -latest.osm.pbf).
 # url, state_url and pbf_path are derived automatically.
 # DOM are sub-regions of europe/france on Geofabrik.

@@ -38,6 +38,19 @@ logger = logging.getLogger(__name__)
 
 brands_bp = Blueprint("brands", __name__)
 
+# Tags the review page renders with a row of their own, labelled and formatted.
+# Anything else the diff adds is listed generically, so that no change ever
+# reaches OSM without the reviewer having seen it.
+_DETAILED_TAGS = frozenset({
+    "brand",
+    "brand:wikidata",
+    "name",
+    "email",
+    "phone",
+    "website",
+    "opening_hours",
+})
+
 # Sorted in Python: the list is already in memory, see the comment in brands().
 SORT_COLUMNS = {
     "wikidata": "brand_wikidata",
@@ -191,6 +204,14 @@ def brands_validate(brand_wikidata):
         item["new_tags_keys"] = [
             key for key in item["tag"] if key not in item["old_tag"]
         ]
+        # Everything the template has no dedicated row for — the NSI tags today,
+        # whatever gets added to the sources tomorrow. A tag the reviewer cannot
+        # see is a tag they cannot invalidate.
+        item["other_new_tags"] = {
+            key: item["tag"][key]
+            for key in item["new_tags_keys"]
+            if key not in _DETAILED_TAGS
+        }
 
     return render_template(
         "brands/:brand_wikidata/validate.html",

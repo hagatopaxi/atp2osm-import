@@ -1,0 +1,248 @@
+"""NSI (name-suggestion-index) datasource.
+
+NSI describes brands, never POIs: it maps a brand:wikidata to a canonical set
+of tags. ATP describes POIs. The two sources barely overlap, which is what
+makes them complementary — see source-nsi.md.
+"""
+
+import json
+import logging
+from collections import defaultdict
+from datetime import datetime, timezone
+
+import requests
+
+from src.pipeline._db import (
+    connect,
+    last_import_comment,
+    record_import,
+    start_import,
+)
+from src.pipeline.constants import (
+    NSI_CDN_URL,
+    NSI_DIR,
+    NSI_PATH,
+    NSI_REGISTRY_URL,
+)
+from src.utils import download_large_file
+
+logger = logging.getLogger(__name__)
+
+
+# The only tags ever written to OSM. Every other NSI key is dropped on import,
+# which makes this set the single place where the scope is defined.
+#
+# Picked by measuring, for each NSI tag, how often it agrees with what French
+# OSM objects of the same brand already carry. All of these sit at 99.4% or
+# above. Deliberately left out: name (86.8%), operator (87.2%), brand (96.8%),
+# shop (98.2%), cuisine, takeaway, clothes, vending (14.3%) — their mismatches
+# are systematic, not noise (NSI says "Société Générale" where the ground says
+# "SG").
+NSI_WRITABLE_TAGS = frozenset({
+    "brand:wikidata",
+    "amenity",
+    "tourism",
+    "office",
+    "leisure",
+    "operator:wikidata",
+    "official_name",
+    "government",
+    "drive_through",
+    "healthcare:speciality",
+})
+
+# NSI groups items in four trees. transit (routes, networks) and flags describe
+# things generic.lua already drops from the OSM side via is_definitely_not_a_place,
+# so they could never match anything here.
+_TREES = ("brands", "operators")
+
+# Categories whose objects generic.lua drops before they ever reach points /
+# polygons, so no OSM object can ever carry them. Keeping them would not just
+# be dead weight: an unreachable advertising=totem row makes its brand look
+# multi-entry, which downgrades it from "applies unconditionally" to "needs a
+# matching primary tag". 71 rows, and 40 brands recover their single-entry
+# shortcut.
+_UNREACHABLE_KEYS = frozenset({
+    "advertising", "aerialway", "aeroway", "barrier", "bicycle_road",
+    "boundary", "admin_level", "busway", "cycleway", "emergency", "geological",
+    "footway", "highway", "lifeguard", "man_made", "military", "natural",
+    "parking", "place", "power", "public_transport", "railway", "route",
+    "sidewalk", "telecom", "traffic_sign", "water", "waterway",
+})
+_UNREACHABLE_LANDUSE = frozenset({
+    "industrial", "construction", "aquaculture", "farmyard", "flowerbed",
+    "depot",
+})
+
+
+def _reaches_mv_places(primary_key: str, primary_value: str) -> bool:
+    """False when generic.lua would have dropped such an object on import."""
+    if primary_key in _UNREACHABLE_KEYS:
+        return False
+    return not (primary_key == "landuse" and primary_value in _UNREACHABLE_LANDUSE)
+
+
+# locationSet entries covering France without naming it.
+_WORLDWIDE = frozenset({"001", "150", "europe", "eu"})
+
+# fr covers the whole country and fx metropolitan France only — NSI uses fx for
+# a thousand items, so reading fr alone loses them. The overseas codes matter
+# too: the pipeline downloads Guadeloupe, Martinique, Guyane, Réunion, Mayotte,
+# Nouvelle-Calédonie, Polynésie and Wallis-et-Futuna from Geofabrik, so their
+# objects reach mv_places and deserve a brand.
+_FRENCH = frozenset({
+    "fr", "fx",
+    "gp", "mq", "gf", "re", "yt",      # DROM
+    "pm", "bl", "mf", "nc", "pf", "wf", "tf",  # COM
+})
+
+
+def _is_french(location_set: dict) -> bool:
+    """True when the item applies to France, overseas included.
+
+    NSI locationSets are ISO codes 95% of the time; the remaining *.geojson
+    region files are handled by prefix. Resolving them properly would mean
+    pulling in location-conflation, a whole JS dependency, to refine a filter
+    that already works.
+
+    This filter is not optional: eight of McDonald's eleven items are
+    amenity=fast_food and differ only by locationSet. Skipping it would give a
+    one-in-eight chance of tagging a Lyon McDonald's in Japanese.
+
+    It stays a per-brand filter, not a per-object one: an fx-scoped brand can
+    in theory be applied to a Réunion object. Telling them apart would mean
+    evaluating geography per POI, for a handful of brands that do not overlap.
+    """
+    include = [str(x).lower() for x in (location_set.get("include") or [])]
+    exclude = [str(x).lower() for x in (location_set.get("exclude") or [])]
+
+    def french(code):
+        return code in _FRENCH or code.startswith(tuple(f"{c}-" for c in _FRENCH))
+
+    if any(french(code) for code in exclude):
+        return False
+    if any(french(code) for code in include):
+        return True
+    return any(code in _WORLDWIDE for code in include)
+
+
+def select_items(nsi_json: dict) -> list[tuple]:
+    """The nsi_brands rows to insert, from the parsed dist/nsi.json.
+
+    Pure function, no I/O: this is where every selection rule lives, and the
+    only thing the tests need.
+    """
+    candidates = []
+
+    for path, category in nsi_json["nsi"].items():
+        tree, primary_key, primary_value = path.split("/")
+        if tree not in _TREES:
+            continue
+        if not _reaches_mv_places(primary_key, primary_value):
+            continue
+
+        for item in category.get("items", []):
+            tags = item["tags"]
+            brand_wikidata = tags.get("brand:wikidata")
+            if not brand_wikidata:
+                continue
+            if not _is_french(item.get("locationSet") or {}):
+                continue
+
+            candidates.append((
+                brand_wikidata,
+                tags.get("brand"),
+                tags.get("name"),
+                primary_key,
+                primary_value,
+                {k: v for k, v in tags.items() if k in NSI_WRITABLE_TAGS},
+            ))
+
+    # A brand:wikidata is not a unique key: 2692 QIDs carry several items, and
+    # those are the biggest brands. Items differing by category are fine — the
+    # object's own primary tag tells them apart. Items sharing a category are
+    # only a problem when they disagree on what they would write: Intermarché
+    # and Intermarché Drive are both shop=supermarket, and one of them carries
+    # drive_through=only. Their labels differ too, but nothing writes those, and
+    # both remain useful for recovering the QID from a name.
+    #
+    # So the group is kept whole when its written tags agree, and dropped whole
+    # when they do not — 2 groups out of 2123.
+    written = defaultdict(set)
+    for row in candidates:
+        written[row[0:1] + row[3:5]].add(json.dumps(row[5], sort_keys=True))
+    return [row for row in candidates if len(written[row[0:1] + row[3:5]]) == 1]
+
+
+def _latest_version() -> str:
+    """Newest published NSI version, from the npm registry.
+
+    Not from the file's own _meta.version: it is stale (6.0.20250817 inside a
+    8.0.20260729 release) and cannot be used as a marker.
+    """
+    resp = requests.get(NSI_REGISTRY_URL, timeout=30)
+    resp.raise_for_status()
+    return resp.json()["dist-tags"]["latest"]
+
+
+def _version_date(version: str) -> datetime:
+    """Publication date carried by an NSI version (8.0.20260729 -> 2026-07-29)."""
+    try:
+        return datetime.strptime(version.rsplit(".", 1)[-1], "%Y%m%d").replace(
+            tzinfo=timezone.utc
+        )
+    except ValueError:
+        return datetime.now(timezone.utc)
+
+
+def download_nsi():
+    conn = connect()
+    try:
+        last_version = last_import_comment(conn, "nsi")
+        start_import(conn, "nsi")  # puts the site in maintenance mode
+
+        version = _latest_version()
+        if version == last_version:
+            logger.info("NSI already up-to-date (%s), skipping", version)
+            record_import(conn, "nsi", _version_date(version), "skipped", version)
+            return
+
+        NSI_DIR.mkdir(parents=True, exist_ok=True)
+        download_large_file(NSI_CDN_URL.format(version=version), NSI_PATH)
+        logger.info("Downloaded NSI %s", version)
+    finally:
+        conn.close()
+
+
+def import_nsi():
+    if not NSI_PATH.exists():
+        logger.info("No NSI file found, skipping import")
+        return
+
+    with open(NSI_PATH) as infile:
+        nsi_json = json.load(infile)
+
+    rows = select_items(nsi_json)
+    version = _latest_version()
+
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE nsi_brands")
+            with cur.copy(
+                "COPY nsi_brands (brand_wikidata, brand, name,"
+                " primary_key, primary_value, tags) FROM STDIN"
+            ) as copy:
+                for row in rows:
+                    copy.write_row(row[:-1] + (json.dumps(row[-1]),))
+        conn.commit()
+        record_import(conn, "nsi", _version_date(version), "success", version)
+        logger.info(
+            "Imported %d NSI brands (%d distinct QIDs)",
+            len(rows),
+            len({row[0] for row in rows}),
+        )
+    finally:
+        conn.close()
+
+    NSI_PATH.unlink()

@@ -181,47 +181,60 @@ def setup_mv_places():
                                         'phone', 'contact:phone',
                                         'website', 'contact:website']
                 """
+                # The matchable filter sits in a subquery so that the NSI
+                # lookup only ever runs on the 1.1M rows that survive it,
+                # never on the 20.3M raw ones.
                 cur.execute(f"""
                     CREATE MATERIALIZED VIEW mv_places AS
                     SELECT
                         node_id                                              AS osm_id,
                         'node'                                               AS node_type,
-                        tags                                                 AS tags,
-                        tags->>'name'                                        AS name,
-                        tags->>'brand:wikidata'                              AS brand_wikidata,
-                        tags->>'brand'                                       AS brand,
-                        tags->>'addr:city'                                   AS city,
-                        tags->>'addr:postcode'                               AS postcode,
-                        tags->>'opening_hours'                               AS opening_hours,
-                        COALESCE(tags->>'website', tags->>'contact:website') AS website,
-                        COALESCE(tags->>'phone', tags->>'contact:phone')     AS phone,
-                        COALESCE(tags->>'email', tags->>'contact:email')     AS email,
+                        points.tags                                          AS tags,
+                        points.tags->>'name'                                 AS name,
+                        COALESCE(points.tags->>'brand:wikidata',
+                                 nsi.tags->>'brand:wikidata')        AS brand_wikidata,
+                        CASE WHEN points.tags ? 'brand:wikidata' THEN 'osm'
+                             WHEN nsi.tags IS NOT NULL          THEN 'nsi'
+                        END                                                  AS brand_wikidata_source,
+                        nsi.tags                                             AS nsi_tags,
+                        points.tags->>'brand'                                AS brand,
+                        points.tags->>'addr:city'                            AS city,
+                        points.tags->>'addr:postcode'                        AS postcode,
+                        points.tags->>'opening_hours'                        AS opening_hours,
+                        COALESCE(points.tags->>'website', points.tags->>'contact:website') AS website,
+                        COALESCE(points.tags->>'phone', points.tags->>'contact:phone')     AS phone,
+                        COALESCE(points.tags->>'email', points.tags->>'contact:email')     AS email,
                         version,
                         NULL::jsonb                                          AS members,
                         geom
-                    FROM points
-                    {matchable}
+                    FROM (SELECT * FROM points {matchable}) points
+                    LEFT JOIN LATERAL nsi_match(points.tags) AS nsi(tags) ON TRUE
 
                     UNION ALL
 
                     SELECT
                         area_id                                              AS osm_id,
                         CASE osm_type WHEN 'W' THEN 'way' ELSE 'relation' END AS node_type,
-                        tags                                                 AS tags,
-                        tags->>'name'                                        AS name,
-                        tags->>'brand:wikidata'                              AS brand_wikidata,
-                        tags->>'brand'                                       AS brand,
-                        tags->>'addr:city'                                   AS city,
-                        tags->>'addr:postcode'                               AS postcode,
-                        tags->>'opening_hours'                               AS opening_hours,
-                        COALESCE(tags->>'website', tags->>'contact:website') AS website,
-                        COALESCE(tags->>'phone', tags->>'contact:phone')     AS phone,
-                        COALESCE(tags->>'email', tags->>'contact:email')     AS email,
+                        polygons.tags                                        AS tags,
+                        polygons.tags->>'name'                               AS name,
+                        COALESCE(polygons.tags->>'brand:wikidata',
+                                 nsi.tags->>'brand:wikidata')        AS brand_wikidata,
+                        CASE WHEN polygons.tags ? 'brand:wikidata' THEN 'osm'
+                             WHEN nsi.tags IS NOT NULL          THEN 'nsi'
+                        END                                                  AS brand_wikidata_source,
+                        nsi.tags                                             AS nsi_tags,
+                        polygons.tags->>'brand'                              AS brand,
+                        polygons.tags->>'addr:city'                          AS city,
+                        polygons.tags->>'addr:postcode'                      AS postcode,
+                        polygons.tags->>'opening_hours'                      AS opening_hours,
+                        COALESCE(polygons.tags->>'website', polygons.tags->>'contact:website') AS website,
+                        COALESCE(polygons.tags->>'phone', polygons.tags->>'contact:phone')     AS phone,
+                        COALESCE(polygons.tags->>'email', polygons.tags->>'contact:email')     AS email,
                         version,
-                        members,
+                        members                                              AS members,
                         geom
-                    FROM polygons
-                    {matchable}
+                    FROM (SELECT * FROM polygons {matchable}) polygons
+                    LEFT JOIN LATERAL nsi_match(polygons.tags) AS nsi(tags) ON TRUE
                 """)
 
                 cur.execute("""

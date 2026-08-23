@@ -3,8 +3,8 @@
 {% from '_info_card.html' import info_card %}
 {% block title %}1/2 - Validation des données de {{ brand }} ({{brand_wikidata}}){% endblock %}
 {% block subtitle %}Validez {{ items | length }} des {{size}} points d'intérêt de ce lot, tirés au hasard. Les tags en <span
-    class="text-success">verts</span> sont les nouvelles valeurs ajoutées issues de ATP, les autres sont déjà présentent
-dans OSM et ne seront pas mises à jour.{% endblock %}
+    class="text-success">verts</span> sont les nouvelles valeurs ajoutées, issues d'ATP ou du name-suggestion-index, les
+autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/validate.js?v={{ app_version }}" type="text/javascript"></script>
@@ -132,6 +132,14 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
 
                 {{ render_tag('brand:wikidata', "Code Wikidata", "iconoir-database", item) }}
 
+                {% if item['brand_wikidata_source'] == 'nsi' %}
+                {% call info_card('warning') %}
+                <span>Ce code Wikidata a été <strong>déduit du nom</strong> de l'objet via le
+                    name-suggestion-index, il n'était pas présent dans OSM. Vérifiez qu'il
+                    s'agit bien de cette enseigne.</span>
+                {% endcall %}
+                {% endif %}
+
                 {{ render_tag('name', "Nom du magasin", "iconoir-quote", item) }}
 
                 {{ render_tag('email', "Email", "iconoir-mail", item) }}
@@ -141,6 +149,20 @@ dans OSM et ne seront pas mises à jour.{% endblock %}
                 {{ render_tag('website', "Site web", "iconoir-globe", item) }}
 
                 {{ render_tag('opening_hours', "Horaires", "iconoir-clock", item) }}
+
+                {% if item['other_new_tags'] %}
+                <div class="flex items-start">
+                    <i class="iconoir-label mr-2 mt-1"></i>
+                    <div>
+                        <strong>Tags NSI :</strong>
+                        <ul class="text-success font-mono text-sm">
+                            {% for key, value in item['other_new_tags'].items() %}
+                            <li>{{ key }} = {{ value }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
 
                 <div class="text-xs text-base-content/50 mt-1 flex flex-col gap-0.5">
                     <span><i class="iconoir-database"></i> <strong class="font-mono">ATP</strong>
