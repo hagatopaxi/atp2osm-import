@@ -131,16 +131,15 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
         <a href="{{ url_for('todo.todo') }}" class="btn btn-sm btn-soft join-item">Réinitialiser</a>
       </div>
     </fieldset>
-    <span class="text-sm text-base-content/60 ml-auto mb-2">{{ entries|length }} marque{{ 's' if entries|length > 1 }}</span>
-    <div class="mb-2">{{ export_menu('todo', filters) }}</div>
+    <div class="ml-auto mb-2">{{ export_menu('todo', filters) }}</div>
   </form>
 
   {% if entries|length == 0 %}
   <p class="text-base-content/60">Aucune marque ne correspond à ces filtres.</p>
-  {% endif %}
-
+  {% else %}
+  <p class="text-sm text-base-content/60 mb-2">{{ entries|length }} marque{{ 's' if entries|length > 1 }}</p>
   <div class="overflow-x-auto shrink-0">
-    <table class="table table-zebra w-full">
+    <table class="table table-compact bg-base-100 rounded-2">
       <thead>
         <tr>
           {{ sort_th('name', 'Nom') }}
@@ -153,7 +152,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
       </thead>
       <tbody>
         {% for entry in entries %}
-        <tr>
+        <tr class="group">
           <td>{{ entry.brand_name }}</td>
           <td>
             {% if entry.brand_wikidata %}
@@ -176,9 +175,12 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
           <td class="whitespace-nowrap">{{ entry.created_at.strftime('%d/%m/%Y') }}</td>
           <td>
             {% if current_user_id == entry.osm_user_id %}
-            <button class="btn btn-ghost btn-sm btn-square text-error" onclick="deleteEntry({{ entry.id }})">
-              <i class="iconoir-trash"></i>
-            </button>
+            <div class="row-actions">
+              <button class="btn btn-sm btn-soft btn-error rounded-md" onclick="deleteEntry({{ entry.id }})"
+                aria-label="Supprimer">
+                <i class="iconoir-trash"></i>
+              </button>
+            </div>
             {% endif %}
           </td>
         </tr>
@@ -186,6 +188,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
       </tbody>
     </table>
   </div>
+  {% endif %}
   {% endif %}
 
 </div>
