@@ -354,6 +354,49 @@
         </div>
     </section>
 
+    <section id="export">
+        <h2 class="text-lg font-semibold mb-3">Exporter les données</h2>
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body gap-4">
+
+                <p class="text-sm text-base-content/80 leading-relaxed">
+                    Les données <strong>produites par atp2osm</strong> sont librement exportables, en CSV ou en JSON,
+                    sans authentification. Il s'agit uniquement de la trace des intégrations et de la liste des
+                    marques manquantes : les données sources restent chez leurs producteurs respectifs
+                    (<a href="https://alltheplaces.xyz" target="_blank" rel="noopener" class="link link-primary">All The Places</a>
+                    et <a href="https://www.openstreetmap.org" target="_blank" rel="noopener" class="link link-primary">OpenStreetMap</a>).
+                </p>
+
+                <dl class="flex flex-col gap-2 text-sm">
+                    <div class="flex gap-3 items-start">
+                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/history.csv</dt>
+                        <dd class="text-base-content/70">Une ligne par intégration : marque, contributeur, date, statut, nombre d'objets et de tags.</dd>
+                    </div>
+                    <div class="flex gap-3 items-start">
+                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/departements.csv</dt>
+                        <dd class="text-base-content/70">Le détail par changeset : département, nombre d'objets, identifiant du changeset OSM et statut.</dd>
+                    </div>
+                    <div class="flex gap-3 items-start">
+                        <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/todo.csv</dt>
+                        <dd class="text-base-content/70">Les marques signalées comme absentes d'ATP.</dd>
+                    </div>
+                </dl>
+
+                <p class="text-sm text-base-content/80 leading-relaxed">
+                    Remplacez <code class="font-mono text-xs">.csv</code> par <code class="font-mono text-xs">.json</code>
+                    pour obtenir le même contenu en JSON. Les exports
+                    <code class="font-mono text-xs">history</code> et <code class="font-mono text-xs">todo</code>
+                    acceptent les mêmes filtres que les pages correspondantes
+                    (<code class="font-mono text-xs">q</code>, <code class="font-mono text-xs">status</code>,
+                    <code class="font-mono text-xs">user</code>, <code class="font-mono text-xs">from</code>,
+                    <code class="font-mono text-xs">to</code>) — le bouton « Exporter » situé au-dessus de chaque
+                    tableau reprend d'ailleurs les filtres actifs.
+                </p>
+
+            </div>
+        </div>
+    </section>
+
     <section>
         <h2 class="text-lg font-semibold mb-3">Ressources</h2>
         <ul class="flex flex-col gap-2 text-sm">
