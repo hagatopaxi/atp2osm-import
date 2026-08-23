@@ -17,15 +17,27 @@ logger = logging.getLogger(__name__)
 
 todo_bp = Blueprint("todo", __name__)
 
+SORT_COLUMNS = {
+    "name": "brand_name",
+    "wikidata": "brand_wikidata",
+    "estimation": "estimation",
+    "user": "osm_user_id",
+    "date": "created_at",
+}
+
 
 @todo_bp.route("/todo")
 def todo():
     osmdb = get_osmdb()
     where, params, filters = build_filters(request.args, FILTERS)
     where = hide_brands_in_atp(where, request.args, filters)
+    sort = request.args.get("sort") if request.args.get("sort") in SORT_COLUMNS else "date"
+    direction = "ASC" if request.args.get("dir") == "asc" else "DESC"
     with osmdb.cursor(row_factory=dict_row) as cursor:
         entries = cursor.execute(
-            f"SELECT * FROM todo_brands {where} ORDER BY created_at DESC", params
+            f"SELECT * FROM todo_brands {where} "
+            f"ORDER BY {SORT_COLUMNS[sort]} {direction} NULLS LAST",
+            params,
         ).fetchall()
         total = cursor.execute(
             "SELECT COUNT(*) AS total FROM todo_brands"
@@ -46,6 +58,8 @@ def todo():
         current_user_id=current_user_id,
         total=total,
         filters=filters,
+        sort=sort,
+        direction=direction.lower(),
         filter_users=sorted(
             ((uid, users.get(uid, str(uid))) for uid in all_user_ids),
             key=lambda u: u[1].lower(),

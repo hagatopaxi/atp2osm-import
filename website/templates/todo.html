@@ -28,6 +28,18 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
 <script src="/static/js/todo.js?v={{ app_version }}"></script>
 {% endblock %}
 
+{% macro sort_th(key, label) %}
+{% set active = sort == key %}
+{% set next_dir = 'asc' if not active or direction == 'desc' else 'desc' %}
+<th class="p-0">
+  <a class="flex items-center gap-1 px-4 py-3 hover:bg-base-200 {{ 'text-primary' if active }}"
+    href="{{ url_for('todo.todo', **dict(request.args, sort=key, dir=next_dir)) }}">
+    {{ label }}
+    <i class="{{ 'iconoir-nav-arrow-up' if active and direction == 'asc' else 'iconoir-nav-arrow-down' }} {{ '' if active else 'opacity-20' }}"></i>
+  </a>
+</th>
+{% endmacro %}
+
 {% block content %}
 <div class="flex flex-col gap-4">
 
@@ -76,6 +88,8 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
   <p class="text-base-content/60">Aucune marque dans la liste pour le moment.</p>
   {% else %}
   <form method="get" data-autosubmit class="flex flex-wrap items-end gap-3">
+    <input type="hidden" name="sort" value="{{ sort }}" />
+    <input type="hidden" name="dir" value="{{ direction }}" />
     <fieldset class="fieldset">
       <legend class="fieldset-legend">Marque</legend>
       <label class="input input-sm w-56">
@@ -129,11 +143,11 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
     <table class="table table-zebra w-full">
       <thead>
         <tr>
-          <th>Nom</th>
-          <th>Wikidata</th>
-          <th>Estimation</th>
-          <th>Ajouté par</th>
-          <th>Date</th>
+          {{ sort_th('name', 'Nom') }}
+          {{ sort_th('wikidata', 'Wikidata') }}
+          {{ sort_th('estimation', 'Estimation') }}
+          {{ sort_th('user', 'Ajouté par') }}
+          {{ sort_th('date', 'Date') }}
           <th></th>
         </tr>
       </thead>
