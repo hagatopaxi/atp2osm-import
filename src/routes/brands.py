@@ -38,6 +38,15 @@ logger = logging.getLogger(__name__)
 
 brands_bp = Blueprint("brands", __name__)
 
+# Sorted in Python: the list is already in memory, see the comment in brands().
+SORT_COLUMNS = {
+    "wikidata": "brand_wikidata",
+    "brand": "brand",
+    "total": "total",
+    "status": "last_status",
+    "last_import": "last_import",
+}
+
 
 @brands_bp.before_request
 def maintenance_guard():
@@ -131,12 +140,23 @@ def brands():
     # that fetching it whole costs.
     all_brands = get_all(osmdb)
     rows, filters = filter_brands(all_brands, request.args)
+    sort = request.args.get("sort")
+    direction = "asc" if request.args.get("dir") == "asc" else "desc"
+    if sort in SORT_COLUMNS:
+        key = SORT_COLUMNS[sort]
+        rows = sorted(
+            rows,
+            key=lambda r: (r[key] is None, r[key]),
+            reverse=direction == "desc",
+        )
     return render_template(
         "brands.html",
         rows=rows,
         total_brands=len(all_brands),
         shown=len(rows),
         filters=filters,
+        sort=sort,
+        direction=direction,
     )
 
 

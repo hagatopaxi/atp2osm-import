@@ -1,6 +1,7 @@
 {% extends '_base.html' %}
 {% from '_info_card.html' import info_card %}
 {% from '_export_menu.html' import export_menu %}
+{% from '_sort_th.html' import sort_th with context %}
 
 {% block meta_description %}Liste des marques françaises absentes d'AllThePlaces. Contribuez en signalant les enseignes manquantes pour enrichir OpenStreetMap.{% endblock %}
 {% block page_title %}Marques manquantes{% endblock %}
@@ -27,18 +28,6 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
 <script src="/static/js/filters.js?v={{ app_version }}"></script>
 <script src="/static/js/todo.js?v={{ app_version }}"></script>
 {% endblock %}
-
-{% macro sort_th(key, label) %}
-{% set active = sort == key %}
-{% set next_dir = 'asc' if not active or direction == 'desc' else 'desc' %}
-<th class="p-0">
-  <a class="flex items-center gap-1 px-4 py-3 hover:bg-base-200 {{ 'text-primary' if active }}"
-    href="{{ url_for('todo.todo', **dict(request.args, sort=key, dir=next_dir)) }}">
-    {{ label }}
-    <i class="{{ 'iconoir-nav-arrow-up' if active and direction == 'asc' else 'iconoir-nav-arrow-down' }} {{ '' if active else 'opacity-20' }}"></i>
-  </a>
-</th>
-{% endmacro %}
 
 {% block content %}
 <div class="flex flex-col gap-4">
@@ -142,11 +131,11 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
     <table class="table table-compact bg-base-100 rounded-2">
       <thead>
         <tr>
-          {{ sort_th('name', 'Nom') }}
-          {{ sort_th('wikidata', 'Wikidata') }}
-          {{ sort_th('estimation', 'Estimation') }}
-          {{ sort_th('user', 'Ajouté par') }}
-          {{ sort_th('date', 'Date') }}
+          {{ sort_th('todo.todo', 'name', 'Nom') }}
+          {{ sort_th('todo.todo', 'wikidata', 'Wikidata') }}
+          {{ sort_th('todo.todo', 'estimation', 'Estimation') }}
+          {{ sort_th('todo.todo', 'user', 'Ajouté par') }}
+          {{ sort_th('todo.todo', 'date', 'Date') }}
           <th></th>
         </tr>
       </thead>

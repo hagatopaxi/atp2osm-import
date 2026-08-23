@@ -14,6 +14,15 @@ history_bp = Blueprint("history", __name__)
 
 HISTORY_PER_PAGE = 20
 
+SORT_COLUMNS = {
+    "date": "import_date",
+    "brand": "brand_name",
+    "status": "status",
+    "user": "osm_user_id",
+    "items": "items_count",
+    "departements": "departements_count",
+}
+
 
 @history_bp.route("/history")
 def history():
@@ -21,6 +30,8 @@ def history():
     page = max(1, request.args.get("page", 1, type=int))
     offset = (page - 1) * HISTORY_PER_PAGE
     where, params, filters = build_filters(request.args, FILTERS)
+    sort = request.args.get("sort") if request.args.get("sort") in SORT_COLUMNS else "date"
+    direction = "ASC" if request.args.get("dir") == "asc" else "DESC"
 
     with osmdb.cursor(row_factory=dict_row) as cursor:
         total = cursor.execute(
@@ -31,7 +42,9 @@ def history():
             f"""SELECT *,
                        (SELECT COUNT(*) FROM import_departements dpt
                         WHERE dpt.import_id = import_history.id) AS departements_count
-                FROM import_history {where} ORDER BY import_date DESC LIMIT %s OFFSET %s""",
+                FROM import_history {where}
+                ORDER BY {SORT_COLUMNS[sort]} {direction} NULLS LAST
+                LIMIT %s OFFSET %s""",
             params + [HISTORY_PER_PAGE, offset],
         ).fetchall()
 
@@ -53,6 +66,8 @@ def history():
         total_pages=total_pages,
         total=total,
         filters=filters,
+        sort=sort,
+        direction=direction.lower(),
         filter_users=sorted(
             ((uid, users.get(uid, str(uid))) for uid in all_user_ids),
             key=lambda u: u[1].lower(),
