@@ -12,6 +12,7 @@ from src.extensions import cache
 from src.migrate import run_migrations
 from src.routes.auth import auth_bp
 from src.routes.brands import brands_bp
+from src.error_reasons import ERROR_REASONS, REASON_LABELS
 from src.routes.export import export_bp
 from src.routes.history import history_bp
 from src.routes.misc import misc_bp
@@ -73,7 +74,13 @@ run_startup_tasks()
 
 @app.context_processor
 def inject_globals():
-    return {"api_url": settings.api_url, "app_version": settings.app_version, "is_dev": settings.is_dev}
+    return {
+        "api_url": settings.api_url,
+        "app_version": settings.app_version,
+        "is_dev": settings.is_dev,
+        "error_reasons": ERROR_REASONS,
+        "reason_labels": REASON_LABELS,
+    }
 
 
 @app.errorhandler(500)

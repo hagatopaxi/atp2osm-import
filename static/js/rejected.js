@@ -21,6 +21,7 @@ function renderInvalidations() {
       <i class="iconoir-prohibition text-error text-2xl mt-1"></i>
       <div>
         <p class="font-semibold">${item.title}</p>
+        ${(item.reason_labels || []).map((l) => `<span class="badge badge-error badge-outline badge-sm mt-1 mr-1">${l}</span>`).join("")}
         ${item.comment ? `<p class="text-base-content/70 mt-1">${item.comment}</p>` : ""}
         ${item.atp_id ? `<p class="text-xs text-base-content/50 font-mono mt-1">ATP ${item.spider_id ? item.spider_id + "/" : ""}${item.atp_id}</p>` : ""}
       </div>
@@ -43,6 +44,7 @@ async function confirmRejection() {
     osm_type: item.osm_type,
     atp_id: item.atp_id,
     spider_id: item.spider_id,
+    reasons: item.reasons || [],
     comment: item.comment,
   }));
 
