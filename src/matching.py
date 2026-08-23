@@ -36,6 +36,13 @@ MATCHED_POI_SQL = """
             OR (atp.email   IS NOT NULL AND osm.email   IS NULL)
             OR (atp.phone   IS NOT NULL AND osm.phone   IS NULL)
             OR (atp.website IS NOT NULL AND osm.website IS NULL)
+            -- NSI complète aussi : un objet dont seul NSI a quelque chose à
+            -- dire doit compter dans les lots, sinon apply_on_node produirait
+            -- un changement que la liste des marques n'a jamais annoncé.
+            OR EXISTS (
+                SELECT 1 FROM jsonb_object_keys(COALESCE(osm.nsi_tags, '{{}}'::jsonb)) AS k
+                WHERE NOT osm.tags ? k
+            )
         ) AS is_importable,
         ST_Distance(osm.geom::geography, ST_GeomFromGeoJSON(atp.geom)::geography) AS atp_distance,
         count(*) FILTER (WHERE osm.node_type = 'node')                 OVER (PARTITION BY atp.id) AS pt_cnt,
@@ -201,6 +208,13 @@ def apply_on_node(atp_osm_match: dict) -> dict:
     if "contact:website" not in new_tags:
         apply_tag(new_tags, "website", atp_osm_match["atp_website"])
 
+    # NSI tags for this object, already narrowed down to a single brand entry
+    # by mv_places (the object's own primary tag is the discriminator). Never
+    # overwrites: apply_tag only fills what is missing, which is what keeps
+    # NSI from reclassifying or renaming anything.
+    for key, value in (atp_osm_match.get("nsi_tags") or {}).items():
+        apply_tag(new_tags, key, value)
+
     # If new_tags and original ones are the same returns None to skip the update
     if new_tags == atp_osm_match["tags"]:
         return None
@@ -229,6 +243,9 @@ def apply_on_node(atp_osm_match: dict) -> dict:
         "source_type": atp_osm_match["source_type"],
         "postcode": atp_osm_match["postcode"],
         "old_tag": atp_osm_match["tags"],
+        # 'nsi' when the QID was recovered from a label rather than read on the
+        # object: the reviewer is then validating an inference, and must see it.
+        "brand_wikidata_source": atp_osm_match.get("brand_wikidata_source"),
         "departement_number": atp_osm_match["departement_number"],
     }
 
