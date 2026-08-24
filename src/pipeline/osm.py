@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from datetime import datetime
 from email.utils import parsedate_to_datetime
+from src.pipeline import _matview
 from src.pipeline.constants import (
     PROJECT_ROOT,
     GEOFABRIK_REGIONS,
@@ -155,12 +156,90 @@ def run_osm2pgsql():
     logger.info("osm2pgsql import complete (%d file(s))", len(pbf_paths))
 
 
+def _mv_places_sql() -> str:
+    # Only rows that can ever match are kept: the join in
+    # MATCHED_POI_SQL requires an equality on one of brand:wikidata,
+    # brand, name, email, website or phone, and NULL never equals
+    # anything. That drops 95% of the OSM objects (20.3M -> 1.1M) and
+    # cuts the /validate query time by a third to two thirds, with a
+    # provably identical result.
+    matchable = """
+        WHERE tags ?| ARRAY['name', 'brand', 'brand:wikidata',
+                            'email', 'contact:email',
+                            'phone', 'contact:phone',
+                            'website', 'contact:website']
+    """
+    # The matchable filter sits in a subquery so that the NSI
+    # lookup only ever runs on the 1.1M rows that survive it,
+    # never on the 20.3M raw ones.
+    return f"""
+        CREATE MATERIALIZED VIEW mv_places AS
+        SELECT
+            node_id                                              AS osm_id,
+            'node'                                               AS node_type,
+            points.tags                                          AS tags,
+            points.tags->>'name'                                 AS name,
+            COALESCE(points.tags->>'brand:wikidata',
+                     nsi.tags->>'brand:wikidata')        AS brand_wikidata,
+            CASE WHEN points.tags ? 'brand:wikidata' THEN 'osm'
+                 WHEN nsi.tags IS NOT NULL          THEN 'nsi'
+            END                                                  AS brand_wikidata_source,
+            nsi.tags                                             AS nsi_tags,
+            points.tags->>'brand'                                AS brand,
+            points.tags->>'addr:city'                            AS city,
+            points.tags->>'addr:postcode'                        AS postcode,
+            points.tags->>'opening_hours'                        AS opening_hours,
+            COALESCE(points.tags->>'website', points.tags->>'contact:website') AS website,
+            COALESCE(points.tags->>'phone', points.tags->>'contact:phone')     AS phone,
+            COALESCE(points.tags->>'email', points.tags->>'contact:email')     AS email,
+            version,
+            NULL::jsonb                                          AS members,
+            geom
+        FROM (SELECT * FROM points {matchable}) points
+        LEFT JOIN LATERAL nsi_match(points.tags) AS nsi(tags) ON TRUE
+
+        UNION ALL
+
+        SELECT
+            area_id                                              AS osm_id,
+            CASE osm_type WHEN 'W' THEN 'way' ELSE 'relation' END AS node_type,
+            polygons.tags                                        AS tags,
+            polygons.tags->>'name'                               AS name,
+            COALESCE(polygons.tags->>'brand:wikidata',
+                     nsi.tags->>'brand:wikidata')        AS brand_wikidata,
+            CASE WHEN polygons.tags ? 'brand:wikidata' THEN 'osm'
+                 WHEN nsi.tags IS NOT NULL          THEN 'nsi'
+            END                                                  AS brand_wikidata_source,
+            nsi.tags                                             AS nsi_tags,
+            polygons.tags->>'brand'                              AS brand,
+            polygons.tags->>'addr:city'                          AS city,
+            polygons.tags->>'addr:postcode'                      AS postcode,
+            polygons.tags->>'opening_hours'                      AS opening_hours,
+            COALESCE(polygons.tags->>'website', polygons.tags->>'contact:website') AS website,
+            COALESCE(polygons.tags->>'phone', polygons.tags->>'contact:phone')     AS phone,
+            COALESCE(polygons.tags->>'email', polygons.tags->>'contact:email')     AS email,
+            version,
+            members                                              AS members,
+            geom
+        FROM (SELECT * FROM polygons {matchable}) polygons
+        LEFT JOIN LATERAL nsi_match(polygons.tags) AS nsi(tags) ON TRUE
+    """
+
+
 def setup_mv_places():
+    view_sql = _mv_places_sql()
     newest_ts = _newest_geofabrik_timestamp()
     conn = connect()
     try:
         last_date = last_import_date(conn, "osm")
-        if last_date and last_date >= newest_ts:
+        # mv_places reads the OSM tables and nsi_brands: a new NSI release must
+        # rebuild it even when the OSM data has not moved.
+        signature = _matview.signature(view_sql, last_import_date(conn, "nsi"))
+        if (
+            last_date
+            and last_date >= newest_ts
+            and _matview.is_current(conn, "mv_places", signature)
+        ):
             logger.info("OSM views already up-to-date (%s), skipping", last_date.date())
             record_import(conn, "osm", last_date, "skipped")
             return
@@ -169,73 +248,7 @@ def setup_mv_places():
             with conn.cursor() as cur:
                 cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places CASCADE;")
                 logger.info("Creating mv_places and indexes...")
-                # Only rows that can ever match are kept: the join in
-                # MATCHED_POI_SQL requires an equality on one of brand:wikidata,
-                # brand, name, email, website or phone, and NULL never equals
-                # anything. That drops 95% of the OSM objects (20.3M -> 1.1M) and
-                # cuts the /validate query time by a third to two thirds, with a
-                # provably identical result.
-                matchable = """
-                    WHERE tags ?| ARRAY['name', 'brand', 'brand:wikidata',
-                                        'email', 'contact:email',
-                                        'phone', 'contact:phone',
-                                        'website', 'contact:website']
-                """
-                # The matchable filter sits in a subquery so that the NSI
-                # lookup only ever runs on the 1.1M rows that survive it,
-                # never on the 20.3M raw ones.
-                cur.execute(f"""
-                    CREATE MATERIALIZED VIEW mv_places AS
-                    SELECT
-                        node_id                                              AS osm_id,
-                        'node'                                               AS node_type,
-                        points.tags                                          AS tags,
-                        points.tags->>'name'                                 AS name,
-                        COALESCE(points.tags->>'brand:wikidata',
-                                 nsi.tags->>'brand:wikidata')        AS brand_wikidata,
-                        CASE WHEN points.tags ? 'brand:wikidata' THEN 'osm'
-                             WHEN nsi.tags IS NOT NULL          THEN 'nsi'
-                        END                                                  AS brand_wikidata_source,
-                        nsi.tags                                             AS nsi_tags,
-                        points.tags->>'brand'                                AS brand,
-                        points.tags->>'addr:city'                            AS city,
-                        points.tags->>'addr:postcode'                        AS postcode,
-                        points.tags->>'opening_hours'                        AS opening_hours,
-                        COALESCE(points.tags->>'website', points.tags->>'contact:website') AS website,
-                        COALESCE(points.tags->>'phone', points.tags->>'contact:phone')     AS phone,
-                        COALESCE(points.tags->>'email', points.tags->>'contact:email')     AS email,
-                        version,
-                        NULL::jsonb                                          AS members,
-                        geom
-                    FROM (SELECT * FROM points {matchable}) points
-                    LEFT JOIN LATERAL nsi_match(points.tags) AS nsi(tags) ON TRUE
-
-                    UNION ALL
-
-                    SELECT
-                        area_id                                              AS osm_id,
-                        CASE osm_type WHEN 'W' THEN 'way' ELSE 'relation' END AS node_type,
-                        polygons.tags                                        AS tags,
-                        polygons.tags->>'name'                               AS name,
-                        COALESCE(polygons.tags->>'brand:wikidata',
-                                 nsi.tags->>'brand:wikidata')        AS brand_wikidata,
-                        CASE WHEN polygons.tags ? 'brand:wikidata' THEN 'osm'
-                             WHEN nsi.tags IS NOT NULL          THEN 'nsi'
-                        END                                                  AS brand_wikidata_source,
-                        nsi.tags                                             AS nsi_tags,
-                        polygons.tags->>'brand'                              AS brand,
-                        polygons.tags->>'addr:city'                          AS city,
-                        polygons.tags->>'addr:postcode'                      AS postcode,
-                        polygons.tags->>'opening_hours'                      AS opening_hours,
-                        COALESCE(polygons.tags->>'website', polygons.tags->>'contact:website') AS website,
-                        COALESCE(polygons.tags->>'phone', polygons.tags->>'contact:phone')     AS phone,
-                        COALESCE(polygons.tags->>'email', polygons.tags->>'contact:email')     AS email,
-                        version,
-                        members                                              AS members,
-                        geom
-                    FROM (SELECT * FROM polygons {matchable}) polygons
-                    LEFT JOIN LATERAL nsi_match(polygons.tags) AS nsi(tags) ON TRUE
-                """)
+                cur.execute(view_sql)
 
                 cur.execute("""
                     CREATE INDEX IF NOT EXISTS mv_places_geog_idx
@@ -253,6 +266,8 @@ def setup_mv_places():
                     CREATE INDEX IF NOT EXISTS mv_places_email_lower_idx
                         ON mv_places (LOWER(email));
                 """)
+
+                _matview.stamp(cur, "mv_places", signature)
 
             conn.commit()
             record_import(conn, "osm", newest_ts, "success")
