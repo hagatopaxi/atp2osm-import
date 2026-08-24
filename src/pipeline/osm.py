@@ -13,7 +13,13 @@ from src.pipeline.constants import (
 import requests
 
 from src.config import get_database, get_pipeline
-from src.pipeline._db import connect, last_import_date, record_import, start_import
+from src.pipeline._db import (
+    connect,
+    last_import_comment,
+    last_import_date,
+    record_import,
+    start_import,
+)
 from src.utils import delete_file_if_exists, download_large_file
 
 logger = logging.getLogger(__name__)
@@ -233,8 +239,10 @@ def setup_mv_places():
     try:
         last_date = last_import_date(conn, "osm")
         # mv_places reads the OSM tables and nsi_brands: a new NSI release must
-        # rebuild it even when the OSM data has not moved.
-        signature = _matview.signature(view_sql, last_import_date(conn, "nsi"))
+        # rebuild it even when the OSM data has not moved. NSI is identified by
+        # its published version rather than a date — that is what names the
+        # content, and two releases can share a day.
+        signature = _matview.signature(view_sql, last_import_comment(conn, "nsi"))
         if (
             last_date
             and last_date >= newest_ts

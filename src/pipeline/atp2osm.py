@@ -2,7 +2,7 @@ import logging
 
 from src.matching import MATCHED_POI_SQL
 from src.pipeline import _matview
-from src.pipeline._db import connect, last_import_date
+from src.pipeline._db import connect, last_import_comment, last_import_date
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def create_mv_places_brand():
             view_sql,
             last_import_date(conn, "osm"),
             last_import_date(conn, "atp"),
-            last_import_date(conn, "nsi"),
+            last_import_comment(conn, "nsi"),  # the NSI version string
         )
         if _matview.is_current(conn, "mv_places_brand", signature):
             logger.info("mv_places_brand already up-to-date, skipping")

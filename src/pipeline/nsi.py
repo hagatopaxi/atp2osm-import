@@ -177,8 +177,9 @@ def select_items(nsi_json: dict) -> list[tuple]:
 def _latest_version() -> str:
     """Newest published NSI version, from the npm registry.
 
-    Not from the file's own _meta.version: it is stale (6.0.20250817 inside a
-    8.0.20260729 release) and cannot be used as a marker.
+    The registry is the authority, not the CDN: jsDelivr answers `@latest` from
+    a cache that can be years stale, and the file's own _meta.version then
+    describes that stale content rather than the current release.
     """
     resp = requests.get(NSI_REGISTRY_URL, timeout=30)
     resp.raise_for_status()

@@ -46,19 +46,26 @@ Un seul fichier, `dist/nsi.json`, publié dans le paquet npm
 `name-suggestion-index` et servi par jsDelivr sans clé ni quota :
 
 ```
-https://registry.npmjs.org/name-suggestion-index                            # métadonnées, ~qq ko
-https://cdn.jsdelivr.net/npm/name-suggestion-index@<version>/dist/nsi.json  # 13 Mo
+https://registry.npmjs.org/name-suggestion-index                                 # métadonnées, ~qq ko
+https://cdn.jsdelivr.net/npm/name-suggestion-index@<version>/dist/json/nsi.json  # 13,5 Mo
 ```
 
 Contraintes :
 
 - `dist/` n'est plus commité sur `main` — raw.githubusercontent renvoie 404.
   npm et jsDelivr sont le seul canal.
-- `_meta.version` **dans le fichier est périmé** (`6.0.20250817` dans une
-  release `8.0.20260729`). La référence de version est `dist-tags.latest` du
-  registre npm, et rien d'autre.
-- Toujours télécharger une **version épinglée**, jamais `@latest` : le fichier
-  doit correspondre à la version enregistrée en base.
+- **Toujours épingler la version, jamais `@latest`.** Ce n'est pas qu'une
+  question de cohérence avec la ligne `data_imports` : jsDelivr répond aux URL
+  non épinglées depuis un cache qui peut avoir des années de retard. Il sert
+  encore aujourd'hui, sous `@latest/dist/nsi.json`, un fichier de l'ère 6.x —
+  un chemin que le paquet ne publie plus. Une URL épinglée est résolue contre
+  le vrai tarball : un chemin erroné échoue en 404 au lieu de renvoyer
+  silencieusement des données obsolètes.
+- Le chemin est `/dist/json/nsi.json`. `/dist/nsi.json` était celui des
+  versions 6.x.
+- `_meta.version` décrit fidèlement le fichier téléchargé — mais si ce fichier
+  vient du cache `@latest`, il décrit la version périmée. La référence reste
+  `dist-tags.latest` du registre npm.
 
 Rythme de publication irrégulier, par salves — de zéro à quatre releases par
 mois :
@@ -196,7 +203,7 @@ n'écrit pas : il n'y a rien à départager, et les écarter priverait la marque
 sa catégorie principale.
 
 La règle porte donc sur les tags écrits : le groupe (QID, catégorie) est conservé
-entier quand ils concordent, écarté entier sinon. **2 groupes sur 2 123** sont
+entier quand ils concordent, écarté entier sinon. **2 groupes sur 2 213** sont
 écartés — Intermarché, dont le Drive porte `drive_through=only` alors que les
 autres non, et un café dans le même cas.
 
@@ -218,8 +225,8 @@ tags = {k: v for k, v in item["tags"].items() if k in NSI_WRITABLE_TAGS}
 `brand` et `name` sont conservés **hors** de `tags` : ce sont les libellés
 d'indexation de l'étape 2, ils ne sont jamais écrits dans OSM.
 
-Résultat attendu : **2 150 lignes** pour 1 881 QID et 2 121 couples
-(QID, catégorie), dont 892 portent autre chose que le seul `brand:wikidata`.
+Résultat attendu : **2 239 lignes** pour 1 964 QID et 2 213 couples
+(QID, catégorie), dont 939 portent autre chose que le seul `brand:wikidata`.
 
 ### 2.4 Ce qui est délibérément écarté
 
@@ -270,7 +277,7 @@ leurs libellés. Ce qui ne doit jamais différer, ce sont les tags qu'elles
 
 **`select_items(nsi_json)`** — §2.3.
 
-**`import_nsi()`** — `TRUNCATE` + `COPY` en une transaction (2 150 lignes), puis
+**`import_nsi()`** — `TRUNCATE` + `COPY` en une transaction (2 239 lignes), puis
 `record_import(conn, "nsi", …)` avec la version npm en commentaire.
 
 Pas de DuckDB, pas de parquet, pas de découpage : le fichier tient en mémoire et
@@ -323,9 +330,9 @@ Rendement mesuré :
 
 | population `mv_places` | objets | QID retrouvés | ambigus |
 |---|---|---|---|
-| `brand` en texte, pas de QID | 13 623 | **2 150** | 0 |
-| `name` seul, ni `brand` ni QID | 883 646 | **4 576** | 0 |
-| **total** | | **6 726** | **0** |
+| `brand` en texte, pas de QID | 13 623 | **2 227** | 0 |
+| `name` seul, ni `brand` ni QID | 883 646 | **5 009** | 0 |
+| **total** | | **7 236** | **0** |
 
 ```
 241 objets → Q6686    Renault          184 → Q3356080
@@ -404,9 +411,9 @@ Deux règles absolues :
 
 | | objets | tags |
 |---|---|---|
-| `brand:wikidata` complétés (§3.1) | 6 726 | 6 726 |
-| tags complétés sur objets appariés (§3.3) | 899 | 907 |
-| tags complétés sur les objets rattrapés | 6 726 | 459 |
+| `brand:wikidata` complétés (§3.1) | 7 236 | 7 236 |
+| tags complétés sur objets appariés (§3.3) | 1 049 | 1 057 |
+| tags complétés sur les objets rattrapés | 7 236 | 472 |
 
 L'essentiel de la valeur est le `brand:wikidata` : c'est la clé de jointure de
 tout l'outil — `MATCHED_POI_SQL`, `mv_places_brand`, le découpage en lots. Les
@@ -510,13 +517,13 @@ Après le premier import complet, sur la base de développement :
 
 | contrôle | attendu |
 |---|---|
-| `SELECT count(*) FROM nsi_brands` | 2 150 |
-| `SELECT count(DISTINCT brand_wikidata) FROM nsi_brands` | 1 881 |
-| lignes avec plus que `brand:wikidata` dans `tags` | 892 |
-| `mv_places WHERE brand_wikidata_source = 'nsi'` | 6 726 |
-| … dont issus d'un `brand` | 2 150 |
-| … dont issus d'un `name` seul | 4 576 |
-| tags secondaires ajoutés sur les objets déjà appariés | 907 |
+| `SELECT count(*) FROM nsi_brands` | 2 239 |
+| `SELECT count(DISTINCT brand_wikidata) FROM nsi_brands` | 1 964 |
+| lignes avec plus que `brand:wikidata` dans `tags` | 939 |
+| `mv_places WHERE brand_wikidata_source = 'nsi'` | 7 236 |
+| … dont issus d'un `brand` | 2 227 |
+| … dont issus d'un `name` seul | 5 009 |
+| tags secondaires ajoutés sur les objets déjà appariés | 1 057 |
 
 Un écart significatif signale un bug dans le filtre France (§2.3.b), dans la
 dédup (§2.3.e) ou dans la liste blanche (§2.3.f).
