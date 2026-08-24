@@ -1,32 +1,53 @@
 import logging
 
 from src.matching import MATCHED_POI_SQL
-from src.pipeline._db import connect
+from src.pipeline import _matview
+from src.pipeline._db import connect, last_import_date
 
 logger = logging.getLogger(__name__)
 
 
+def _mv_places_brand_sql() -> str:
+    # is_importable est filtré APRÈS le dédoublonnage, comme
+    # apply_on_node() côté /validate, sinon les deux comptages divergent.
+    # One row per (brand, département): get_all() sums the unblocked
+    # ones to announce what is still left to integrate.
+    return f"""
+        CREATE MATERIALIZED VIEW mv_places_brand AS
+        SELECT
+            STRING_AGG(DISTINCT atp_brand, ' / ' ORDER BY atp_brand) AS brand,
+            atp_brand_wikidata AS brand_wikidata,
+            departement_number,
+            COUNT(*)           AS total
+        FROM ({MATCHED_POI_SQL.format(where_options="TRUE")}) matched
+        WHERE is_importable
+        GROUP BY atp_brand_wikidata, departement_number
+    """
+
+
 def create_mv_places_brand():
+    view_sql = _mv_places_brand_sql()
     conn = connect()
     try:
+        # It counts matches between mv_places and atp_fr, so it has to be
+        # rebuilt when either moves — and when MATCHED_POI_SQL itself changes,
+        # since /validate applies that same SQL live and the two counts must
+        # never diverge.
+        signature = _matview.signature(
+            view_sql,
+            last_import_date(conn, "osm"),
+            last_import_date(conn, "atp"),
+            last_import_date(conn, "nsi"),
+        )
+        if _matview.is_current(conn, "mv_places_brand", signature):
+            logger.info("mv_places_brand already up-to-date, skipping")
+            return
+
         with conn.cursor() as cur:
             cur.execute("DROP MATERIALIZED VIEW IF EXISTS mv_places_brand;")
             logger.info("Creating mv_places_brand...")
-            # is_importable est filtré APRÈS le dédoublonnage, comme
-            # apply_on_node() côté /validate, sinon les deux comptages divergent.
-            # One row per (brand, département): get_all() sums the unblocked
-            # ones to announce what is still left to integrate.
-            cur.execute(f"""
-                CREATE MATERIALIZED VIEW mv_places_brand AS
-                SELECT
-                    STRING_AGG(DISTINCT atp_brand, ' / ' ORDER BY atp_brand) AS brand,
-                    atp_brand_wikidata AS brand_wikidata,
-                    departement_number,
-                    COUNT(*)           AS total
-                FROM ({MATCHED_POI_SQL.format(where_options="TRUE")}) matched
-                WHERE is_importable
-                GROUP BY atp_brand_wikidata, departement_number
-            """)
+            cur.execute(view_sql)
+            _matview.stamp(cur, "mv_places_brand", signature)
         conn.commit()
         logger.info("mv_places_brand created")
     finally:
