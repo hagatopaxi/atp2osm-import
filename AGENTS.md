@@ -54,7 +54,7 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 ## Architecture
 
 **Data pipeline** (runs outside the web server, via `run-pipeline.sh` and `src/pipeline/`):
-1. `run-pipeline.sh` — Entry point of the daily refresh: runs `src/pipeline` inside the container via podman. Copied into the project directory on every deploy. Triggered by a systemd timer (04:00). The ATP branch no-ops when the published export is not newer than the last import.
+1. `run-pipeline.sh` — Entry point of the daily refresh: runs `src/pipeline` inside the container via podman. Copied into the project directory on every deploy. Triggered by a systemd timer (04:00 Europe/Paris). The ATP branch no-ops when the published export is not newer than the last import.
 2. `src/pipeline/` — Python module orchestrating the whole pipeline: OSM PBF download from Geofabrik, osm2pgsql import, ATP parquet download, load into `atp_fr` through DuckDB, materialized view refresh.
 3. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points` and `polygons` tables in PostGIS (SRID 4326). Two filters run there: objects that are definitely not places (roads, boundaries, transport…) and objects carrying none of the attributes a match can key on — no name, brand, email, phone or website. The second one drops ~95% of the objects.
 
