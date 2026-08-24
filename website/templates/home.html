@@ -129,9 +129,10 @@
 
 <section class="mt-8 max-w-3xl">
     <h2 class="text-lg font-semibold mb-3">État des données</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for type, label in [("osm", "OpenStreetMap"), ("atp", "All The
-        Places")] %} {% set row = data_imports.get(type) %}
+        Places"), ("nsi", "Name Suggestion Index")] %} {% set row =
+        data_imports.get(type) %}
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body">
                 <h3 class="card-title text-sm font-mono">{{ label }}</h3>
