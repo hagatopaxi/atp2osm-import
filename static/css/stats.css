@@ -241,3 +241,19 @@
     overflow: hidden;
 }
 
+
+/* Two segments in one track: the fills sit side by side instead of each
+   filling the track. min-width is dropped so an empty segment stays invisible. */
+.bar-track:has(.bar-fill-alt) {
+    display: flex;
+    overflow: hidden;
+}
+
+.bar-track:has(.bar-fill-alt) .bar-fill {
+    min-width: 0;
+    border-radius: 0;
+}
+
+.bar-fill-alt {
+    background: var(--color-secondary);
+}

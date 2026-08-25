@@ -103,7 +103,7 @@
         ("iconoir-label",          tags_total,       "Tags ajoutés"),
         ("iconoir-double-check",   kpi.imports,      "Intégrations"),
         ("iconoir-shop",           kpi.brands,       "Marques"),
-        ("iconoir-community",      kpi.contributors, "Contributeurs"),
+        ("iconoir-community",      contributors,     "Contributeurs"),
         ("iconoir-check-circle",   (spiders_reliability ~ ' %') if spiders_reliability is not none else '—', "Fiabilité spiders")
     ] %}
     <div class="card bg-base-100 shadow-sm">
@@ -165,8 +165,30 @@
 {% endif %}
 
 <div class="mb-4">
-    {% call card("Contributeurs", "POIs intégrés par contributeur OSM.") %}
-    {{ bar_list(users) }}
+    {% call card("Contributeurs",
+                 "Contributions par utilisateur OSM. Une intégration et un ajout de marque
+                  manquante comptent pour une contribution chacun.") %}
+    <ul class="flex flex-wrap gap-4 mb-3 text-xs text-base-content/50">
+        <li class="flex items-center gap-1"><span class="legend-swatch bg-primary"></span> Intégrations</li>
+        <li class="flex items-center gap-1"><span class="legend-swatch bg-secondary"></span> Marques manquantes ajoutées</li>
+    </ul>
+    {% if users %}
+    {% set top = users[0].value %}
+    <ul class="bar-list">
+        {% for row in users %}
+        <li>
+            <span class="bar-label" title="{{ row.label }}">{{ row.label }}</span>
+            <span class="bar-track" title="{{ row.imports }} intégration{{ 's' if row.imports > 1 }}, {{ row.todos }} marque{{ 's' if row.todos > 1 }} ajoutée{{ 's' if row.todos > 1 }}">
+                <span class="bar-fill" style="--bar: {{ (100 * row.imports / top) | round(1) }}%"></span>
+                <span class="bar-fill bar-fill-alt" style="--bar: {{ (100 * row.todos / top) | round(1) }}%"></span>
+            </span>
+            <span class="bar-value">{{ row.value }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-sm text-base-content/60">Aucune donnée sur cette période.</p>
+    {% endif %}
     {% endcall %}
 </div>
 
