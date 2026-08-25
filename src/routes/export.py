@@ -36,7 +36,7 @@ DATASETS = {
         "import_id DESC, departement_number",
     ),
     "todo": (
-        "id, brand_wikidata, brand_name, osm_user_id, created_at, estimation",
+        "id, brand_wikidata, brand_name, osm_user_id, created_at, estimation, updated_by, updated_at",
         "todo_brands",
         TODO_FILTERS,
         "created_at DESC",

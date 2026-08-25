@@ -80,3 +80,44 @@ async function deleteEntry(id) {
     showToast(res.status === 403 ? 'Vous ne pouvez supprimer que vos propres entrées.' : 'Erreur lors de la suppression.');
   }
 }
+
+function editEntry(id, name, wikidata, estimation) {
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-name').value = name || '';
+  document.getElementById('edit-wikidata').value = wikidata || '';
+  document.getElementById('edit-estimation').value = estimation ?? '';
+  document.getElementById('edit-dialog').showModal();
+}
+
+async function saveEntry(event) {
+  event.preventDefault();
+  const id = document.getElementById('edit-id').value;
+  const estimationRaw = document.getElementById('edit-estimation').value.trim();
+
+  const btn = event.target.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  btn.classList.add('loading', 'loading-spinner');
+
+  const res = await fetch(`/todo/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      brand_name: document.getElementById('edit-name').value.trim(),
+      brand_wikidata: document.getElementById('edit-wikidata').value.trim(),
+      estimation: estimationRaw !== '' ? parseInt(estimationRaw, 10) : null,
+    }),
+  });
+
+  if (res.ok) {
+    window.location.reload();
+  } else {
+    btn.disabled = false;
+    btn.classList.remove('loading', 'loading-spinner');
+    let message = 'Une erreur est survenue, veuillez réessayer.';
+    try {
+      const data = await res.json();
+      if (data.error) message = data.error;
+    } catch (_) {}
+    showToast(message);
+  }
+}

@@ -48,8 +48,14 @@ def todo():
                 "SELECT DISTINCT osm_user_id FROM todo_brands"
             ).fetchall()
         ]
+        updater_ids = [
+            r["updated_by"]
+            for r in cursor.execute(
+                "SELECT DISTINCT updated_by FROM todo_brands WHERE updated_by IS NOT NULL"
+            ).fetchall()
+        ]
 
-    users = fetch_osm_users(all_user_ids)
+    users = fetch_osm_users(list(set(all_user_ids) | set(updater_ids)))
     current_user_id = session["user"]["osm_id"] if "user" in session else None
     return render_template(
         "todo.html",
@@ -122,6 +128,49 @@ def todo_add():
             logger.exception("Failed to insert todo brand")
             return {"error": "Une erreur est survenue, veuillez réessayer."}, 500
     return Response(status=201)
+
+
+@todo_bp.route("/todo/<int:entry_id>", methods=["PUT"])
+@auth_required
+def todo_update(entry_id):
+    data = request.get_json()
+    brand_wikidata = (data.get("brand_wikidata") or "").strip() or None
+    brand_name = (data.get("brand_name") or "").strip()
+    estimation = data.get("estimation")
+    if estimation is not None:
+        try:
+            estimation = int(estimation)
+        except (ValueError, TypeError):
+            return {"error": "estimation doit être un entier"}, 400
+    if not brand_name:
+        return {"error": "brand_name est requis"}, 400
+    osmdb = get_osmdb()
+    with osmdb.cursor(row_factory=dict_row) as cursor:
+        try:
+            updated = cursor.execute(
+                """UPDATE todo_brands
+                   SET brand_wikidata = %s, brand_name = %s, estimation = %s,
+                       updated_by = %s, updated_at = NOW()
+                   WHERE id = %s RETURNING id""",
+                (
+                    brand_wikidata,
+                    brand_name,
+                    estimation,
+                    session["user"]["osm_id"],
+                    entry_id,
+                ),
+            ).fetchone()
+            osmdb.commit()
+        except psycopg.errors.UniqueViolation:
+            osmdb.rollback()
+            return {"error": "Cette marque est déjà dans la liste"}, 409
+        except Exception:
+            osmdb.rollback()
+            logger.exception("Failed to update todo brand")
+            return {"error": "Une erreur est survenue, veuillez réessayer."}, 500
+    if updated is None:
+        return Response(status=404)
+    return Response(status=204)
 
 
 @todo_bp.route("/todo/<int:entry_id>", methods=["DELETE"])
