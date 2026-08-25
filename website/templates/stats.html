@@ -31,14 +31,14 @@
 {# Barres horizontales triées : la forme la plus lisible pour comparer des
    catégories nommées. Libellé et valeur sont du texte, rien à doubler pour les
    lecteurs d'écran. #}
-{% macro bar_list(rows, empty='Aucune donnée sur cette période.') %}
+{% macro bar_list(rows, empty='Aucune donnée sur cette période.', alt=false) %}
 {% set top = rows[0].value if rows else 0 %}
 {% if rows %}
 <ul class="bar-list">
     {% for row in rows %}
     <li>
         <span class="bar-label" title="{{ row.label }}">{{ row.label }}</span>
-        <span class="bar-track"><span class="bar-fill" style="--bar: {{ (100 * row.value / top) | round(1) }}%"></span></span>
+        <span class="bar-track"><span class="bar-fill{{ ' bar-fill-alt' if alt }}" style="--bar: {{ (100 * row.value / top) | round(1) }}%"></span></span>
         <span class="bar-value">{{ row.value }}</span>
     </li>
     {% endfor %}
@@ -164,31 +164,21 @@
 </figure>
 {% endif %}
 
-<div class="mb-4">
-    {% call card("Contributeurs",
-                 "Contributions par utilisateur OSM. Une intégration et un ajout de marque
-                  manquante comptent pour une contribution chacun.") %}
-    <ul class="flex flex-wrap gap-4 mb-3 text-xs text-base-content/50">
-        <li class="flex items-center gap-1"><span class="legend-swatch bg-primary"></span> Intégrations</li>
-        <li class="flex items-center gap-1"><span class="legend-swatch bg-secondary"></span> Marques manquantes ajoutées</li>
-    </ul>
-    {% if users %}
-    {% set top = users[0].value %}
-    <ul class="bar-list">
-        {% for row in users %}
-        <li>
-            <span class="bar-label" title="{{ row.label }}">{{ row.label }}</span>
-            <span class="bar-track" title="{{ row.imports }} intégration{{ 's' if row.imports > 1 }}, {{ row.todos }} marque{{ 's' if row.todos > 1 }} ajoutée{{ 's' if row.todos > 1 }}">
-                <span class="bar-fill" style="--bar: {{ (100 * row.imports / top) | round(1) }}%"></span>
-                <span class="bar-fill bar-fill-alt" style="--bar: {{ (100 * row.todos / top) | round(1) }}%"></span>
-            </span>
-            <span class="bar-value">{{ row.value }}</span>
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <p class="text-sm text-base-content/60">Aucune donnée sur cette période.</p>
-    {% endif %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+    {% call card("Intégrations par contributeur",
+                 "Classement des contributeurs OSM par volume d'intégration.") %}
+    {# Both rankings are rendered; the radios swap them in CSS, no reload. #}
+    <div class="join mb-3">
+        <input class="btn btn-xs join-item" type="radio" name="rank-by" aria-label="Intégrations" checked />
+        <input class="btn btn-xs join-item rank-pois-switch" type="radio" name="rank-by" aria-label="POIs" />
+    </div>
+    <div class="rank-imports">{{ bar_list(by_imports) }}</div>
+    <div class="rank-pois">{{ bar_list(by_pois) }}</div>
+    {% endcall %}
+
+    {% call card("Marques manquantes ajoutées",
+                 "Classement des contributeurs OSM par nombre de marques absentes d'ATP ajoutées.") %}
+    {{ bar_list(reporters, alt=true) }}
     {% endcall %}
 </div>
 
