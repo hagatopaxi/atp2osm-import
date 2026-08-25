@@ -137,7 +137,8 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
           {{ sort_th('todo.todo', 'estimation', 'Estimation') }}
           {{ sort_th('todo.todo', 'user', 'Ajouté par') }}
           {{ sort_th('todo.todo', 'date', 'Date') }}
-          <th></th>
+          <th>Modifié par</th>
+          <th class="w-0"></th>
         </tr>
       </thead>
       <tbody>
@@ -163,13 +164,33 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
             {% endif %}
           </td>
           <td class="whitespace-nowrap">{{ entry.created_at.strftime('%d/%m/%Y') }}</td>
-          <td>
-            {% if current_user_id == entry.osm_user_id %}
-            <div class="row-actions">
+          <td class="whitespace-nowrap">
+            {% if entry.updated_by %}
+            {% set updater_name = users.get(entry.updated_by) %}
+            {% if updater_name %}
+            <a class="link" href="{{ api_url }}/user/{{ updater_name }}" target="_blank" rel="noopener">{{ updater_name
+              }}</a>
+            {% else %}
+            {{ entry.updated_by }}
+            {% endif %}
+            <span class="text-base-content/60 text-sm">le {{ entry.updated_at.strftime('%d/%m/%Y') }}</span>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+          <td class="w-0 whitespace-nowrap">
+            {% if current_user_id %}
+            <div class="row-actions flex justify-end gap-1">
+              <button class="btn btn-sm btn-soft rounded-md" aria-label="Modifier"
+                onclick='editEntry({{ entry.id }}, {{ entry.brand_name|tojson }}, {{ entry.brand_wikidata|tojson }}, {{ entry.estimation|tojson }})'>
+                <i class="iconoir-edit-pencil"></i>
+              </button>
+              {% if current_user_id == entry.osm_user_id %}
               <button class="btn btn-sm btn-soft btn-error rounded-md" onclick="deleteEntry({{ entry.id }})"
                 aria-label="Supprimer">
                 <i class="iconoir-trash"></i>
               </button>
+              {% endif %}
             </div>
             {% endif %}
           </td>
@@ -180,6 +201,33 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
   </div>
   {% endif %}
   {% endif %}
+
+  <dialog id="edit-dialog" class="modal">
+    <div class="modal-box">
+      <h3 class="text-lg font-bold mb-3">Modifier la marque</h3>
+      <form onsubmit="saveEntry(event)" class="flex flex-col gap-3">
+        <input type="hidden" id="edit-id" />
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Nom de la marque</legend>
+          <input id="edit-name" type="text" class="input input-bordered w-full" required />
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Code Wikidata <span class="text-base-content/50">(optionnel)</span></legend>
+          <input id="edit-wikidata" type="text" class="input input-bordered w-full" />
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Estimation nb. POIs <span class="text-base-content/50">(optionnel)</span></legend>
+          <input id="edit-estimation" type="number" min="0" class="input input-bordered w-full" />
+        </fieldset>
+        <div class="modal-action">
+          <button type="button" class="btn btn-sm btn-soft"
+            onclick="document.getElementById('edit-dialog').close()">Annuler</button>
+          <button type="submit" class="btn btn-sm btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>Fermer</button></form>
+  </dialog>
 
 </div>
 {% endblock %}
