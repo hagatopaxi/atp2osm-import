@@ -36,7 +36,13 @@ def home():
             SELECT
                 COALESCE(SUM(items_count), 0) AS total_nodes_updated,
                 COUNT(DISTINCT brand_wikidata) FILTER (WHERE status = 'success') AS brands_imported,
-                COUNT(DISTINCT osm_user_id) AS contributors,
+                -- A contributor is anyone who moved the project forward:
+                -- integrating POIs or reporting a brand missing from ATP.
+                (SELECT COUNT(*) FROM (
+                    SELECT osm_user_id FROM import_history
+                    UNION
+                    SELECT osm_user_id FROM todo_brands
+                ) u) AS contributors,
                 COALESCE((SELECT SUM(v.value::int)
                           FROM import_history h,
                                LATERAL jsonb_each_text(COALESCE(h.tags_count, '{}'::jsonb)) v), 0) AS tags_added

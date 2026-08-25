@@ -30,8 +30,7 @@ TOP_N = 15
 KPI_SQL = """
     SELECT COALESCE(SUM(items_count), 0)::int AS pois,
            COUNT(*)                           AS imports,
-           COUNT(DISTINCT brand_wikidata)     AS brands,
-           COUNT(DISTINCT osm_user_id)        AS contributors
+           COUNT(DISTINCT brand_wikidata)     AS brands
     FROM import_history {where}
 """
 
@@ -75,11 +74,28 @@ BRANDS_SQL = """
     ORDER BY value DESC
 """
 
+# Two ways of contributing, counted the same way: one integration is worth one
+# missing brand reported. The brand filter reaches todo_brands too, the period
+# one applies to created_at there.
 USERS_SQL = """
-    SELECT osm_user_id AS label, SUM(items_count)::int AS value
-    FROM import_history {where}
+    WITH contributions AS (
+        SELECT osm_user_id, COUNT(*)::int AS imports, 0 AS todos
+        FROM import_history {where}
+        GROUP BY 1
+        UNION ALL
+        SELECT osm_user_id, 0, COUNT(*)::int
+        FROM (SELECT osm_user_id, brand_name, brand_wikidata,
+                     created_at AS import_date
+              FROM todo_brands) todo_brands
+        {where}
+        GROUP BY 1
+    )
+    SELECT osm_user_id     AS label,
+           SUM(imports)::int AS imports,
+           SUM(todos)::int   AS todos,
+           SUM(imports + todos)::int AS value
+    FROM contributions
     GROUP BY 1
-    HAVING SUM(items_count) > 0
     ORDER BY value DESC
 """
 
@@ -174,7 +190,8 @@ def stats():
         ).fetchall()
         tags = cursor.execute(TAGS_SQL.format(where=aliased), params).fetchall()
         brands = cursor.execute(BRANDS_SQL.format(where=where), params).fetchall()
-        users = cursor.execute(USERS_SQL.format(where=where), params).fetchall()
+        # The clause appears twice in the query, so its params do too.
+        users = cursor.execute(USERS_SQL.format(where=where), params * 2).fetchall()
         spiders = cursor.execute(SPIDERS_SQL.format(where=where), params).fetchall()
         spider_series = cursor.execute(
             SPIDER_SERIES_SQL.format(unit=unit, start=start, where=aliased), params
@@ -188,7 +205,8 @@ def stats():
         all_user_ids = [
             r["osm_user_id"]
             for r in cursor.execute(
-                "SELECT DISTINCT osm_user_id FROM import_history"
+                "SELECT osm_user_id FROM import_history"
+                " UNION SELECT osm_user_id FROM todo_brands"
             ).fetchall()
         ]
 
@@ -223,6 +241,8 @@ def stats():
     return render_template(
         "stats.html",
         kpi=kpi,
+        # Same definition as the contributors panel below, filters included.
+        contributors=len(users),
         series=series,
         series_max=max((r["pois"] for r in series), default=0),
         cumulative_max=total,
