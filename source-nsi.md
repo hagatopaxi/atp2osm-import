@@ -371,7 +371,9 @@ diff :
 lignes = nsi_brands WHERE brand_wikidata = qid
 
   0 ligne   → ne rien faire
-  1 ligne   → elle s'applique sans condition
+  1 ligne   → elle s'applique ; si l'objet porte une clé principale
+              d'une autre catégorie, la clé principale de l'entrée est
+              retirée avant écriture (NSI ne reclasse pas)
   N lignes  → soit p = (clé principale de l'objet OSM, sa valeur)
               p est None            → ne rien faire
               une ligne matche p    → elle s'applique
@@ -383,16 +385,67 @@ désambiguïsateur, il ne sert que lorsqu'il y a une ambiguïté. C'est ce qui p
 de traiter les objets dépourvus de tag principal, dont le QID n'a qu'une seule
 catégorie.
 
+Elle reste malgré tout un garde-fou de classification quand elle ne désambiguïse
+rien : un objet `shop=supermarket` portant `brand:wikidata=Q89029184` (les
+stations Casino, seule entrée NSI de ce QID) recevait `amenity=fuel` par-dessus.
+
+Exemple, sur l'entrée `brands/office/government` de France Travail — une seule
+ligne pour `Q8901192` :
+
+```
+entrée NSI   {"office": "government",
+              "government": "employment_agency",
+              "brand:wikidata": "Q8901192"}
+
+objet A      office=government, name=France Travail
+             → clé principale identique, l'entrée s'applique entière
+             → +government=employment_agency, +brand:wikidata
+
+objet B      office=employment_agency, name=France Travail
+             → clé principale d'une autre catégorie : `office` est retiré
+             → +government=employment_agency, +brand:wikidata
+             → office=employment_agency reste ce que le contributeur a mis
+
+objet C      name=France Travail, sans clé principale
+             → rien à contredire, l'entrée s'applique entière
+```
+
+Seule la classification est en cause : ce qui la porte est retiré, tout le reste
+passe. Le désaccord est le plus souvent une nuance de sous-type
+(`shop=telecommunication` côté NSI, `shop=mobile_phone` côté OSM) — et comme
+`shop` n'est pas dans `NSI_WRITABLE_TAGS`, il n'y a alors rien à retirer.
+
 Lecture de la clé principale **de l'objet OSM** (il n'a pas de path), par ordre
 de priorité fixe :
 
-```python
-OSM_PRIMARY_KEYS = ("shop", "amenity", "tourism", "office", "leisure",
-                    "healthcare", "man_made", "advertising", "craft",
-                    "landuse", "highway", "waterway")
+Implémenté par `osm_primary_tag` (migration 019), en SQL et non en Python : la
+fonction est appelée depuis la construction de `mv_places`. `unnest` préserve
+l'ordre du tableau, donc `LIMIT 1` retient la première clé présente sur l'objet
+et renvoie `[clé, valeur]`, ou `NULL`.
+
+```sql
+SELECT ARRAY[k, osm_tags->>k]
+FROM unnest(ARRAY['shop', 'amenity', 'tourism', 'office', 'leisure',
+                  'healthcare', 'craft', 'landuse']) AS k
+WHERE osm_tags ? k
+LIMIT 1;
 ```
 
 Cette liste ne sert qu'à *lire* l'objet, jamais à interpréter NSI.
+
+Elle ne retient que les clés qui peuvent réellement atteindre `mv_places` :
+`man_made`, `advertising`, `highway` et `waterway` en sont absentes parce que
+`generic.lua` écarte ces objets à l'import, bien avant.
+
+Deux conséquences de l'ordre, arbitraire et propre à l'outil — OSM n'a pas de
+notion de tag principal :
+
+- une station-service avec boutique (`amenity=fuel` + `shop=convenience`) est
+  lue comme un `shop`, donc en désaccord avec une entrée NSI `amenity=fuel` ;
+- une valeur multiple (`shop=convenience;gas`) n'égale aucune catégorie NSI,
+  l'objet compte donc toujours comme en désaccord.
+
+Dans les deux cas on s'abstient, ce qui est la direction sûre.
 
 Écriture : pour chaque clé de `tags` absente de l'objet OSM, la poser. Plus le
 `brand:wikidata` lui-même quand il vient de NSI (`brand_wikidata_source = 'nsi'`)
