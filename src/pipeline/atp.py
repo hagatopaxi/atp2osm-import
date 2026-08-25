@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 
 # ISO 3166-1 alpha-2 codes, minus FR. ATP names its country-specific spiders
 # `<brand>_<cc>` (e.g. `aldi_de`), so a foreign suffix means no French POI.
+# Only the suffix: a leading `la_`/`au_`/`as_` is part of the brand name much
+# more often than it is a country (la_halle_fr, au_vieux_campeur, as_24_fr).
 _FOREIGN_COUNTRY_CODES = frozenset(
     """ad ae af ag ai al am ao aq ar as at au aw ax az ba bb bd be bf bg bh bi bj bl bm
     bn bo bq br bs bt bv bw by bz ca cc cd cf cg ch ci ck cl cm cn co cr cu cv cw cx cy
@@ -39,9 +41,16 @@ _FOREIGN_COUNTRY_CODES = frozenset(
 
 
 def is_relevant_spider(filename: str) -> bool:
-    """True unless the spider name carries a non-French country suffix."""
-    stem = filename.rsplit("/", 1)[-1].removesuffix(".geojson")
-    return stem.rsplit("_", 1)[-1].lower() not in _FOREIGN_COUNTRY_CODES
+    """True unless the spider is foreign, or a bulk address dataset.
+
+    National address datasets (au_vic_addresses, nz_addresses, …) hold no brand
+    yet weigh 44% of ATP's POI: nothing to match, a lot to carry.
+    """
+    stem = filename.rsplit("/", 1)[-1].removesuffix(".geojson").lower()
+    return (
+        stem.rsplit("_", 1)[-1] not in _FOREIGN_COUNTRY_CODES
+        and "addresses" not in stem
+    )
 
 
 def select_run(runs, last_date):
