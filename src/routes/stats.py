@@ -74,29 +74,30 @@ BRANDS_SQL = """
     ORDER BY value DESC
 """
 
-# Two ways of contributing, counted the same way: one integration is worth one
-# missing brand reported. The brand filter reaches todo_brands too, the period
-# one applies to created_at there.
+# Two ways of contributing, ranked separately. The brand filter reaches
+# todo_brands too, the period one applies to created_at there.
 USERS_SQL = """
     WITH contributions AS (
-        SELECT osm_user_id, COUNT(*)::int AS imports, 0 AS todos
+        SELECT osm_user_id,
+               COUNT(*)::int                        AS imports,
+               COALESCE(SUM(items_count), 0)::int   AS pois,
+               0                                    AS todos
         FROM import_history {where}
         GROUP BY 1
         UNION ALL
-        SELECT osm_user_id, 0, COUNT(*)::int
+        SELECT osm_user_id, 0, 0, COUNT(*)::int
         FROM (SELECT osm_user_id, brand_name, brand_wikidata,
                      created_at AS import_date
               FROM todo_brands) todo_brands
         {where}
         GROUP BY 1
     )
-    SELECT osm_user_id     AS label,
-           SUM(imports)::int AS imports,
-           SUM(todos)::int   AS todos,
-           SUM(imports + todos)::int AS value
+    SELECT osm_user_id          AS label,
+           SUM(imports)::int    AS imports,
+           SUM(pois)::int       AS pois,
+           SUM(todos)::int      AS todos
     FROM contributions
     GROUP BY 1
-    ORDER BY value DESC
 """
 
 # Same reading as SPIDERS_SQL, period by period: what counts is the brand, not
@@ -214,6 +215,13 @@ def stats():
     for row in users:
         row["label"] = names.get(row["label"], str(row["label"]))
 
+    # Two rankings out of one query: integrations and missing brands reported.
+    # Integrations ship pre-sorted both ways, the switch is pure CSS.
+    def rank(key):
+        rows = ({"label": u["label"], "value": u[key]} for u in users if u[key])
+        return sorted(rows, key=lambda u: u["value"], reverse=True)[:TOP_N]
+
+
     # A spider is rejected only when nothing of it ever made it through: one
     # cancelled batch followed by a successful one is not a bad spider.
     integrated = sum(1 for s in spiders if s["integrated"])
@@ -241,8 +249,11 @@ def stats():
     return render_template(
         "stats.html",
         kpi=kpi,
-        # Same definition as the contributors panel below, filters included.
+        # Same definition as the contributors panels below, filters included.
         contributors=len(users),
+        by_imports=rank("imports"),
+        by_pois=rank("pois"),
+        reporters=rank("todos"),
         series=series,
         series_max=max((r["pois"] for r in series), default=0),
         cumulative_max=total,
@@ -250,7 +261,6 @@ def stats():
         tags=tags[:TOP_N],
         tags_total=sum(t["value"] for t in tags),
         brands=brands[:TOP_N],
-        users=users[:TOP_N],
         spider_series=spider_series,
         spiders_reliability=reliability,
         changesets=changesets,

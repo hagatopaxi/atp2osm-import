@@ -241,19 +241,18 @@
     overflow: hidden;
 }
 
-
-/* Two segments in one track: the fills sit side by side instead of each
-   filling the track. min-width is dropped so an empty segment stays invisible. */
-.bar-track:has(.bar-fill-alt) {
-    display: flex;
-    overflow: hidden;
-}
-
-.bar-track:has(.bar-fill-alt) .bar-fill {
-    min-width: 0;
-    border-radius: 0;
-}
-
+/* Second ranking of the contributors pair, told apart by colour alone. */
 .bar-fill-alt {
     background: var(--color-secondary);
+}
+
+/* The POI/integration switch swaps two pre-rendered rankings — no reload,
+   no script. */
+.rank-pois,
+figure:has(.rank-pois-switch:checked) .rank-imports {
+    display: none;
+}
+
+figure:has(.rank-pois-switch:checked) .rank-pois {
+    display: block;
 }
