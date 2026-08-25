@@ -50,3 +50,20 @@ def stamp(cur, name: str, sig: str) -> None:
             sql.Identifier(name), sql.Literal(sig)
         )
     )
+
+
+def function_defs(conn, *names: str) -> str:
+    """Current source of SQL functions a view calls, for use as an input.
+
+    A function body is an input like any other: the view's own SQL never
+    mentions it, so redefining nsi_match() leaves the signature untouched and
+    the stale rows in place. Migrations change these bodies, hence the read
+    from the catalog rather than a hand-kept version string.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT string_agg(pg_get_functiondef(name::regproc), '\n'"
+            " ORDER BY name) FROM unnest(%s::text[]) AS name",
+            (list(names),),
+        )
+        return cur.fetchone()[0]

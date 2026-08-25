@@ -50,3 +50,20 @@ def test_never_reclassifies_an_object_of_another_category(conn):
     # stations must not come out as amenity=fuel.
     got = match(conn, '{"shop": "supermarket", "brand:wikidata": "%s"}' % QID)
     assert got == {"operator:wikidata": "Q-op"}
+
+
+def test_redefining_the_function_invalidates_the_view_signature(conn):
+    """The guard that makes a corrected nsi_match() actually reach mv_places."""
+    from src.pipeline import _matview
+
+    before = _matview.function_defs(conn, "nsi_match", "osm_primary_tag")
+    conn.execute(
+        "CREATE OR REPLACE FUNCTION nsi_match(osm_tags jsonb) RETURNS jsonb"
+        " AS $$ SELECT NULL::jsonb $$ LANGUAGE sql STABLE"
+    )
+    after = _matview.function_defs(conn, "nsi_match", "osm_primary_tag")
+
+    assert before != after
+    assert _matview.signature("same view sql", before) != _matview.signature(
+        "same view sql", after
+    )

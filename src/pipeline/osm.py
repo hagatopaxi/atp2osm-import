@@ -242,7 +242,15 @@ def setup_mv_places():
         # rebuild it even when the OSM data has not moved. NSI is identified by
         # its published version rather than a date — that is what names the
         # content, and two releases can share a day.
-        signature = _matview.signature(view_sql, last_import_comment(conn, "nsi"))
+        #
+        # nsi_tags is computed by nsi_match() and stored, so a migration that
+        # redefines the function is an input too: without it, the corrected
+        # rows only land the next time the OSM data happens to move.
+        signature = _matview.signature(
+            view_sql,
+            last_import_comment(conn, "nsi"),
+            _matview.function_defs(conn, "nsi_match", "osm_primary_tag"),
+        )
         if (
             last_date
             and last_date >= newest_ts
