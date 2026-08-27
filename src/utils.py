@@ -49,7 +49,9 @@ def download_large_file(
 
     try:
         # ``stream=True`` gives us an iterator over the response body.
-        with requests.get(url, stream=True, timeout=30) as resp:
+        # (connect, read): Geofabrik keeps the socket open but idle when loaded;
+        # 30 s of read timeout was enough to kill a multi-GB download.
+        with requests.get(url, stream=True, timeout=(10, 120)) as resp:
             resp.raise_for_status()
 
             # Try to obtain the total size from the HTTP header.

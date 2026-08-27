@@ -1,6 +1,10 @@
 [Unit]
 Description=Daily ATP + OSM data refresh for ${PROJECT_NAME}
 After=network.target
+# Geofabrik stalls when everyone downloads at 02:00: retry over the night
+# instead of losing the whole refresh. 4 starts max per day (1 + 3 retries).
+StartLimitIntervalSec=1d
+StartLimitBurst=4
 
 [Service]
 Type=oneshot
@@ -9,5 +13,7 @@ EnvironmentFile=${PROJECT_DIR}/.env
 WorkingDirectory=${PROJECT_DIR}
 StandardOutput=journal
 StandardError=journal
+Restart=on-failure
+RestartSec=30min
 MemoryMax=2G
 MemorySwapMax=512M
