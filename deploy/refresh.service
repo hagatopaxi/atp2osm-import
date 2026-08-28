@@ -1,8 +1,9 @@
 [Unit]
 Description=Daily ATP + OSM data refresh for ${PROJECT_NAME}
 After=network.target
-# Geofabrik stalls when everyone downloads at 02:00: retry over the night
-# instead of losing the whole refresh. 4 starts max per day (1 + 3 retries).
+# A source being down (Geofabrik 502, ATP, NSI) exits non-zero: retry every
+# 4h, 3 times, so the last attempt is 12h after the first run. The sources that
+# did answer are already imported by then, so the retries run much shorter.
 StartLimitIntervalSec=1d
 StartLimitBurst=4
 
@@ -14,6 +15,6 @@ WorkingDirectory=${PROJECT_DIR}
 StandardOutput=journal
 StandardError=journal
 Restart=on-failure
-RestartSec=30min
+RestartSec=4h
 MemoryMax=2G
 MemorySwapMax=512M

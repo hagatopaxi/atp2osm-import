@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 
 import requests
 
+from src.pipeline.errors import unavailable_if_unreachable
 from src.pipeline._db import (
     connect,
     last_import_comment,
@@ -202,14 +203,16 @@ def download_nsi():
         last_version = last_import_comment(conn, "nsi")
         start_import(conn, "nsi")  # puts the site in maintenance mode
 
-        version = _latest_version()
+        with unavailable_if_unreachable("NSI"):
+            version = _latest_version()
         if version == last_version:
             logger.info("NSI already up-to-date (%s), skipping", version)
             record_import(conn, "nsi", _version_date(version), "skipped", version)
             return
 
         NSI_DIR.mkdir(parents=True, exist_ok=True)
-        download_large_file(NSI_CDN_URL.format(version=version), NSI_PATH)
+        with unavailable_if_unreachable("NSI"):
+            download_large_file(NSI_CDN_URL.format(version=version), NSI_PATH)
         logger.info("Downloaded NSI %s", version)
     finally:
         conn.close()
