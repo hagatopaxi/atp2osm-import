@@ -1,8 +1,15 @@
 """Geofabrik outage must not fail the pipeline: we keep the data we have."""
 from datetime import datetime, timezone
 
+import pytest
+
 from src.pipeline import osm
 from src.pipeline.errors import SourceUnavailable
+
+
+@pytest.fixture(autouse=True)
+def _clear_timestamp_cache():
+    osm._newest_geofabrik_timestamp.cache_clear()
 
 
 def test_returns_none_when_every_region_is_down(monkeypatch):

@@ -1,5 +1,6 @@
 import logging
 import os
+from functools import lru_cache
 import shutil
 import subprocess
 from datetime import datetime
@@ -64,8 +65,13 @@ def _geofabrik_timestamp(region: dict) -> datetime:
     raise ValueError(f"Cannot determine data timestamp for {region['url']}")
 
 
+@lru_cache(maxsize=1)
 def _newest_geofabrik_timestamp() -> datetime | None:
     """Return the most recent timestamp across all configured regions.
+
+    Cached for the life of the process — one pipeline run: download_pbf and
+    setup_mv_places both need it, and the retries make a second round trip
+    cost minutes when Geofabrik is slow.
 
     We refresh when any region has data newer than our last import,
     so we compare last_import_date against the maximum (newest) timestamp.
