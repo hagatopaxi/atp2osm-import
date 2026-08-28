@@ -5,12 +5,15 @@ import subprocess
 from datetime import datetime
 from email.utils import parsedate_to_datetime
 from src.pipeline import _matview
+from src.pipeline.errors import SourceUnavailable
 from src.pipeline.constants import (
     PROJECT_ROOT,
     GEOFABRIK_REGIONS,
 )
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from src.config import get_database, get_pipeline
 from src.pipeline._db import (
@@ -24,6 +27,16 @@ from src.utils import delete_file_if_exists, download_large_file
 
 logger = logging.getLogger(__name__)
 
+# Geofabrik hands out 502/503 for a few minutes at a time. Retry with backoff
+# instead of failing the whole nightly run on a transient blip.
+_session = requests.Session()
+_session.mount("https://", HTTPAdapter(max_retries=Retry(
+    total=5,
+    backoff_factor=5,          # waits 0, 5, 10, 20, 40s
+    status_forcelist=(429, 500, 502, 503, 504),
+    allowed_methods=("GET", "HEAD"),
+)))
+
 
 def _geofabrik_timestamp(region: dict) -> datetime:
     """Fetch the data timestamp for a region.
@@ -32,7 +45,7 @@ def _geofabrik_timestamp(region: dict) -> datetime:
     header of the PBF file for regions that don't publish a state file.
     """
     try:
-        resp = requests.get(region["state_url"], timeout=30)
+        resp = _session.get(region["state_url"], timeout=30)
         resp.raise_for_status()
         for line in resp.text.splitlines():
             if line.startswith("timestamp="):
@@ -42,7 +55,7 @@ def _geofabrik_timestamp(region: dict) -> datetime:
         pass
 
     # Fallback: Last-Modified header on the PBF file
-    resp = requests.head(region["url"], timeout=30, allow_redirects=True)
+    resp = _session.head(region["url"], timeout=30, allow_redirects=True)
     resp.raise_for_status()
     last_modified = resp.headers.get("Last-Modified")
     if last_modified:
@@ -51,7 +64,7 @@ def _geofabrik_timestamp(region: dict) -> datetime:
     raise ValueError(f"Cannot determine data timestamp for {region['url']}")
 
 
-def _newest_geofabrik_timestamp() -> datetime:
+def _newest_geofabrik_timestamp() -> datetime | None:
     """Return the most recent timestamp across all configured regions.
 
     We refresh when any region has data newer than our last import,
@@ -63,14 +76,18 @@ def _newest_geofabrik_timestamp() -> datetime:
             timestamps.append(_geofabrik_timestamp(region))
         except Exception as exc:
             logger.error("Could not fetch timestamp for %s: %s", name, exc)
-            raise
     if not timestamps:
-        raise RuntimeError("No Geofabrik timestamps could be fetched")
+        # Geofabrik being down is not ours to escalate: the data we already
+        # hold stays valid. Callers treat None as "nothing new to know".
+        logger.error("No Geofabrik timestamp could be fetched; keeping current data")
+        return None
     return max(timestamps)
 
 
 def download_pbf():
     newest_ts = _newest_geofabrik_timestamp()
+    if newest_ts is None:
+        raise SourceUnavailable("Geofabrik")
 
     conn = connect()
     try:
@@ -121,14 +138,19 @@ def _require_free_space(path, needed_bytes):
 
 
 def run_osm2pgsql():
-    pbf_paths = [
-        r["pbf_path"]
-        for r in GEOFABRIK_REGIONS.values()
-        if r["pbf_path"].exists()
-    ]
-    if not pbf_paths:
+    # All-or-nothing: osm2pgsql runs with --create, which drops and recreates
+    # points/polygons. Importing a subset would silently replace the whole
+    # planet extract with whatever leftovers a previous failed run left behind.
+    pbf_paths = [r["pbf_path"] for r in GEOFABRIK_REGIONS.values()]
+    missing = [p for p in pbf_paths if not p.exists()]
+    if len(missing) == len(pbf_paths):
         logger.info("No PBF files found, skipping osm2pgsql")
         return
+    if missing:
+        raise RuntimeError(
+            "Refusing a partial osm2pgsql --create: missing "
+            + ", ".join(p.name for p in missing)
+        )
 
     # Fast-fail on low disk before the destructive CASCADE-dropping import.
     # Heuristic: need ~3x total PBF size (tables + indexes + temp), floor 15 GB.
@@ -238,6 +260,13 @@ def setup_mv_places():
     conn = connect()
     try:
         last_date = last_import_date(conn, "osm")
+        if newest_ts is None:
+            # Geofabrik down: the OSM data cannot have moved under us, but the
+            # NSI / function signature below may still require a rebuild.
+            if last_date is None:
+                logger.warning("Geofabrik unreachable and no prior import, skipping")
+                return
+            newest_ts = last_date
         # mv_places reads the OSM tables and nsi_brands: a new NSI release must
         # rebuild it even when the OSM data has not moved. NSI is identified by
         # its published version rather than a date — that is what names the

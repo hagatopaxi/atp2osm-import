@@ -17,7 +17,8 @@
 import logging
 import traceback
 
-from src.pipeline._db import connect, record_import
+from src.pipeline._db import connect, last_import_date, record_import
+from src.pipeline.errors import SourceUnavailable
 from src.pipeline.atp import (
     cleanup_atp,
     create_parquet_atp,
@@ -59,6 +60,12 @@ def record_failure(step_name, exc):
     site stays in maintenance rather than exposing half-rebuilt tables until
     the next run supersedes it.
 
+    A source that was merely unreachable is the opposite case: nothing was
+    rebuilt, its tables are intact, so the row is resolved 'skipped' — no
+    maintenance — keeping its previous date so the displayed source date does
+    not go backwards. The 4-hourly retry overwrites it with a real import if
+    the source comes back.
+
     Opens its own connection (the step's own one may be in a broken
     transaction) and never raises — masking the original error would be worse.
     """
@@ -72,7 +79,11 @@ def record_failure(step_name, exc):
     try:
         conn = connect()
         try:
-            record_import(conn, import_type, None, "pending", comment)
+            if isinstance(exc, SourceUnavailable):
+                record_import(conn, import_type,
+                              last_import_date(conn, import_type), "skipped", comment)
+            else:
+                record_import(conn, import_type, None, "pending", comment)
         finally:
             conn.close()
     except Exception:

@@ -15,6 +15,7 @@ import duckdb
 import requests
 
 from src.config import get_database
+from src.pipeline.errors import unavailable_if_unreachable
 from src.pipeline._db import connect, last_import_date, record_import, start_import
 from src.pipeline.ndgeojson_to_parquet import convert_to_parquet
 from src.utils import delete_file_if_exists, download_large_file
@@ -81,9 +82,10 @@ def download_atp():
         last_date = last_import_date(conn, "atp")
         start_import(conn, "atp")  # puts the site in maintenance mode
 
-        resp = requests.get(ATP_HISTORY_URL, timeout=30)
-        resp.raise_for_status()
-        runs = list(reversed(resp.json()))
+        with unavailable_if_unreachable("ATP"):
+            resp = requests.get(ATP_HISTORY_URL, timeout=30)
+            resp.raise_for_status()
+            runs = list(reversed(resp.json()))
 
         ATP_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -98,12 +100,14 @@ def download_atp():
         delete_file_if_exists(ATP_DIR / "output.zip")
         delete_file_if_exists(SPIDERS_PATH)
 
-        download_large_file(run["output_url"], ATP_DIR / "output.zip")
+        with unavailable_if_unreachable("ATP"):
+            download_large_file(run["output_url"], ATP_DIR / "output.zip")
 
         stats_url = run.get("stats_url")
         if stats_url:
             stats_path = ATP_DIR / "stats.json"
-            download_large_file(stats_url, stats_path)
+            with unavailable_if_unreachable("ATP"):
+                download_large_file(stats_url, stats_path)
             with open(stats_path) as infile, open(SPIDERS_PATH, "w") as out:
                 out.write(json.dumps(json.loads(infile.read())["results"]))
             stats_path.unlink()

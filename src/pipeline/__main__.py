@@ -4,6 +4,7 @@ import sys
 
 from src.config import get_database
 from src.pipeline.dag import PIPELINE, record_failure
+from src.pipeline.errors import PipelineIncomplete
 from src.pipeline.runner import StepFormatter, main
 
 handler = logging.StreamHandler()
@@ -28,4 +29,9 @@ except OSError as exc:
 # No maintenance flag to set here: each datasource opens and closes its own
 # data_imports row (see _db.start_import), which is what puts the web app in
 # maintenance.
-main(PIPELINE, record_failure)
+try:
+    main(PIPELINE, record_failure)
+except PipelineIncomplete as exc:
+    # Everything else ran; exiting non-zero is what makes systemd retry in 4h.
+    logging.error("Datasource unavailable (%s) — retrying in 4h", exc)
+    sys.exit(1)

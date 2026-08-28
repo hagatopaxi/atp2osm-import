@@ -66,6 +66,8 @@ import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
+from src.pipeline.errors import PipelineIncomplete, SourceUnavailable
+
 logger = logging.getLogger(__name__)
 
 
@@ -154,6 +156,12 @@ def run(pipeline, nodes, on_failure=_noop_failure):
 
     Steps that share the same ``lock`` name are serialized via a per-name
     mutex — only one such step runs at a time; others queue behind it.
+
+    Failures are contained to their own branch: a step that raises marks its
+    descendants dead (they are never executed) while unrelated branches run to
+    completion. A step raising SourceUnavailable does not even do that — its
+    branch continues, since the downstream steps no-op when their input did
+    not change, which is what leaves the existing tables in place.
     """
     subset = set(nodes)
     if not subset:
@@ -190,50 +198,51 @@ def run(pipeline, nodes, on_failure=_noop_failure):
     active_count = [len(initial)]
     done_event = threading.Event()
     errors: list[BaseException] = []
-    aborted = threading.Event()
+    unavailable: list[SourceUnavailable] = []
+    dead: set[str] = set()
 
     executor = ThreadPoolExecutor(max_workers=len(subset))
 
     def _run_node(name: str) -> None:
-        # Bail out early if a sibling branch already failed
-        if aborted.is_set():
-            with state_lock:
-                active_count[0] -= 1
-                if active_count[0] == 0:
-                    done_event.set()
-            return
-
-        lock_name = _get_lock_name(pipeline[name])
-        mutex = _get_mutex(lock_name) if lock_name else None
-        try:
-            if mutex:
-                mutex.acquire()
+        with state_lock:
+            is_dead = name in dead
+        if is_dead:
+            logger.warning("[%s] not run: a step it depends on failed", name)
+        else:
+            lock_name = _get_lock_name(pipeline[name])
+            mutex = _get_mutex(lock_name) if lock_name else None
             try:
-                _run_step(pipeline, name, on_failure)
-            finally:
                 if mutex:
-                    mutex.release()
-        except Exception as exc:
-            with state_lock:
-                errors.append(exc)
-            aborted.set()
-            with state_lock:
-                active_count[0] -= 1
-                if active_count[0] == 0:
-                    done_event.set()
-            return
+                    mutex.acquire()
+                try:
+                    _run_step(pipeline, name, on_failure)
+                finally:
+                    if mutex:
+                        mutex.release()
+            except SourceUnavailable as exc:
+                # The source is down, not the branch: downstream steps find no
+                # new input and no-op, leaving the existing tables alone.
+                logger.warning("[%s] %s — branch continues on existing data", name, exc)
+                with state_lock:
+                    unavailable.append(exc)
+            except Exception as exc:
+                with state_lock:
+                    errors.append(exc)
+                    dead.add(name)
 
-        # Schedule any successor whose last predecessor just finished
+        # A dead node still walks the graph, marking its descendants dead, so
+        # the completion counting stays exact without a second traversal.
         with state_lock:
             active_count[0] -= 1
             newly_ready: list[str] = []
-            if not aborted.is_set():
-                for s in _succs(pipeline[name]):
-                    if s in subset:
-                        remaining[s] -= 1
-                        if remaining[s] == 0:
-                            newly_ready.append(s)
-                            active_count[0] += 1  # count before submit
+            for s in _succs(pipeline[name]):
+                if s in subset:
+                    if name in dead:
+                        dead.add(s)
+                    remaining[s] -= 1
+                    if remaining[s] == 0:
+                        newly_ready.append(s)
+                        active_count[0] += 1  # count before submit
             if active_count[0] == 0:
                 done_event.set()
 
@@ -248,6 +257,8 @@ def run(pipeline, nodes, on_failure=_noop_failure):
 
     if errors:
         raise errors[0]
+    if unavailable:
+        raise PipelineIncomplete("; ".join(str(e) for e in unavailable))
 
 
 def main(pipeline, on_failure=_noop_failure):
