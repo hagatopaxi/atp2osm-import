@@ -90,6 +90,18 @@ def _newest_geofabrik_timestamp() -> datetime | None:
     return max(timestamps)
 
 
+def probe_osm_freshness():
+    """Warm the Geofabrik timestamp cache, outside the network lock.
+
+    The probe is a few hundred bytes of state.txt, but a slow Geofabrik makes
+    it retry for minutes — and the network lock is there for the multi-GB PBF,
+    not for a backoff sleep. Held here, it delayed the ATP and NSI downloads by
+    as long as Geofabrik took to answer. Never raises: an unreachable source is
+    reported by download_pbf, which owns that decision.
+    """
+    _newest_geofabrik_timestamp()
+
+
 def download_pbf():
     newest_ts = _newest_geofabrik_timestamp()
     if newest_ts is None:

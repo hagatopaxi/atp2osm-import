@@ -29,12 +29,20 @@ from src.pipeline.atp import (
 from src.pipeline.atp2osm import create_mv_places_brand
 from src.pipeline.nsi import download_nsi, import_nsi
 from src.pipeline.ndgeojson_to_parquet import convert_atp, split_atp
-from src.pipeline.osm import download_pbf, run_osm2pgsql, setup_mv_places
+from src.pipeline.osm import (
+    download_pbf,
+    probe_osm_freshness,
+    run_osm2pgsql,
+    setup_mv_places,
+)
 
 logger = logging.getLogger(__name__)
 
 PIPELINE = {
-    "start": (None, ["osm-download", "atp-download", "nsi-download"]),
+    "start": (None, ["osm-probe", "atp-download", "nsi-download"]),
+    # Unlocked on purpose: the freshness probe can retry for minutes when
+    # Geofabrik is slow, and it must not hold "network" while it sleeps.
+    "osm-probe": (probe_osm_freshness, ["osm-download"]),
     "osm-download": (download_pbf, ["osm-import"], {"lock": "network"}),
     "osm-import": (run_osm2pgsql, ["osm-views"], {"lock": "cpu"}),
     "osm-views": (setup_mv_places, ["mv-brand"]),
