@@ -5,6 +5,7 @@ import sys
 from src.config import get_database
 from src.pipeline.dag import PIPELINE, record_failure
 from src.pipeline.errors import PipelineIncomplete
+from src.pipeline.osm import forget_geofabrik_timestamp
 from src.pipeline.runner import StepFormatter, main
 
 handler = logging.StreamHandler()
@@ -29,6 +30,11 @@ except OSError as exc:
 # No maintenance flag to set here: each datasource opens and closes its own
 # data_imports row (see _db.start_import), which is what puts the web app in
 # maintenance.
+# A run that crashed left its timestamp file behind; it says nothing about
+# today's Geofabrik. The cleanup step removes it on a clean run, this covers
+# the rest.
+forget_geofabrik_timestamp()
+
 try:
     main(PIPELINE, record_failure)
 except PipelineIncomplete as exc:

@@ -1,6 +1,5 @@
 import logging
 import os
-from functools import lru_cache
 import shutil
 import subprocess
 from datetime import datetime
@@ -10,6 +9,7 @@ from src.pipeline.errors import SourceUnavailable
 from src.pipeline.constants import (
     PROJECT_ROOT,
     GEOFABRIK_REGIONS,
+    GEOFABRIK_TS_PATH,
 )
 
 import requests
@@ -65,33 +65,45 @@ def _geofabrik_timestamp(region: dict) -> datetime:
     raise ValueError(f"Cannot determine data timestamp for {region['url']}")
 
 
-@lru_cache(maxsize=1)
+def forget_geofabrik_timestamp():
+    """Drop what a previous run left behind. Called at the start of every run."""
+    delete_file_if_exists(GEOFABRIK_TS_PATH)
+
+
 def _newest_geofabrik_timestamp() -> datetime | None:
     """Return the most recent timestamp across all configured regions.
 
-    Cached for the life of the process — one pipeline run: download_pbf and
-    setup_mv_places both need it, and the retries make a second round trip
-    cost minutes when Geofabrik is slow.
+    Answered once per run and parked in GEOFABRIK_TS_PATH: osm-probe,
+    osm-download and osm-views all need it, minutes apart, and the retries make
+    each round trip cost minutes when Geofabrik is slow. Sharing one answer
+    also keeps the run coherent — osm-views cannot decide on a date
+    osm-download never saw. An empty file means "asked, and it was down".
 
     We refresh when any region has data newer than our last import,
     so we compare last_import_date against the maximum (newest) timestamp.
     """
+    if GEOFABRIK_TS_PATH.exists():
+        parked = GEOFABRIK_TS_PATH.read_text().strip()
+        return datetime.fromisoformat(parked) if parked else None
+
     timestamps = []
     for name, region in GEOFABRIK_REGIONS.items():
         try:
             timestamps.append(_geofabrik_timestamp(region))
         except Exception as exc:
             logger.error("Could not fetch timestamp for %s: %s", name, exc)
-    if not timestamps:
+    newest = max(timestamps) if timestamps else None
+    if newest is None:
         # Geofabrik being down is not ours to escalate: the data we already
         # hold stays valid. Callers treat None as "nothing new to know".
         logger.error("No Geofabrik timestamp could be fetched; keeping current data")
-        return None
-    return max(timestamps)
+    GEOFABRIK_TS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    GEOFABRIK_TS_PATH.write_text(newest.isoformat() if newest else "")
+    return newest
 
 
 def probe_osm_freshness():
-    """Warm the Geofabrik timestamp cache, outside the network lock.
+    """Fetch the Geofabrik timestamp, outside the network lock.
 
     The probe is a few hundred bytes of state.txt, but a slow Geofabrik makes
     it retry for minutes — and the network lock is there for the multi-GB PBF,

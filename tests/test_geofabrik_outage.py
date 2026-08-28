@@ -8,8 +8,8 @@ from src.pipeline.errors import SourceUnavailable
 
 
 @pytest.fixture(autouse=True)
-def _clear_timestamp_cache():
-    osm._newest_geofabrik_timestamp.cache_clear()
+def _isolate_timestamp_file(tmp_path, monkeypatch):
+    monkeypatch.setattr(osm, "GEOFABRIK_TS_PATH", tmp_path / "geofabrik-timestamp.txt")
 
 
 def test_returns_none_when_every_region_is_down(monkeypatch):
@@ -57,3 +57,33 @@ def test_refuses_a_partial_import(tmp_path, monkeypatch):
         assert "france.pbf" in str(exc)
     else:
         raise AssertionError("imported a partial region set")
+
+
+def test_the_answer_is_reused_without_a_second_round_trip(monkeypatch):
+    """osm-probe, osm-download and osm-views must not each hit the network."""
+    calls = []
+    ts = datetime(2026, 8, 27, tzinfo=timezone.utc)
+    monkeypatch.setattr(osm, "GEOFABRIK_REGIONS", {"france": {}})
+    monkeypatch.setattr(osm, "_geofabrik_timestamp",
+                        lambda region: (calls.append(region), ts)[1])
+    assert osm._newest_geofabrik_timestamp() == ts
+    assert osm._newest_geofabrik_timestamp() == ts
+    assert len(calls) == 1
+
+
+def test_an_outage_is_remembered_too(monkeypatch):
+    """Otherwise the next step re-runs the whole retry sequence for nothing."""
+    calls = []
+    monkeypatch.setattr(osm, "GEOFABRIK_REGIONS", {"france": {}})
+    monkeypatch.setattr(osm, "_geofabrik_timestamp",
+                        lambda region: (calls.append(region), _boom())[1])
+    assert osm._newest_geofabrik_timestamp() is None
+    assert osm._newest_geofabrik_timestamp() is None
+    assert len(calls) == 1
+
+
+def test_forget_clears_it(monkeypatch):
+    osm.GEOFABRIK_TS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    osm.GEOFABRIK_TS_PATH.write_text("2020-01-01T00:00:00+00:00")
+    osm.forget_geofabrik_timestamp()
+    assert not osm.GEOFABRIK_TS_PATH.exists()

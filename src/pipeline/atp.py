@@ -16,6 +16,7 @@ import requests
 
 from src.config import get_database
 from src.pipeline.errors import unavailable_if_unreachable
+from src.pipeline.osm import forget_geofabrik_timestamp
 from src.pipeline._db import connect, last_import_date, record_import, start_import
 from src.pipeline.ndgeojson_to_parquet import convert_to_parquet
 from src.utils import delete_file_if_exists, download_large_file
@@ -273,6 +274,7 @@ def import_atp():
 def cleanup_atp():
     # latest.parquet is deliberately kept: it is what lets import_atp no-op on
     # a run where ATP published nothing new.
+    forget_geofabrik_timestamp()
     for name in ["output.zip", "geojson", "ndgeojson", "split", "stats.json"]:
         path = ATP_DIR / name
         if not path.exists():

@@ -33,6 +33,12 @@ GEOFABRIK_BASE = "https://download.geofabrik.de"
 # resolved against the real tarball, so a wrong path fails loudly with a 404
 # instead of silently returning obsolete data.
 NSI_DIR = PROJECT_ROOT / "data" / "nsi"
+
+# Where a run parks the Geofabrik timestamp it has already fetched, so the
+# three steps that need it query the network once. Written at the probe,
+# removed by the cleanup step, and cleared again at the start of every run —
+# a file outlives a crashed process, unlike the value it stands for.
+GEOFABRIK_TS_PATH = PROJECT_ROOT / "data" / "osm" / "geofabrik-timestamp.txt"
 NSI_PATH = NSI_DIR / "nsi.json"
 NSI_REGISTRY_URL = "https://registry.npmjs.org/name-suggestion-index"
 NSI_CDN_URL = (
