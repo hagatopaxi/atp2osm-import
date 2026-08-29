@@ -33,11 +33,16 @@ def create_mv_places_brand():
         # rebuilt when either moves — and when MATCHED_POI_SQL itself changes,
         # since /validate applies that same SQL live and the two counts must
         # never diverge.
+        # normalize_phone is an input too: the view's SQL calls it without
+        # carrying its body, so changing the phone key would move the counts
+        # while leaving the signature untouched — the list and /validate would
+        # then disagree on how many POIs a brand has left.
         signature = _matview.signature(
             view_sql,
             last_import_date(conn, "osm"),
             last_import_date(conn, "atp"),
             last_import_comment(conn, "nsi"),  # the NSI version string
+            _matview.function_defs(conn, "normalize_phone"),
         )
         if _matview.is_current(conn, "mv_places_brand", signature):
             logger.info("mv_places_brand already up-to-date, skipping")

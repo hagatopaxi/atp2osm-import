@@ -89,29 +89,81 @@ onze chiffres, `030 123456` donne `030123456` et `+49 30 123456` donne
 `930123456` : deux clés différentes pour un même numéro. Une fenêtre de longueur
 fixe ne peut pas convenir à des numéros de longueur variable.
 
-Deux valeurs seulement dépendent du pays — l'indicatif et le préfixe
+Deux valeurs seulement dépendent du pays — les indicatifs et le préfixe
 d'acheminement :
 
 ```sql
 WITH country AS (
-  SELECT '33' AS calling_code, '0' AS trunk_prefix
+  SELECT ARRAY['33','262','508','590','594','596','681','687','689']
+           AS calling_codes,
+         '0' AS trunk_prefix
 )
 ```
 
+**Une liste d'indicatifs, pas un seul** : la France répond à neuf. La Réunion et
+Mayotte sont en +262, la Guadeloupe en +590, la Guyane en +594, la Martinique en
++596, Wallis en +681, la Nouvelle-Calédonie en +687, la Polynésie en +689,
+Saint-Pierre en +508. OSM contient les deux écritures de ces numéros ; n'en
+lister qu'un ferait que l'internationale et la nationale ne se rencontrent
+jamais outre-mer. Le plus long indicatif qui correspond l'emporte.
+
 Ce sont des **constantes de la fonction, pas des paramètres** : elle est
 `IMMUTABLE` et indexée, donc elle ne peut rien lire au moment de l'appel. Une
-instance ne servant qu'un pays, c'est sans conséquence. Tant que la
-configuration pays n'existe pas (phase D), elles sont écrites dans la migration ;
-ensuite la fonction est engendrée à partir d'elle, et les changer reconstruit les
-index exactement comme cette migration le fait.
+instance ne servant qu'un pays, c'est sans conséquence.
+
+**Et c'est pourquoi la fonction n'est pas définie par une migration.** Une
+migration est du code livré : y écrire l'indicatif ferait payer une modification
+du dépôt à chaque nouveau pays, alors que toute la spécification tient sur
+l'inverse — un pays coûte un fichier de configuration. La fonction est donc
+**engendrée** (`src/phone.py`), installée au démarrage de l'application et en
+tête de pipeline, et réinstallée quand les deux valeurs bougent. C'est le même
+principe que `mv_places`, engendrée par `_mv_places_sql()`.
+
+L'installation porte sa propre garde : la signature de la définition est
+estampée sur la fonction en `COMMENT`, comparée avant tout travail, et un
+changement déclenche le `REINDEX` des index construits dessus. Sans lui, un
+index garde les clés calculées par la définition précédente et un parcours
+d'index contredit silencieusement un parcours séquentiel.
+
+Jusqu'à la phase D, les deux valeurs sont des constantes de `src/phone.py` ;
+ensuite elles viennent du fichier pays, et rien d'autre ne change.
 
 Le retrait de l'indicatif nu est gardé par une longueur restante d'au moins six
 chiffres, pour qu'un numéro court commençant par l'indicatif reste entier
 (`3310` n'est pas un `+33 10`).
 
-Ce que ça change en France : rien. **La recette est là** — comparer les
-correspondances appariées par le seul téléphone avant et après. Un écart de plus
-de 1 % signale un bug, pas un progrès.
+### Mesuré sur une base clonée de la production
+
+219 175 POI ATP, 289 271 objets OSM porteurs d'un téléphone.
+
+| Mesure | Ancienne | Nouvelle |
+|---|---|---|
+| Paires appariées par le téléphone, à 500 m | 35 929 | **38 915** |
+| Paires gagnées | — | 2 987 |
+| Paires perdues | — | **1** |
+| Valeurs refusées (`NULL`) côté ATP | 0 | 98 (0,10 %) |
+| Valeurs refusées côté OSM | 0 | 1 906 (0,66 %) |
+
+**+8,3 %, et c'est un gain, pas une dérive.** Le seuil de 1 % que ce document
+annonçait supposait l'ancienne fonction correcte ; elle ne l'était pas. Son
+`REGEXP_REPLACE(phone, '^\+\d{1,3}', '0')` est glouton : sur `+33229402873`,
+écrit sans espaces, il mange `+332` et laisse `029402873`, là où
+`+33 2 29 40 28 73` donne `0229402873`. Les 2 987 paires gagnées sont
+massivement ce cas — des correspondances que l'outil ratait.
+
+**La seule paire perdue est un faux positif supprimé** : un `+33 5 46 28 06 00`
+français apparié à un `+31 546 280 600` néerlandais situé à moins de 500 m.
+L'ancienne fonction retirait n'importe quel indicatif ; la nouvelle ne retire que
+ceux du pays, donc le numéro néerlandais garde ses chiffres et ne rencontre plus
+personne.
+
+Les valeurs refusées ne coûtent rien : elles n'apparaissent dans aucune paire
+perdue. Ce sont des annotations et des listes — `01.44.41.55.79 - 01 44 41 55 82`,
+`01.55.91.10.10 standard`, `01 45 87 42 43 ou 01 45 87 41 08`.
+
+**La recette pour la suite** n'est donc pas un seuil mais une exigence :
+**chaque paire gagnée ou perdue doit s'expliquer.** Les chiffres ci-dessus sont
+la référence à retrouver.
 
 ### Un cas à trancher avant d'écrire la fonction
 
@@ -142,7 +194,9 @@ valeur n'est pas un numéro.
 
 ### Livrable
 
-Une migration qui redéfinit la fonction et reconstruit les deux index, et
+`src/phone.py` — le générateur `normalize_phone_sql(calling_code,
+trunk_prefix)` et l'installateur `ensure_normalize_phone(conn, …)` — câblé au
+démarrage de l'application et en tête de pipeline. Aucune migration. Et
 **une batterie de tests exhaustive** — c'est une fonction de dix lignes qui
 décide de ce qui part dans OpenStreetMap, elle doit être couverte comme telle.
 
@@ -207,10 +261,11 @@ mode d'emploi : il installe l'ancienne fonction sous un autre nom dans un schém
 jetable, compare, et signale lui-même les seuils dépassés.
 
 **Et la batterie se vérifie elle-même.** Une suite qui passe ne prouve rien tant
-qu'on n'a pas cassé la fonction pour la voir échouer. Quatre mutations, à rejouer
+qu'on n'a pas cassé la fonction pour la voir échouer. Six mutations, à rejouer
 après toute modification : préfixe d'acheminement non retiré, listes acceptées,
-garde de longueur de l'indicatif supprimée, `PARALLEL SAFE` retiré. Chacune doit
-faire échouer au moins un test.
+garde de longueur de l'indicatif supprimée, `PARALLEL SAFE` retiré, `REINDEX`
+supprimé, garde de signature ignorée. Chacune doit faire échouer au moins un
+test.
 
 ---
 
