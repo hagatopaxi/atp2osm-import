@@ -127,14 +127,13 @@ def _is_french(location_set: dict) -> bool:
     return any(code in _WORLDWIDE for code in include)
 
 
-def select_items(nsi_json: dict) -> list[tuple]:
-    """The nsi_brands rows to insert, from the parsed dist/nsi.json.
+def _candidates(nsi_json: dict):
+    """Every item that could reach mv_places, tags left unfiltered.
 
-    Pure function, no I/O: this is where every selection rule lives, and the
-    only thing the tests need.
+    Split out of select_items so the calibration script (scripts/
+    calibrate_nsi_tags.py) measures the same population against every NSI tag,
+    not only the ones already declared writable.
     """
-    candidates = []
-
     for path, category in nsi_json["nsi"].items():
         tree, primary_key, primary_value = path.split("/")
         if tree not in _TREES:
@@ -150,14 +149,26 @@ def select_items(nsi_json: dict) -> list[tuple]:
             if not _is_french(item.get("locationSet") or {}):
                 continue
 
-            candidates.append((
+            yield (
                 brand_wikidata,
                 tags.get("brand"),
                 tags.get("name"),
                 primary_key,
                 primary_value,
-                {k: v for k, v in tags.items() if k in NSI_WRITABLE_TAGS},
-            ))
+                tags,
+            )
+
+
+def select_items(nsi_json: dict) -> list[tuple]:
+    """The nsi_brands rows to insert, from the parsed dist/nsi.json.
+
+    Pure function, no I/O: this is where every selection rule lives, and the
+    only thing the tests need.
+    """
+    candidates = [
+        row[:5] + ({k: v for k, v in row[5].items() if k in NSI_WRITABLE_TAGS},)
+        for row in _candidates(nsi_json)
+    ]
 
     # A brand:wikidata is not a unique key: 2692 QIDs carry several items, and
     # those are the biggest brands. Items differing by category are fine — the
