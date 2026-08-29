@@ -171,3 +171,23 @@ def test_overseas_only_brands_are_kept():
     )})
 
     assert [row[1] for row in select_items(nsi)] == ["Sol"]
+
+
+def test_stamp_changes_when_the_writable_tags_change(monkeypatch):
+    """A different set of tags is a different import, whatever NSI published.
+
+    Without this the edited list would only land the day NSI publishes again:
+    download_nsi skips on an unchanged version, and mv_places' signature reads
+    that same version.
+    """
+    from src.pipeline import nsi
+
+    before = nsi._stamp("8.0.20260729")
+    monkeypatch.setattr(nsi, "NSI_WRITABLE_TAGS", frozenset({"brand:wikidata"}))
+    assert nsi._stamp("8.0.20260729") != before
+
+
+def test_stamp_carries_the_published_version(monkeypatch):
+    from src.pipeline import nsi
+
+    assert nsi._stamp("8.0.20260729").startswith("8.0.20260729+")

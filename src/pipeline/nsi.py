@@ -5,6 +5,8 @@ of tags. ATP describes POIs. The two sources barely overlap, which is what
 makes them complementary — see specs/02_source-nsi.md.
 """
 
+import hashlib
+import inspect
 import json
 import logging
 from collections import defaultdict
@@ -216,6 +218,38 @@ def select_items(nsi_json: dict) -> list[tuple]:
     return [row for row in candidates if len(written[row[0:1] + row[3:5]]) == 1]
 
 
+def _import_shape() -> str:
+    """Digest of everything on our side that decides a nsi_brands row.
+
+    The version alone does not identify the content of the table: half of what
+    lands there comes from this module — which tags are writable, which trees
+    and categories are kept, which locations count. Editing NSI_WRITABLE_TAGS
+    leaves the published version untouched, so download_nsi would skip the
+    import and mv_places, whose signature reads that same version, would keep
+    the old tags. The change would only land the day NSI publishes again.
+
+    Folding the shape into the recorded version closes both at once, with no
+    manual SQL: a different shape is a different version, so the import runs
+    and the view rebuilds.
+    """
+    parts = [
+        json.dumps(sorted(constant))
+        for constant in (
+            NSI_WRITABLE_TAGS, _TREES, _UNREACHABLE_KEYS, _UNREACHABLE_LANDUSE,
+            _FRENCH, _WORLDWIDE,
+        )
+    ] + [
+        inspect.getsource(function)
+        for function in (_reaches_mv_places, _is_french, _candidates, select_items)
+    ]
+    return hashlib.sha256("\0".join(parts).encode()).hexdigest()[:8]
+
+
+def _stamp(version: str) -> str:
+    """What identifies an import: the NSI release and what we make of it."""
+    return f"{version}+{_import_shape()}"
+
+
 def _latest_version() -> str:
     """Newest published NSI version, from the npm registry.
 
@@ -241,14 +275,14 @@ def _version_date(version: str) -> datetime:
 def download_nsi():
     conn = connect()
     try:
-        last_version = last_import_comment(conn, "nsi")
+        last_stamp = last_import_comment(conn, "nsi")
         start_import(conn, "nsi")  # puts the site in maintenance mode
 
         with unavailable_if_unreachable("NSI"):
             version = _latest_version()
-        if version == last_version:
+        if _stamp(version) == last_stamp:
             logger.info("NSI already up-to-date (%s), skipping", version)
-            record_import(conn, "nsi", _version_date(version), "skipped", version)
+            record_import(conn, "nsi", _version_date(version), "skipped", _stamp(version))
             return
 
         NSI_DIR.mkdir(parents=True, exist_ok=True)
@@ -281,7 +315,7 @@ def import_nsi():
                 for row in rows:
                     copy.write_row(row[:-1] + (json.dumps(row[-1]),))
         conn.commit()
-        record_import(conn, "nsi", _version_date(version), "success", version)
+        record_import(conn, "nsi", _version_date(version), "success", _stamp(version))
         logger.info(
             "Imported %d NSI brands (%d distinct QIDs)",
             len(rows),
