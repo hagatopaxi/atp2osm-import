@@ -32,7 +32,7 @@ def test_csv_value_flattens_json_columns():
 
 
 def test_export_routes_stay_out_of_the_sitemap():
-    """Le sitemap se construit depuis PUBLIC_PAGES : l'API n'a rien à y faire."""
+    """The sitemap is built from PUBLIC_PAGES: the API has no place in it."""
     from src.routes.misc import PUBLIC_PAGES
 
     assert not any(endpoint.startswith("export.") for endpoint, _, _ in PUBLIC_PAGES)

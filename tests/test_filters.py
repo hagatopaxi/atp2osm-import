@@ -74,7 +74,7 @@ def test_brands_search_status_and_dates():
     rows, _ = filter_brands(BRANDS, MultiDict({"status": "error"}))
     assert [r["brand"] for r in rows] == ["Aldi"]
 
-    # jamais intégrée
+    # never integrated
     rows, _ = filter_brands(BRANDS, MultiDict({"status": "none"}))
     assert [r["brand"] for r in rows] == ["Carrefour"]
 

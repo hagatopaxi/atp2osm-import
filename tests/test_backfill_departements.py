@@ -34,7 +34,7 @@ def test_partial_keeps_only_uploaded_pois():
     children, uploaded = reconstruct(changes, [100], "partial_osm_api", "boom")
     assert uploaded == [changes[0]]
     assert [c["status"] for c in children] == ["success", "error_osm_api"]
-    # le changeset a bien été créé, c'est l'envoi qui a échoué : on le garde
+    # the changeset was created, it is the upload that failed: keep it
     assert children[1]["osm_changeset_id"] == 101
 
 
@@ -67,7 +67,7 @@ def test_dom_departement_number_is_not_padded_away():
 
 
 def test_log_without_per_poi_changeset_maps_by_order():
-    # certains logs n'ont pas gardé la clé "changeset" sur les POIs
+    # some logs did not keep the "changeset" key on the POIs
     changes = [change(6), change(94), change(75)]
     children, uploaded = reconstruct(changes, [100, 101, 102], "success", None)
     assert [(c["departement_number"], c["osm_changeset_id"]) for c in children] == [
