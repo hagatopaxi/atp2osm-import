@@ -33,23 +33,53 @@ logger = logging.getLogger(__name__)
 # The only tags ever written to OSM. Every other NSI key is dropped on import,
 # which makes this set the single place where the scope is defined.
 #
-# Picked by measuring, for each NSI tag, how often it agrees with what French
-# OSM objects of the same brand already carry. All of these sit at 99.4% or
-# above. Deliberately left out: name (86.8%), operator (87.2%), brand (96.8%),
-# shop (98.2%), cuisine, takeaway, clothes, vending (14.3%) — their mismatches
-# are systematic, not noise (NSI says "Société Générale" where the ground says
-# "SG").
+# Not a universal constant: produced by scripts/calibrate_nsi_tags.py, which
+# measures for each NSI tag how often it agrees with what French OSM objects of
+# the same brand already carry. Kept here: at least 98% agreement over at least
+# 50 objects. Rerun the script to re-establish it — never edit it by hand, and
+# never copy it to another country.
+#
+# Deliberately out, all three well under the threshold and for the same reason:
+# name (86.2%), brand (97.0%) and operator (96.7%). Their disagreements are
+# systematic, not noise — NSI carries the national umbrella where the ground
+# carries the real, more precise entity (Crédit Mutuel de Bretagne, Banque
+# Populaire Alsace Lorraine Champagne), and NSI leads or trails rebrandings
+# (SG / Société Générale, TotalEnergies / Total). Writing them would destroy
+# better information than ours.
+#
+# The primary keys below (shop, amenity, office, tourism, leisure, healthcare,
+# craft) measure 100% by construction: nsi_match already drops a primary key
+# the object disagrees with, see migration 021.
 NSI_WRITABLE_TAGS = frozenset({
     "brand:wikidata",
+    "shop",
     "amenity",
-    "tourism",
     "office",
+    "tourism",
     "leisure",
+    "healthcare",
+    "craft",
+    "network:wikidata",
     "operator:wikidata",
     "official_name",
+    "alt_name",
+    "old_name",
+    "short_name",
+    "brand:short",
+    "name:en",
+    "brand:en",
+    "name:fr",
+    "brand:fr",
     "government",
     "drive_through",
     "healthcare:speciality",
+    "service:vehicle:glass",
+    "delivery",
+    "access",
+    "self_service",
+    "clothes",
+    "takeaway",
+    "operator:type",
 })
 
 # NSI groups items in four trees. transit (routes, networks) and flags describe
