@@ -93,6 +93,15 @@ def download_atp():
         run = select_run(runs, last_date)
         if run is None:
             logger.info("ATP already up-to-date, skipping")
+            # Nothing downstream knows this step decided to stop: extract,
+            # convert, split and parquet are each guarded by the presence of
+            # the files the previous step wrote, not by that decision. A run
+            # that failed further along leaves them behind — cleanup is the
+            # last node of the DAG, so any failure upstream skips it — and the
+            # whole branch then rebuilds a byte-identical parquet, whose fresh
+            # mtime also costs import_atp its own no-op. Clearing the workdir
+            # here makes every one of them no-op on the guard it already has.
+            _discard_workdir()
             # last_date, not the run's end_time: recording an older run would
             # make the displayed source date go backwards.
             record_import(conn, "atp", last_date, "skipped")
@@ -271,10 +280,12 @@ def import_atp():
         conn.close()
 
 
-def cleanup_atp():
-    # latest.parquet is deliberately kept: it is what lets import_atp no-op on
-    # a run where ATP published nothing new.
-    forget_geofabrik_timestamp()
+def _discard_workdir():
+    """Erase what a run downloaded and derived, keeping latest.parquet.
+
+    The parquet is deliberately kept: it is what lets import_atp no-op on a run
+    where ATP published nothing new.
+    """
     for name in ["output.zip", "geojson", "ndgeojson", "split", "stats.json"]:
         path = ATP_DIR / name
         if not path.exists():
@@ -284,3 +295,8 @@ def cleanup_atp():
         else:
             path.unlink()
         logger.info("Cleaned up %s", path)
+
+
+def cleanup_atp():
+    forget_geofabrik_timestamp()
+    _discard_workdir()
