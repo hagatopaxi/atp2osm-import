@@ -42,9 +42,9 @@
             </tr>
         </thead>
         <tbody>
-            {% for dpt, info in stats["by_department"].items() %}
+            {% for sub, info in stats["by_subdivision"].items() %}
             <tr>
-                <td class="font-mono">{{ dpt }}</td>
+                <td class="font-mono">{{ sub }}</td>
                 <td>{{ info["name"] }}</td>
                 <td>{{ info["count"] }}</td>
             </tr>

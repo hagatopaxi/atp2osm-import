@@ -10,18 +10,18 @@ logger = logging.getLogger(__name__)
 def _mv_places_brand_sql() -> str:
     # is_importable is filtered AFTER deduplication, like apply_on_node() does
     # on the /validate side, otherwise the two counts diverge.
-    # One row per (brand, département): get_all() sums the unblocked
+    # One row per (brand, subdivision): get_all() sums the unblocked
     # ones to announce what is still left to integrate.
     return f"""
         CREATE MATERIALIZED VIEW mv_places_brand AS
         SELECT
             STRING_AGG(DISTINCT atp_brand, ' / ' ORDER BY atp_brand) AS brand,
             atp_brand_wikidata AS brand_wikidata,
-            departement_number,
+            subdivision_code,
             COUNT(*)           AS total
         FROM ({MATCHED_POI_SQL.format(where_options="TRUE")}) matched
         WHERE is_importable
-        GROUP BY atp_brand_wikidata, departement_number
+        GROUP BY atp_brand_wikidata, subdivision_code
     """
 
 

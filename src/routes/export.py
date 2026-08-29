@@ -1,7 +1,7 @@
 """Open export API for the data atp2osm itself produces.
 
 Only the tables written by the app are exposed: integration history, its
-per-département detail, and the brands-to-do list. Nothing coming from ATP or
+per-subdivision detail, and the brands-to-do list. Nothing coming from ATP or
 OSM (or derived from them) is exported — those upstreams publish their own data.
 """
 
@@ -10,7 +10,7 @@ import json
 import logging
 from io import StringIO
 
-from flask import Blueprint, Response, request
+from flask import Blueprint, Response, redirect, request, url_for
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
@@ -29,11 +29,12 @@ DATASETS = {
         HISTORY_FILTERS,
         "import_date DESC",
     ),
-    "departements": (
-        "id, import_id, departement_number, items_count, osm_changeset_id, status, comment",
-        "import_departements",
+    "subdivisions": (
+        "id, import_id, subdivision_code, subdivision_name, items_count, "
+        "osm_changeset_id, status, comment",
+        "import_subdivisions",
         {},
-        "import_id DESC, departement_number",
+        "import_id DESC, subdivision_code",
     ),
     "todo": (
         "id, brand_wikidata, brand_name, osm_user_id, created_at, estimation, updated_by, updated_at",
@@ -45,6 +46,12 @@ DATASETS = {
 
 # ponytail: no pagination — these tables are in the thousands of rows at most.
 # Add a LIMIT/cursor if they ever grow past what a single response can hold.
+
+
+@export_bp.route("/api/export/departements.<fmt>")
+def export_departements(fmt):
+    """The dataset was renamed; the old URL is documented publicly."""
+    return redirect(url_for("export.export", dataset="subdivisions", fmt=fmt), 301)
 
 
 @export_bp.route("/api/export/<dataset>.<fmt>")

@@ -44,7 +44,9 @@ PIPELINE = {
     # Geofabrik is slow, and it must not hold "network" while it sleeps.
     "osm-probe": (probe_osm_freshness, ["osm-download"]),
     "osm-download": (download_pbf, ["osm-import"], {"lock": "network"}),
-    "osm-import": (run_osm2pgsql, ["osm-views"], {"lock": "cpu"}),
+    # atp-import too: it attaches each POI to a subdivision, and subdivisions
+    # is one of the tables osm2pgsql writes.
+    "osm-import": (run_osm2pgsql, ["osm-views", "atp-import"], {"lock": "cpu"}),
     "osm-views": (setup_mv_places, ["mv-brand"]),
     "nsi-download": (download_nsi, ["nsi-import"], {"lock": "network"}),
     # Before osm-views: setup_mv_places completes brand:wikidata from nsi_brands.

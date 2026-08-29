@@ -5,7 +5,6 @@ from flask import Blueprint, render_template, request, abort
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
-from src.matching import DEPARTEMENT_NAMES
 from src.utils import HISTORY_FILTERS as FILTERS, build_filters, fetch_osm_users
 
 logger = logging.getLogger(__name__)
@@ -20,7 +19,7 @@ SORT_COLUMNS = {
     "status": "status",
     "user": "osm_user_id",
     "items": "items_count",
-    "departements": "departements_count",
+    "subdivisions": "subdivisions_count",
 }
 
 
@@ -40,8 +39,8 @@ def history():
 
         entries = cursor.execute(
             f"""SELECT *,
-                       (SELECT COUNT(*) FROM import_departements dpt
-                        WHERE dpt.import_id = import_history.id) AS departements_count
+                       (SELECT COUNT(*) FROM import_subdivisions sub
+                        WHERE sub.import_id = import_history.id) AS subdivisions_count
                 FROM import_history {where}
                 ORDER BY {SORT_COLUMNS[sort]} {direction} NULLS LAST
                 LIMIT %s OFFSET %s""",
@@ -83,33 +82,28 @@ def history_detail(entry_id):
             "SELECT * FROM import_history WHERE id = %s", (entry_id,)
         ).fetchone()
 
-        departements = cursor.execute(
-            """SELECT * FROM import_departements
-               WHERE import_id = %s ORDER BY departement_number""",
+        subdivisions = cursor.execute(
+            """SELECT * FROM import_subdivisions
+               WHERE import_id = %s ORDER BY subdivision_code""",
             (entry_id,),
         ).fetchall()
 
     if entry is None:
         abort(404)
 
-    for dpt in departements:
-        dpt["departement_name"] = DEPARTEMENT_NAMES.get(
-            dpt["departement_number"], dpt["departement_number"]
-        )
-
     users = fetch_osm_users([entry["osm_user_id"]])
     is_recent = (datetime.now(timezone.utc) - entry["import_date"]) < timedelta(minutes=5)
-    # Success rate in départements, only when the detail is known: integrations
+    # Success rate in subdivisions, only when the detail is known: integrations
     # older than the migration have no child rows.
     success_rate = (
-        (sum(1 for d in departements if d["status"] == "success"), len(departements))
-        if departements
+        (sum(1 for d in subdivisions if d["status"] == "success"), len(subdivisions))
+        if subdivisions
         else None
     )
     return render_template(
         "history_detail.html",
         entry=entry,
-        departements=departements,
+        subdivisions=subdivisions,
         success_rate=success_rate,
         users=users,
         is_recent=is_recent,

@@ -13,7 +13,7 @@ UPSTREAM_TABLES = {"atp_fr", "points", "polygons", "mv_places", "mv_places_brand
 def test_only_own_tables_are_exposed():
     tables = {table for _, table, _, _ in DATASETS.values()}
     assert tables.isdisjoint(UPSTREAM_TABLES)
-    assert tables == {"import_history", "import_departements", "todo_brands"}
+    assert tables == {"import_history", "import_subdivisions", "todo_brands"}
 
 
 @pytest.mark.parametrize("dataset", DATASETS)
