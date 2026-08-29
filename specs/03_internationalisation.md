@@ -386,53 +386,27 @@ est exact — c'est l'ancien `DEPARTEMENT_NAMES`, appliqué une fois, sur des co
 qui ne changent pas. C'est aussi ce qui rend l'historique immunisé contre un
 futur redécoupage administratif, français ou non.
 
-**2. Seules les lignes encore sous cooldown sont retraitées.** C'est le seul
+**2. Les lignes encore sous cooldown ne sont pas retraitées.** C'est le seul
 endroit où un ancien code a un effet sur le présent : `get_blocked_subdivisions`
-compare des codes d'historique à des codes de `mv_places_brand`. Passé le
-cooldown — trois mois en cas de succès, quatre semaines en cas d'erreur — un
-ancien code ne sert plus qu'à l'affichage, et l'affichage est réglé par le
-point 1.
+compare des codes d'historique à des codes de `mv_places_brand`. Un `69` ne
+rencontre plus ni `69D` ni `69M`, donc son cooldown cesse de bloquer.
 
-**Volume réel**, mesuré sur l'export de production du 28 août 2026 : 673 lignes
-d'historique, 6 318 lignes de subdivisions, dont **5 818 encore sous cooldown**
-— l'outil est jeune, presque tout son historique est récent. Mais seules celles
-qui portent un code impacté demandent un traitement :
+**Et c'est sans conséquence, parce que le cooldown est une ceinture par-dessus
+des bretelles.** Ce qui empêche vraiment de reproposer un POI déjà intégré,
+c'est le rafraîchissement quotidien : il relit OSM, y trouve les tags qu'on
+vient d'écrire, et le POI sort des correspondances. Le cooldown ne couvre que
+la fenêtre entre l'envoi et le rafraîchissement suivant. Le perdre sur les
+lignes concernées — 158 au 28 août 2026, sur 5 818 sous cooldown, toutes en
+`69`, `20`, `972` ou `973` — expose au plus un lot vide ou presque.
 
-| Code | Lignes sous cooldown |
-|---|---|
-| `69` | 113 |
-| `20` | 42 |
-| `973` | 2 |
-| `972` | 1 |
-| `988` | 0 |
-| **Total** | **158** |
-
-Les 158 lignes portent **toutes** un `osm_changeset_id` — aucune n'est à
-résoudre à l'aveugle.
-
-`988` est à zéro aujourd'hui : la Nouvelle-Calédonie n'a encore jamais été
-intégrée. **Elle reste dans la liste des codes impactés**, et son cas est traité
-comme les autres. Ce tableau est un instantané du 28 août 2026, pas une
-spécification : entre l'écriture de ces lignes et le jour de la migration,
-l'outil continue de tourner et des intégrations néo-calédoniennes peuvent
-arriver. Le script **recalcule la liste sur l'export du jour** et échoue s'il
-rencontre un code impacté qu'il ne sait pas résoudre — il ne travaille jamais
-sur les chiffres ci-dessus.
-
-Le mécanisme ne demande d'ailleurs aucun cas particulier pour la
-Nouvelle-Calédonie : l'emprise d'un changeset `988` tombe dans l'une des trois
-provinces exactement comme une emprise `20` tombe en Corse-du-Sud ou en
-Haute-Corse.
-
-Elles se traitent une par une, sans table de correspondance : `osm_changeset_id`
-donne l'emprise du changeset via l'API OSM (`/api/0.6/changesets?changesets=…`,
-qui en prend une centaine par appel), et l'emprise tombe dans une subdivision. Ce
-sont deux appels réseau au total, pour une résolution **par la donnée**,
-vérifiable ligne par ligne.
-
-Une ligne dont l'emprise chevauche deux subdivisions nouvelles (un `69`
-d'avant la séparation Rhône / Métropole) bloque les deux : c'est le seul cas
-conservateur, il est nommé, et la liste s'imprime avant de lancer la migration.
+Une résolution par la donnée était possible : `osm_changeset_id` donne l'emprise
+du changeset via l'API OSM, et l'emprise tombe dans une subdivision. Elle a été
+écrite, puis jetée. Cent cinquante lignes, un appel réseau, une exécution
+manuelle à ne pas oublier le jour du déploiement, et un cas — l'emprise à cheval
+sur deux subdivisions nouvelles — qui n'a pas de réponse au niveau de la ligne :
+c'est cher payé pour un blocage que la donnée fraîche assure déjà. Passé le
+cooldown, un ancien code ne sert plus qu'à l'affichage, et l'affichage est réglé
+par le point 1.
 
 #### B0 ter — Recette de la migration d'historique
 
@@ -457,19 +431,16 @@ Procédure, à rejouer sur une base locale chargée de ces deux fichiers :
    - somme des `items_count` inchangée, globalement et par ligne d'historique
      parente ;
    - aucune ligne d'`import_history` orpheline ou dupliquée ;
-   - toutes les lignes impactées sous cooldown sont résolues — 158 au 28 août
-     2026, à recompter le jour J, `988` compris s'il en est apparu : chaque code
-     résolu appartient à la table `subdivisions`, et la liste des non résolues
-     est **vide** ;
-   - toutes les autres lignes sous cooldown, dont le code ne change pas, sont
-     bit-à-bit identiques à avant.
+   - aucun `subdivision_code` n'est modifié : la migration ne touche que le
+     nom, et les lignes sous cooldown restent bit-à-bit identiques à avant.
 4. rejouer la migration une seconde fois sur la base déjà migrée : elle doit être
    idempotente et ne rien changer (le test existe déjà pour le backfill 016,
    `test_migration_backfill.py`).
 
 Un seul écart bloque le déploiement. Ce n'est pas une recette indicative : la
-migration ne part pas tant que les cinq assertions ne passent pas sur l'export de
-production du jour.
+migration ne part pas tant que les assertions ne passent pas sur l'export de
+production du jour. Elles sont couvertes par
+`tests/test_migration_subdivisions.py`.
 
 #### B1 — Extraire les frontières
 
@@ -579,8 +550,9 @@ le DAG, mais la dépendance devient réelle et doit être exprimée dans
   comprises : la Nouvelle-Calédonie, la Polynésie et Wallis-et-Futuna comptent
   toujours des POI après bascule. Zéro POI dans l'un des trois = le repli par
   niveau ne fonctionne pas, la phase est bloquée ;
-- aucune ligne d'`import_subdivisions` ne conserve un code absent de la table
-  `subdivisions` après traduction de l'historique.
+- les lignes d'`import_subdivisions` antérieures conservent leur code, y compris
+  ceux que `subdivisions` ne produit plus : elles enregistrent ce qui s'est
+  passé, pas ce qui se produirait aujourd'hui.
 
 #### B5 — Ce qu'on ne fait pas
 
@@ -1114,7 +1086,7 @@ couverture que la phase A.
   `get_blocked_subdivisions` : les tests existants sont **conservés tels quels**,
   renommés seulement. S'ils passent après renommage, l'algorithme n'a pas bougé —
   c'est exactement ce qu'on veut prouver ;
-- la migration d'historique : les cinq assertions de B0 ter, sur l'export de
+- la migration d'historique : les assertions de B0 ter, sur l'export de
   production du jour, plus l'idempotence.
 
 **Phase C.** Ce qui se teste vraiment, sans tester Babel lui-même :

@@ -196,6 +196,13 @@ def _attach_subdivisions(conn):
             """
             UPDATE atp_fr atp
                SET (subdivision_code, subdivision_name) = (
+                    -- ponytail: ref is not unique across levels — 16 codes in
+                    -- France name both a région and a département (75 is Paris
+                    -- and Nouvelle-Aquitaine, 93 is Seine-Saint-Denis and PACA).
+                    -- Harmless as long as no POI attaches at the coarser level,
+                    -- and a région being the union of its départements, a point
+                    -- inside one is inside the other. Qualify the code by its
+                    -- level the day a collision actually shows up.
                     SELECT COALESCE(sub.ref, sub.osm_id::text), sub.name
                       FROM subdivision_parts sub
                      WHERE sub.admin_level <= %s
