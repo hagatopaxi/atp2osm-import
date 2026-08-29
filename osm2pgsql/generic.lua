@@ -23,9 +23,9 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
 })
 
 -- Administrative boundaries, the source of the subdivision a POI is attached to.
--- Imported up to ATP2OSM_ADMIN_LEVEL_MAX; the level actually used is chosen in
--- SQL, so raising it does not cost a full PBF reimport.
-local admin_level_max = tonumber(os.getenv("ATP2OSM_ADMIN_LEVEL_MAX")) or 8
+-- Imported down to ATP2OSM_ADMIN_LEVEL, the finest level the attachment reads:
+-- a deeper level would be dead weight, and the PBF is reimported daily anyway.
+local admin_level = tonumber(os.getenv("ATP2OSM_ADMIN_LEVEL")) or 6
 
 tables.subdivisions = osm2pgsql.define_area_table('subdivisions', {
     -- The OSM relation id, the fallback identifier when ref is missing.
@@ -49,7 +49,7 @@ local function insert_subdivision(object)
         return false
     end
     local level = tonumber(tags['admin_level'])
-    if not level or level < 2 or level > admin_level_max then return false end
+    if not level or level < 2 or level > admin_level then return false end
     if not tags['name'] then return false end
 
     tables.subdivisions:insert({

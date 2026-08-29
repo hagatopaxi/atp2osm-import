@@ -7,7 +7,7 @@ from email.utils import parsedate_to_datetime
 from src.pipeline import _matview
 from src.pipeline.errors import SourceUnavailable
 from src.pipeline.constants import (
-    ADMIN_LEVEL_MAX,
+    ADMIN_LEVEL,
     PROJECT_ROOT,
     GEOFABRIK_REGIONS,
     GEOFABRIK_TS_PATH,
@@ -235,7 +235,7 @@ def run_osm2pgsql():
     env = os.environ.copy()
     env["PGPASSWORD"] = db.password
     # generic.lua reads it: the Lua style has no access to the configuration.
-    env["ATP2OSM_ADMIN_LEVEL_MAX"] = str(ADMIN_LEVEL_MAX)
+    env["ATP2OSM_ADMIN_LEVEL"] = str(ADMIN_LEVEL)
     subprocess.run(
         [
             "osm2pgsql",
