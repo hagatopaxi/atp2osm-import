@@ -45,6 +45,15 @@ NSI_CDN_URL = (
     "https://cdn.jsdelivr.net/npm/name-suggestion-index@{version}/dist/json/nsi.json"
 )
 
+# Administrative subdivision levels. ADMIN_LEVEL is the finest level a POI is
+# attached to; the attachment falls back down to 2 (the country) when no polygon
+# of that level covers it. ADMIN_LEVEL_MAX is how deep the PBF import goes: only
+# margin, so that lowering ADMIN_LEVEL later costs an UPDATE, not a reimport.
+# Phase D moves both to the country configuration file.
+ADMIN_LEVEL = 6
+ADMIN_LEVEL_MAX = 8
+assert ADMIN_LEVEL_MAX >= ADMIN_LEVEL
+
 # Each entry: geofabrik path suffix (without -latest.osm.pbf).
 # url, state_url and pbf_path are derived automatically.
 # DOM are sub-regions of europe/france on Geofabrik.

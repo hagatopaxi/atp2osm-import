@@ -7,6 +7,7 @@ from email.utils import parsedate_to_datetime
 from src.pipeline import _matview
 from src.pipeline.errors import SourceUnavailable
 from src.pipeline.constants import (
+    ADMIN_LEVEL_MAX,
     PROJECT_ROOT,
     GEOFABRIK_REGIONS,
     GEOFABRIK_TS_PATH,
@@ -194,6 +195,8 @@ def run_osm2pgsql():
     logger.info("Importing %d PBF file(s) into PostGIS...", len(pbf_paths))
     env = os.environ.copy()
     env["PGPASSWORD"] = db.password
+    # generic.lua reads it: the Lua style has no access to the configuration.
+    env["ATP2OSM_ADMIN_LEVEL_MAX"] = str(ADMIN_LEVEL_MAX)
     subprocess.run(
         [
             "osm2pgsql",
@@ -215,6 +218,22 @@ def run_osm2pgsql():
 
     for p in pbf_paths:
         p.unlink()
+
+    # osm2pgsql leaves the flex tables unindexed; subdivisions is only ever read
+    # through ST_Contains, and the POI attachment scans it once per ATP import.
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS subdivisions_geom_idx
+                    ON subdivisions USING GIST (geom);
+                CREATE INDEX IF NOT EXISTS subdivisions_admin_level_idx
+                    ON subdivisions (admin_level);
+            """)
+        conn.commit()
+    finally:
+        conn.close()
+
     logger.info("osm2pgsql import complete (%d file(s))", len(pbf_paths))
 
 
