@@ -10,7 +10,15 @@ atp2osm-import is a tool for importing [All The Places](https://alltheplaces.xyz
 
 Code is written **in English**: comments, docstrings, variable, function and test names. No French in code, ever. This file too.
 
-French stays the language of user-facing text (templates, displayed error messages, labels) and of commit messages.
+Log messages and the output of the `scripts/` maintenance tools count as code, and are English too.
+
+French stays the language of user-facing text (templates, displayed error messages, labels) and of the OSM changeset comment.
+
+## Commits
+
+Commit messages are written in English too, in the imperative ("Translate…",
+"Add…", "Fix…"), one subject line and, when the change deserves it, a body
+explaining the why. No `Co-Authored-By` trailer, ever.
 
 ## Worktrees
 
