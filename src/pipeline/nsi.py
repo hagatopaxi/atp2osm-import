@@ -2,7 +2,7 @@
 
 NSI describes brands, never POIs: it maps a brand:wikidata to a canonical set
 of tags. ATP describes POIs. The two sources barely overlap, which is what
-makes them complementary — see source-nsi.md.
+makes them complementary — see specs/02_source-nsi.md.
 """
 
 import json

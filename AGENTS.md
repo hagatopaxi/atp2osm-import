@@ -89,6 +89,12 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 - `import_history` — One row per human integration action
 - `import_departements` — One row per changeset: département, count, status. Carries the per-département blocking and the history detail
 
+## Specs
+
+Functional specs live in `specs/`, prefixed with a two-digit id in creation
+order (`01_`, `02_`…). They state the intended behaviour, not the history of
+the decisions that led to it.
+
 ## Environment Variables
 
 See `.env.sample`. Key variables: `OSM_DB_*` (PostGIS connection), `OSM_API_HOST` (OSM API base URL), `OSM_OAUTH_CLIENT_ID`/`SECRET` (OAuth2 app credentials).
