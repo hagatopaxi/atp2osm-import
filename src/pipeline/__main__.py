@@ -2,7 +2,10 @@ import logging
 import socket
 import sys
 
+import psycopg
+
 from src.config import get_database
+from src.phone import ensure_normalize_phone
 from src.pipeline.dag import PIPELINE, record_failure
 from src.pipeline.errors import PipelineIncomplete
 from src.pipeline.osm import forget_geofabrik_timestamp
@@ -17,6 +20,11 @@ logging.root.setLevel(logging.INFO)
 logging.root.addHandler(handler)
 
 get_database()  # fail fast if the DB env vars are missing
+
+# The phone key belongs to the country, so it is installed rather than
+# migrated. Before any step rebuilds an index that is built on it.
+with psycopg.connect(**get_database().connect_kwargs) as _conn:
+    ensure_normalize_phone(_conn)
 
 # No internet (the nightly run has hit DNS outages): stop before any step opens
 # a data_imports row, so nothing is left half-done and the site stays up. The

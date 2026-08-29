@@ -1,0 +1,169 @@
+"""The phone key, generated from the country rather than migrated into it.
+
+A phone number is written a dozen ways, and matching two POIs on it is a match
+written into OpenStreetMap: the key both sides are reduced to is the national
+significant number, the digits left once the international prefix and the
+trunk prefix have been removed, in that order.
+
+Only two values depend on the country, and they are constants of the SQL
+function rather than parameters: it is IMMUTABLE and used in functional
+indexes, so it cannot read anything at call time. That is also why this lives
+here instead of in a migration — a new country must cost a configuration file,
+never a schema change. The function is (re)generated whenever those values
+move, and the indexes built on it are rebuilt with it.
+"""
+
+import logging
+import re
+
+from psycopg import sql
+
+from src.pipeline._matview import signature
+
+logger = logging.getLogger(__name__)
+
+# TODO(phase D): read these from the country configuration.
+#
+# A country can answer to several calling codes: metropolitan France is +33,
+# but Réunion and Mayotte are +262, Guadeloupe +590, Guyane +594, Martinique
+# +596, Wallis +681, New Caledonia +687, Polynesia +689, Saint-Pierre +508 —
+# and OSM holds those numbers in both their international and their national
+# writing. Listing only +33 would stop the two writings from ever meeting
+# overseas, which is a regression the previous function did not have.
+CALLING_CODES = ("33", "262", "508", "590", "594", "596", "681", "687", "689")
+TRUNK_PREFIX = "0"
+
+# Built on normalize_phone(), so they hold keys computed by whichever
+# definition was current when they were built.
+PHONE_INDEXES = ("atp_fr_phone_norm_idx", "mv_places_phone_norm_idx")
+
+# Arbitrary, only has to be stable: it serialises concurrent installs.
+_LOCK_KEY = 8_314_020_251
+
+
+def normalize_phone_sql(calling_codes: tuple[str, ...] = CALLING_CODES,
+                        trunk_prefix: str = TRUNK_PREFIX) -> str:
+    """The CREATE OR REPLACE for this country's phone key.
+
+    The two values are spliced into the SQL, and they come from a
+    configuration file written outside the repository: they are checked here
+    rather than escaped, because anything that is not a run of digits is not a
+    calling code in the first place.
+    """
+    if not calling_codes:
+        raise ValueError("at least one calling code is required")
+    for code in calling_codes:
+        if not re.fullmatch(r"\d{1,3}", code):
+            raise ValueError(f"calling code must be 1 to 3 digits, got {code!r}")
+    if not re.fullmatch(r"\d{0,2}", trunk_prefix):
+        raise ValueError(f"trunk_prefix must be 0 to 2 digits, got {trunk_prefix!r}")
+    codes = ", ".join(f"'{code}'" for code in calling_codes)
+    return f"""
+CREATE OR REPLACE FUNCTION normalize_phone(phone TEXT) RETURNS TEXT
+LANGUAGE SQL IMMUTABLE STRICT PARALLEL SAFE AS $fn$
+  WITH country AS (
+    SELECT ARRAY[{codes}] AS calling_codes, '{trunk_prefix}' AS trunk_prefix
+  ),
+  cleaned AS (
+    SELECT REGEXP_REPLACE(BTRIM($1), '^tel:', '', 'i') AS value
+  ),
+  digits AS (
+    SELECT value, REGEXP_REPLACE(value, '\\D', '', 'g') AS d FROM cleaned
+  ),
+  refused AS (
+    SELECT value, d,
+      -- letters: an extension ("poste 12", "ext. 3"), a vanity number or free
+      -- text. Keeping the digits would silently shift the key.
+      value ~ '[[:alpha:]]'
+      -- list separators: "01 23 45 67 89;01 23 45 67 88" would key on the
+      -- second number, which neither party displays first.
+      OR value ~ '[;,/]'
+      OR LENGTH(d) = 0
+      -- E.164 caps a real number at 15 digits.
+      OR LENGTH(d) > 15 AS refused
+    FROM digits
+  ),
+  -- The country prefix and the trunk prefix are stripped in turn, never as
+  -- alternatives: "+33 (0)1 23 45 67 89" carries both, and it is a writing OSM
+  -- is full of.
+  --
+  -- The longest matching calling code wins, so that a country answering to
+  -- both +33 and +330-something could not be read the short way first.
+  without_country AS (
+    SELECT refused, COALESCE((
+      SELECT stripped FROM (
+        SELECT CASE
+          WHEN d LIKE '00' || code || '%'
+            THEN SUBSTRING(d FROM 3 + LENGTH(code))
+          -- The + is already gone. Guarded on the remaining length so that a
+          -- short number starting with a calling code stays whole.
+          WHEN d LIKE code || '%' AND LENGTH(d) - LENGTH(code) >= 6
+            THEN SUBSTRING(d FROM 1 + LENGTH(code))
+        END AS stripped, LENGTH(code) AS code_length
+        FROM unnest(calling_codes) AS code
+      ) candidates
+      WHERE stripped IS NOT NULL
+      ORDER BY code_length DESC
+      LIMIT 1
+    ), d) AS d, trunk_prefix
+    FROM refused, country
+  )
+  SELECT CASE
+    WHEN refused THEN NULL
+    WHEN trunk_prefix <> '' AND d LIKE trunk_prefix || '%'
+      THEN SUBSTRING(d FROM 1 + LENGTH(trunk_prefix))
+    ELSE d
+  END
+  FROM without_country;
+$fn$;
+"""
+
+
+def ensure_normalize_phone(conn, calling_codes: tuple[str, ...] = CALLING_CODES,
+                           trunk_prefix: str = TRUNK_PREFIX) -> bool:
+    """Install the function for this country; rebuild its indexes if it moved.
+
+    Returns whether anything changed. Cheap enough to call on every startup:
+    the signature is stamped on the function as a COMMENT and compared first.
+
+    CREATE OR REPLACE does not touch a functional index built on the previous
+    definition — its entries stay as they were computed, and the planner reads
+    them as if they matched. Hence the REINDEX, which is the whole reason this
+    is not a bare execute() at the call site.
+    """
+    body = normalize_phone_sql(calling_codes, trunk_prefix)
+    sig = signature(body)
+
+    with conn.cursor() as cur:
+        # Gunicorn starts several workers at once and REINDEX takes an
+        # exclusive lock: without this they would queue up and each redo the
+        # work the previous one just did. The loser wakes up on a stamped
+        # function and returns False.
+        cur.execute("SELECT pg_advisory_xact_lock(%s)", (_LOCK_KEY,))
+        cur.execute(
+            "SELECT obj_description(to_regprocedure('normalize_phone(text)'), 'pg_proc')"
+        )
+        row = cur.fetchone()
+        if row and row[0] == sig:
+            return False
+
+        cur.execute(body)
+        cur.execute(
+            sql.SQL("COMMENT ON FUNCTION normalize_phone(text) IS {}").format(
+                sql.Literal(sig)
+            )
+        )
+
+        cur.execute(
+            """SELECT indexname FROM pg_indexes
+               WHERE indexname = ANY(%s)
+                 AND schemaname = ANY (current_schemas(false))""",
+            (list(PHONE_INDEXES),),
+        )
+        for (index,) in cur.fetchall():
+            logger.info("Rebuilding %s on the new phone key", index)
+            cur.execute(sql.SQL("REINDEX INDEX {}").format(sql.Identifier(index)))
+
+    conn.commit()
+    logger.info("normalize_phone installed for +%s", ", +".join(calling_codes))
+    return True
