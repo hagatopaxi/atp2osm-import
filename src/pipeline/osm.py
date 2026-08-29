@@ -198,6 +198,10 @@ def run_osm2pgsql():
         [
             "osm2pgsql",
             "--output", "flex",
+            # 2.x reads version/timestamp on its own, 1.x only with -x. Kept
+            # for the latter: without them the freshness guard has nothing to
+            # filter on.
+            "-x",
             "-S", str(PROJECT_ROOT / "osm2pgsql" / "generic.lua"),
             "-d", db.name,
             "-U", db.user,
@@ -251,6 +255,7 @@ def _mv_places_sql() -> str:
             COALESCE(points.tags->>'phone', points.tags->>'contact:phone')     AS phone,
             COALESCE(points.tags->>'email', points.tags->>'contact:email')     AS email,
             version,
+            to_timestamp(points.osm_timestamp)                    AS osm_timestamp,
             NULL::jsonb                                          AS members,
             geom
         FROM (SELECT * FROM points {matchable}) points
@@ -277,6 +282,7 @@ def _mv_places_sql() -> str:
             COALESCE(polygons.tags->>'phone', polygons.tags->>'contact:phone')     AS phone,
             COALESCE(polygons.tags->>'email', polygons.tags->>'contact:email')     AS email,
             version,
+            to_timestamp(polygons.osm_timestamp)                  AS osm_timestamp,
             members                                              AS members,
             geom
         FROM (SELECT * FROM polygons {matchable}) polygons

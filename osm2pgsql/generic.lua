@@ -6,6 +6,9 @@ tables.points = osm2pgsql.define_node_table('points', {
     { column = 'tags',    type = 'jsonb' },
     { column = 'geom',    type = 'point', projection = srid, not_null = true },
     { column = 'version', type = 'int' },
+    -- Epoch seconds: the flex output has no timestamp column type. mv_places
+    -- turns it back into a timestamptz with to_timestamp().
+    { column = 'osm_timestamp', type = 'int8' },
 })
 
 tables.polygons = osm2pgsql.define_area_table('polygons', {
@@ -14,6 +17,9 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
     { column = 'members',  type = 'jsonb' },
     { column = 'geom',     type = 'geometry', projection = srid, not_null = true },
     { column = 'version',  type = 'int' },
+    -- Epoch seconds: the flex output has no timestamp column type. mv_places
+    -- turns it back into a timestamptz with to_timestamp().
+    { column = 'osm_timestamp', type = 'int8' },
 })
 
 -- Based on tags wiki list, that removes every POI which are definitely not places
@@ -132,6 +138,7 @@ function osm2pgsql.process_way(object)
             members = object.nodes,
             geom = object:as_polygon(),
             version = object.version,
+            osm_timestamp = object.timestamp,
         })
     end
 end
@@ -145,6 +152,7 @@ function osm2pgsql.process_node(object)
         tags = object.tags,
         geom = object:as_point(),
         version = object.version,
+        osm_timestamp = object.timestamp,
     })
 end
 
@@ -162,6 +170,7 @@ function osm2pgsql.process_relation(object)
             members = object.members,
             geom = object:as_multipolygon(),
             version = object.version,
+            osm_timestamp = object.timestamp,
         })
     end
 end
