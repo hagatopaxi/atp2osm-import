@@ -52,13 +52,13 @@ NSI_CDN_URL = (
 # Note: Saint-Pierre-et-Miquelon has no dedicated Geofabrik extract.
 _GEOFABRIK_PATHS = {
     "france":              "europe/france",
-    # DOM — Départements d'Outre-Mer
+    # DOM — overseas départements
     "guadeloupe":          "europe/france/guadeloupe",
     "martinique":          "europe/france/martinique",
     "guyane":              "europe/france/guyane",
     "reunion":             "europe/france/reunion",
     "mayotte":             "europe/france/mayotte",
-    # COM — Collectivités d'Outre-Mer (Pacific)
+    # COM — overseas collectivities (Pacific)
     "new-caledonia":       "australia-oceania/new-caledonia",
     "polynesie-francaise": "australia-oceania/polynesie-francaise",
     "wallis-et-futuna":    "australia-oceania/wallis-et-futuna",

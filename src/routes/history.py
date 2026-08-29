@@ -99,8 +99,8 @@ def history_detail(entry_id):
 
     users = fetch_osm_users([entry["osm_user_id"]])
     is_recent = (datetime.now(timezone.utc) - entry["import_date"]) < timedelta(minutes=5)
-    # Taux de réussite en départements, seulement si le détail est connu :
-    # les intégrations antérieures à la migration n'ont pas de lignes filles.
+    # Success rate in départements, only when the detail is known: integrations
+    # older than the migration have no child rows.
     success_rate = (
         (sum(1 for d in departements if d["status"] == "success"), len(departements))
         if departements

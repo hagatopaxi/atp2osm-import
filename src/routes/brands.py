@@ -301,8 +301,8 @@ def upload_changes(brand_wikidata):
 
     osmdb = get_osmdb()
     with osmdb.cursor() as cursor:
-        # changeset_ids n'est plus alimentée : le détail par département vit
-        # désormais dans import_departements.
+        # changeset_ids is no longer filled: the per-département detail now
+        # lives in import_departements.
         cursor.execute(
             """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, items_count, brand_name, tags_count)
                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",

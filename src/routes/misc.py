@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 misc_bp = Blueprint("misc", __name__)
 
-# Pages publiques (hors zone authentifiée OSM OAuth).
-# (endpoint, libellé, description) — source unique pour sitemap.xml et llms.txt.
+# Public pages (outside the OSM OAuth authenticated area).
+# (endpoint, label, description) — single source for sitemap.xml and llms.txt.
 PUBLIC_PAGES = [
     ("misc.home", "Accueil", "présentation et statistiques d'intégration."),
     ("brands.brands", "Marques à intégrer", "enseignes ATP disponibles à l'intégration."),

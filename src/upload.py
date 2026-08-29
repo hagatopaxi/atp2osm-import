@@ -153,8 +153,8 @@ class BulkUpload:
                 msg = f"OSM API error for dept {dpt}: HTTP {error.status} — {payload}"
                 logger.error(msg)
                 errors.append(("osm_api", msg))
-                # changeset vaut None seulement si sa création a échoué : il
-                # existe bel et bien quand c'est l'envoi qui a lâché.
+                # changeset is None only when its creation failed: it does
+                # exist when it is the upload that gave up.
                 self._record(dpt, dpt_changes, "error_osm_api", changeset, msg)
             except Exception as unknown:
                 msg = f"Unknown error for dept {dpt}: {unknown}"

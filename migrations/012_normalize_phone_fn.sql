@@ -10,6 +10,6 @@ LANGUAGE SQL IMMUTABLE STRICT PARALLEL SAFE AS $$
       REGEXP_REPLACE($1, '^\+\d{1,3}', '0'),  -- +33, +596, +262, +687... → 0
       '^00\d{1,3}', '0'                         -- 0033, 00596...          → 0
     ),
-    '[\s\-\.\(\)]', '', 'g'                     -- supprime séparateurs
+    '[\s\-\.\(\)]', '', 'g'                     -- strip separators
   );
 $$;

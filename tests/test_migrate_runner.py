@@ -62,8 +62,8 @@ def test_discovers_both_sql_and_python_migrations_in_order():
     assert versions == sorted(versions)
     suffixes = {p.suffix for _, p in found}
     assert suffixes == {".sql", ".py"}
-    # la reprise est une migration Python, et elle précède la suppression de
-    # la colonne qu'elle lit
+    # the backfill is a Python migration, and it comes before dropping the
+    # column it reads
     by_version = dict(found)
     assert by_version[16].suffix == ".py"
     assert by_version[17].suffix == ".sql"

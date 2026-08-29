@@ -6,15 +6,14 @@ from psycopg.rows import dict_row
 from typing import Any, NamedTuple
 
 
-# Requête unique de correspondance ATP <-> OSM, partagée par /validate
-# (get_filtered) et par la vue matérialisée mv_places_brand qui alimente le
-# compteur de la liste des marques. Les deux DOIVENT rester sur la même SQL :
-# c'est la divergence entre deux copies qui a fait afficher 50 POIs dans la
-# liste et 60 dans /validate.
+# The one ATP <-> OSM matching query, shared by /validate (get_filtered) and by
+# the mv_places_brand materialized view that feeds the counter on the brand
+# list. Both MUST stay on the same SQL: two diverging copies are what once made
+# the list show 50 POIs and /validate 60.
 #
-# Le dédoublonnage inclut atp_brand_wikidata : un même objet OSM peut
-# correspondre à deux marques différentes, et il doit alors être compté pour
-# chacune (comme le fait /validate, qui filtre sur une seule marque).
+# Deduplication includes atp_brand_wikidata: a single OSM object can match two
+# different brands, and must then be counted for each one (like /validate does,
+# which filters on a single brand).
 MATCHED_POI_SQL = """
     WITH joined_poi AS (
     SELECT
@@ -36,9 +35,9 @@ MATCHED_POI_SQL = """
             OR (atp.email   IS NOT NULL AND osm.email   IS NULL)
             OR (atp.phone   IS NOT NULL AND osm.phone   IS NULL)
             OR (atp.website IS NOT NULL AND osm.website IS NULL)
-            -- NSI complète aussi : un objet dont seul NSI a quelque chose à
-            -- dire doit compter dans les lots, sinon apply_on_node produirait
-            -- un changement que la liste des marques n'a jamais annoncé.
+            -- NSI completes objects too: an object only NSI has something to
+            -- say about must count in the batches, otherwise apply_on_node
+            -- would produce a change the brand list never announced.
             OR EXISTS (
                 SELECT 1 FROM jsonb_object_keys(COALESCE(osm.nsi_tags, '{{}}'::jsonb)) AS k
                 WHERE NOT osm.tags ? k
@@ -376,13 +375,13 @@ DEPARTEMENT_NAMES = {
     "93": "Seine-Saint-Denis",
     "94": "Val-de-Marne",
     "95": "Val-d'Oise",
-    # Départements et régions d'outre-mer (DROM)
+    # Overseas départements and regions (DROM)
     "971": "Guadeloupe",
     "972": "Martinique",
     "973": "Guyane",
     "974": "La Réunion",
     "976": "Mayotte",
-    # Collectivités d'outre-mer (COM)
+    # Overseas collectivities (COM)
     "975": "Saint-Pierre-et-Miquelon",
     "977": "Saint-Barthélemy",
     "978": "Saint-Martin",

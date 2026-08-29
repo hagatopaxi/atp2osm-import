@@ -1,8 +1,8 @@
--- Un statut par changeset : une ligne d'import_history reste une action humaine
--- d'intégration, chaque département intégré a désormais sa ligne fille.
--- Les lignes antérieures ne sont pas reprises (rien à reconstituer depuis
--- changeset_ids, qui ne dit pas à quel département chaque identifiant
--- correspondait) : elles gardent leur statut d'ensemble.
+-- One status per changeset: an import_history row stays a human integration
+-- action, and every integrated département now gets its own child row.
+-- Older rows are not backfilled (nothing to rebuild them from: changeset_ids
+-- does not say which département each id belonged to); they keep their
+-- overall status.
 
 CREATE TABLE IF NOT EXISTS import_departements (
     id                 SERIAL PRIMARY KEY,

@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 def _mv_places_brand_sql() -> str:
-    # is_importable est filtré APRÈS le dédoublonnage, comme
-    # apply_on_node() côté /validate, sinon les deux comptages divergent.
+    # is_importable is filtered AFTER deduplication, like apply_on_node() does
+    # on the /validate side, otherwise the two counts diverge.
     # One row per (brand, département): get_all() sums the unblocked
     # ones to announce what is still left to integrate.
     return f"""

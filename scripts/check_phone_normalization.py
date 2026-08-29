@@ -89,18 +89,18 @@ def main():
         before = pairs_matched_on_phone_only(cur, f"{SCHEMA}.legacy_normalize_phone")
         after = pairs_matched_on_phone_only(cur, "normalize_phone")
         drift = abs(after - before) / before * 100 if before else 0.0
-        print(f"paires appariées par le seul téléphone : {before} → {after} "
-              f"({drift:.2f} % d'écart)")
+        print(f"pairs matched on phone alone: {before} → {after} "
+              f"({drift:.2f} % drift)")
         if drift > 1:
-            print("  ÉCART SUPÉRIEUR À 1 % — à inspecter avant de déployer")
+            print("  DRIFT ABOVE 1 % — inspect before deploying")
 
         for table, column in TABLES:
             legacy = collisions(cur, table, column, f"{SCHEMA}.legacy_normalize_phone")
             current = collisions(cur, table, column, "normalize_phone")
-            print(f"{table}.{column} : clés partagées par plusieurs écritures "
+            print(f"{table}.{column}: keys shared by several writings "
                   f"{legacy} → {current}")
             if current > legacy:
-                print("  LES COLLISIONS AUGMENTENT — à inspecter avant de déployer")
+                print("  COLLISIONS ARE GROWING — inspect before deploying")
 
             n = refused(cur, table, column)
             print(f"{table}.{column} : valeurs devenues NULL : {n}")

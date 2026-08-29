@@ -49,7 +49,7 @@ def test_apply_on_node_keep_contact_email():
 
 
 def test_apply_on_node_relation_id_is_negated():
-    # osm2pgsql stocke les relations avec un area_id négatif
+    # osm2pgsql stores relations with a negative area_id
     res = match({}, osm_id=-42, node_type="relation",
                 atp_opening_hours="Mo-Fr 09:00-18:00")
     assert res["id"] == 42

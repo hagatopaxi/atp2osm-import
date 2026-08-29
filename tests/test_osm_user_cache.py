@@ -6,7 +6,7 @@ from src import utils
 
 
 def _stub_api(monkeypatch, calls):
-    """Remplace l'appel réseau et enregistre les ids demandés."""
+    """Replace the network call and record the requested ids."""
 
     class Resp:
         def raise_for_status(self):
@@ -36,15 +36,15 @@ def test_cache_avoids_refetch_then_expires(monkeypatch):
     assert utils.fetch_osm_users([1, 2]) == {1: "u1", 2: "u2"}
     assert calls == [[1, 2]]
 
-    # Deuxième appel : tout est en cache, aucun appel réseau.
+    # Second call: everything is cached, no network call.
     assert utils.fetch_osm_users([1, 2]) == {1: "u1", 2: "u2"}
     assert calls == [[1, 2]]
 
-    # Seul l'id inconnu part sur le réseau.
+    # Only the unknown id goes to the network.
     assert utils.fetch_osm_users([1, 3]) == {1: "u1", 3: "u3"}
     assert calls[-1] == [3]
 
-    # Une fois périmé, on refetch.
+    # Once expired, we refetch.
     utils._osm_user_cache[1] = ("u1", datetime.now(timezone.utc) - timedelta(seconds=1))
     utils.fetch_osm_users([1])
     assert calls[-1] == [1]

@@ -1,32 +1,31 @@
-"""Reprise de l'existant : reconstruit import_departements depuis les logs.
+"""Backfill: rebuild import_departements from the logs.
 
-Chaque intégration a laissé un fichier `logs/<brand_wikidata>/<date>.json`
-contenant deux tableaux JSON concaténés :
+Every integration left a `logs/<brand_wikidata>/<date>.json` file holding two
+concatenated JSON arrays:
 
-  1. les POIs soumis — avec leur département, leurs tags avant/après, et la
-     clé `changeset` posée au moment de l'envoi (donc y compris pour un
-     département dont l'envoi a ensuite échoué) ;
-  2. les identifiants des changesets *réussis*.
+  1. the submitted POIs — with their département, their before/after tags and
+     the `changeset` key written at upload time (so including a département
+     whose upload later failed);
+  2. the ids of the *successful* changesets.
 
-Le croisement des deux donne, département par département, l'effectif, le
-changeset tenté et son sort — soit exactement une ligne import_departements.
-Les tags avant/après donnent au passage tags_count, et le compte des POIs
-réellement envoyés donne items_count.
+Crossing the two gives, département by département, the count, the attempted
+changeset and its fate — exactly one import_departements row. The before/after
+tags give tags_count along the way, and the number of POIs actually uploaded
+gives items_count.
 
-Les cas success, partial_* et error_* sont tous couverts :
-  - un département dont le changeset figure dans le tableau 2 → success ;
-  - sinon → error_osm_api / error_unknown, suffixe pris sur le statut de
-    l'intégration (les deux niveaux ne peuvent pas diverger : le suffixe
-    vient déjà des mêmes erreurs).
+The success, partial_* and error_* cases are all covered:
+  - a département whose changeset appears in array 2 → success;
+  - otherwise → error_osm_api / error_unknown, the suffix taken from the
+    integration status (the two levels cannot diverge: the suffix already
+    comes from the same errors).
 
-Quelques logs n'ont pas gardé la clé `changeset` sur les POIs : les
-identifiants réussis ayant été notés dans l'ordre des départements, ils leur
-sont alors redonnés dans ce même ordre.
+A few logs did not keep the `changeset` key on the POIs: since the successful
+ids were recorded in département order, they are handed back in that order.
 
-Ne sont pas repris : les abandons (`cancelled`, aucun changeset tenté), les
-intégrations vides, celles dont le fichier de log manque, et les tout premiers
-logs, antérieurs à l'enregistrement du département. Ces dernières gardent la
-trace de leurs changesets dans leur commentaire, faute de mieux.
+Not backfilled: cancellations (`cancelled`, no changeset attempted), empty
+integrations, those whose log file is missing, and the very first logs, older
+than the recording of the département. The latter keep a trace of their
+changesets in their comment, for want of anything better.
 """
 
 import json
@@ -45,9 +44,9 @@ LOGS_DIR = pathlib.Path(
     os.environ.get("ATP2OSM_LOGS_DIR", pathlib.Path(__file__).parent.parent / "logs")
 )
 
-# "OSM API error for dept 94: ..." / "Unknown error for dept 94: ..." — le
-# commentaire de l'intégration nomme chaque département en échec et dit de
-# quelle erreur il s'agit.
+# "OSM API error for dept 94: ..." / "Unknown error for dept 94: ..." — the
+# integration comment names every failed département and says which error it
+# was.
 FAILED_DPT_RE = re.compile(r"(OSM API|Unknown) error for dept (\w+):")
 ERROR_KINDS = {"OSM API": "error_osm_api", "Unknown": "error_unknown"}
 
@@ -71,10 +70,9 @@ class BackfillImportDepartements(Migration):
                 for r in cursor.fetchall()
             ]
 
-        # Un fichier de log par (dossier, jour) : deux intégrations tombant sur
-        # le même fichier se sont écrasées l'une l'autre. Comme les lignes sont
-        # triées par date, la dernière est celle que le fichier décrit ; les
-        # précédentes restent sans détail.
+        # One log file per (folder, day): two integrations landing on the same
+        # file overwrote each other. Since the rows are sorted by date, the last
+        # one is what the file describes; the earlier ones stay without detail.
         paths = {row["id"]: self._find_log_path(row) for row in rows}
         claimed = {}
         for row in rows:
@@ -86,7 +84,7 @@ class BackfillImportDepartements(Migration):
             path = paths[row["id"]]
             if path is None:
                 logger.warning(
-                    "Pas de log pour l'intégration %s (%s, %s) : sans détail.",
+                    "No log for integration %s (%s, %s): left without detail.",
                     row["id"], row["brand_wikidata"], row["import_date"].date(),
                 )
                 self._keep_changeset_ids(row)
@@ -94,7 +92,7 @@ class BackfillImportDepartements(Migration):
 
             if claimed[path] != row["id"]:
                 logger.warning(
-                    "Import %s non repris : le log %s décrit l'intégration %s",
+                    "Import %s not backfilled: log %s describes integration %s",
                     row["id"], path, claimed[path],
                 )
                 self._keep_changeset_ids(row)
@@ -102,12 +100,13 @@ class BackfillImportDepartements(Migration):
 
             changes, succeeded = self._read_log(path)
 
-            # Les logs les plus anciens ne notaient ni le département ni le
-            # changeset : rien à répartir, l'intégration reste sans détail.
+            # The oldest logs recorded neither the département nor the
+            # changeset: nothing to split, the integration stays without
+            # detail.
             if not changes or any("departement_number" not in c for c in changes):
                 logger.warning(
-                    "Log %s au format ancien (sans département) : "
-                    "intégration %s laissée sans détail.", path, row["id"],
+                    "Log %s in the old format (no département): "
+                    "integration %s left without detail.", path, row["id"],
                 )
                 self._keep_changeset_ids(row)
                 continue
@@ -115,19 +114,18 @@ class BackfillImportDepartements(Migration):
             self._write(row, changes, succeeded)
             done += 1
 
-        logger.info("Reprise terminée : %d intégration(s) détaillée(s).", done)
+        logger.info("Backfill done: %d integration(s) detailed.", done)
 
     def _find_log_path(self, row):
-        """Le fichier de log d'une intégration, ou None.
+        """The log file of an integration, or None.
 
-        Le nom du fichier vient de l'heure locale du serveur et la date de
-        l'intégration est en UTC : la veille et le lendemain sont essayés.
+        The file name comes from the server's local time while the integration
+        date is in UTC: the day before and the day after are tried too.
 
-        Le dossier, lui, porte le brand:wikidata *OSM* du premier POI, qui
-        n'est pas toujours celui de la marque ATP (`Q246/` pour la marque
-        `Q699709`), et vaut `unknown` quand ce tag manque. À défaut du dossier
-        attendu, on cherche donc le log de la journée dont les POIs portent le
-        nom de la marque.
+        The folder carries the *OSM* brand:wikidata of the first POI, which is
+        not always the ATP brand's (`Q246/` for brand `Q699709`), and is
+        `unknown` when that tag is missing. Failing the expected folder, we
+        therefore look for the day's log whose POIs carry the brand name.
         """
         day = row["import_date"].date()
         for date in (day, day - timedelta(days=1), day + timedelta(days=1)):
@@ -138,16 +136,16 @@ class BackfillImportDepartements(Migration):
                 changes, _ = self._read_log(path)
                 if changes and changes[0].get("atp_brand") == row["brand_name"]:
                     logger.info(
-                        "Intégration %s (%s) retrouvée dans %s, rattachée par son nom.",
+                        "Integration %s (%s) found back in %s, matched by name.",
                         row["id"], row["brand_wikidata"], path.parent.name,
                     )
                     return path
         return None
 
     def _keep_changeset_ids(self, row):
-        """changeset_ids disparaît juste après (migration 017) : pour une
-        intégration qu'on ne sait pas détailler, on garde au moins la trace de
-        ses changesets dans le commentaire."""
+        """changeset_ids disappears right after (migration 017): for an
+        integration we cannot detail, at least keep a trace of its changesets
+        in the comment."""
         if not row["changeset_ids"]:
             return
         trace = "Changesets : " + ", ".join(str(c) for c in row["changeset_ids"])
@@ -158,8 +156,8 @@ class BackfillImportDepartements(Migration):
             )
 
     def _read_log(self, path):
-        """Renvoie (changes, succeeded) ; succeeded vaut None si le log est
-        antérieur à l'enregistrement des changesets réussis."""
+        """Return (changes, succeeded); succeeded is None when the log predates
+        the recording of successful changesets."""
         decoder = json.JSONDecoder()
         text = path.read_text(encoding="utf-8")
         changes, end = decoder.raw_decode(text)
@@ -190,7 +188,7 @@ class BackfillImportDepartements(Migration):
                    VALUES (%s, %s, %s, %s, %s, %s)""",
                 rows,
             )
-            # Les colonnes que l'intégration n'avait pas su remplir à l'époque.
+            # The columns the integration could not fill at the time.
             cursor.execute(
                 """UPDATE import_history
                    SET items_count = COALESCE(items_count, %s),
@@ -201,17 +199,17 @@ class BackfillImportDepartements(Migration):
 
 
 def reconstruct(changes, succeeded, status, comment):
-    """Détail par département d'une intégration, depuis son log.
+    """Per-département detail of an integration, from its log.
 
-    *succeeded* est la liste des changesets réussis, ou None quand le log est
-    antérieur à son enregistrement — on se rabat alors sur les départements
-    nommés dans le commentaire d'erreur, qui donne aussi le type de chaque
-    échec.
+    *succeeded* is the list of successful changesets, or None when the log
+    predates its recording — we then fall back on the départements named in the
+    error comment, which also gives the type of each failure.
 
-    Renvoie (lignes import_departements, POIs réellement envoyés).
+    Returns (import_departements rows, POIs actually uploaded).
     """
-    # À défaut de commentaire nominatif, le suffixe du statut de l'intégration
-    # (avant la migration 018, qui le supprime) ; sinon l'erreur reste inconnue.
+    # Failing a comment naming names, the suffix of the integration status
+    # (before migration 018, which drops it); otherwise the error stays
+    # unknown.
     default_error = "error_osm_api" if status.endswith("osm_api") else "error_unknown"
     failed_from_comment = {
         _pad(dpt): ERROR_KINDS[kind]
@@ -225,17 +223,16 @@ def reconstruct(changes, succeeded, status, comment):
         entry["changes"].append(change)
         entry["changeset"] = entry["changeset"] or change.get("changeset")
 
-    # Certains logs n'ont pas gardé le changeset sur chaque POI. Les
-    # identifiants réussis ayant été notés dans l'ordre des départements, on
-    # les redonne dans ce même ordre aux départements que le commentaire
-    # n'accuse pas.
+    # Some logs did not keep the changeset on each POI. Since the successful
+    # ids were recorded in département order, they are handed back in that same
+    # order to the départements the comment does not blame.
     positional = None
     if succeeded is not None and any(e["changeset"] is None for e in by_dpt.values()):
         candidates = [d for d in by_dpt if d not in failed_from_comment]
         if len(candidates) != len(succeeded):
             logger.warning(
-                "%d département(s) candidat(s) pour %d changeset(s) réussi(s) : "
-                "les derniers sont comptés en échec.", len(candidates), len(succeeded),
+                "%d candidate département(s) for %d successful changeset(s): "
+                "the last ones are counted as failed.", len(candidates), len(succeeded),
             )
         positional = dict(zip(candidates, succeeded))
 
@@ -252,17 +249,17 @@ def reconstruct(changes, succeeded, status, comment):
             ok = entry["changeset"] in succeeded
             changeset = entry["changeset"]
 
-        # Le commentaire de l'intégration nomme les départements en échec
-        # ("OSM API error for dept 94: ...") : il tranche.
+        # The integration comment names the failed départements
+        # ("OSM API error for dept 94: ..."): it decides.
         if dpt in failed_from_comment:
             ok = False
 
         if ok:
             uploaded.extend(entry["changes"])
         else:
-            # Un département en échec garde son changeset quand il a été créé :
-            # seul un échec à la création laisse l'identifiant nul. En mode
-            # positionnel, on ne sait pas lequel c'était.
+            # A failed département keeps its changeset when it was created:
+            # only a creation failure leaves the id null. In positional mode we
+            # do not know which one it was.
             changeset = entry["changeset"]
 
         children.append({
@@ -277,5 +274,5 @@ def reconstruct(changes, succeeded, status, comment):
 
 
 def _pad(departement_number) -> str:
-    """Les logs les plus anciens stockaient le département en entier (6, 94)."""
+    """The oldest logs stored the département as an integer (6, 94)."""
     return str(departement_number).zfill(2)

@@ -1,7 +1,7 @@
-"""Reprise de l'existant, de bout en bout.
+"""End-to-end backfill of the existing history.
 
 Needs the local PostGIS (podman-compose up -d); skipped otherwise.
-Tout se passe dans un schéma jetable, sur des logs fabriqués dans tmp_path.
+Everything happens in a throwaway schema, on logs fabricated in tmp_path.
 """
 
 import datetime
@@ -17,7 +17,7 @@ SCHEMA = "test_backfill"
 
 
 def load_migration(logs_dir, monkeypatch):
-    """Le module lit ATP2OSM_LOGS_DIR à l'import."""
+    """The module reads ATP2OSM_LOGS_DIR at import time."""
     monkeypatch.setenv("ATP2OSM_LOGS_DIR", str(logs_dir))
     spec = importlib.util.spec_from_file_location(
         "backfill_016", MIGRATIONS / "016_backfill_import_departements.py"
@@ -66,14 +66,14 @@ def conn():
         c.execute(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")
         c.execute(f"CREATE SCHEMA {SCHEMA}")
         c.execute(f"SET search_path TO {SCHEMA}")
-        # tout l'historique jusqu'à la table fille, la reprise exclue
+        # the whole history up to the child table, backfill excluded
         for version, path in sorted(_sql_migrations()):
             if version > 15:
                 break
             c.execute(path.read_text())
         c.commit()
         yield c
-        c.rollback()  # un test peut laisser la transaction en échec
+        c.rollback()  # a test can leave the transaction in a failed state
         c.execute(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")
         c.commit()
 
@@ -157,12 +157,12 @@ def test_partial_import_marks_the_departement_named_in_the_comment(
 
     load_migration(tmp_path, monkeypatch).BackfillImportDepartements(conn).migrate()
 
-    # le changeset du département en échec avait bien été créé : on le garde
+    # the failed département's changeset had been created: keep it
     assert children(conn, import_id) == [
         ("01", 1, 101, "error_osm_api"),
         ("69", 1, 100, "success"),
     ]
-    # items_count ne compte que ce qui est réellement parti
+    # items_count only counts what actually went out
     assert conn.execute(
         "SELECT items_count FROM import_history WHERE id = %s", (import_id,)
     ).fetchone()[0] == 1
@@ -215,7 +215,7 @@ def test_two_imports_the_same_day_share_one_log_file(conn, tmp_path, monkeypatch
 
     load_migration(tmp_path, monkeypatch).BackfillImportDepartements(conn).migrate()
 
-    # le fichier décrit la dernière intégration de la journée
+    # the file describes the last integration of the day
     assert children(conn, second) == [("69", 1, 100, "success")]
     assert children(conn, first) == []
 
@@ -223,8 +223,8 @@ def test_two_imports_the_same_day_share_one_log_file(conn, tmp_path, monkeypatch
 def test_log_stored_under_the_osm_wikidata_is_found_back_by_brand_name(
     conn, tmp_path, monkeypatch
 ):
-    # le dossier porte le brand:wikidata OSM du premier POI (Q246), la marque
-    # intégrée est celle de l'ATP (Q699709)
+    # the folder carries the OSM brand:wikidata of the first POI (Q246), the
+    # integrated brand is the ATP one (Q699709)
     write_log(tmp_path, "Q246", "2026-05-09", [poi(69, 100)], succeeded=[100])
     import_id = insert_import(conn, import_date=DAY, brand_wikidata="Q699709")
 
@@ -245,7 +245,7 @@ def test_log_stored_under_unknown_is_found_back_by_brand_name(
 
 
 def test_log_written_the_day_before_is_still_found(conn, tmp_path, monkeypatch):
-    # fichier nommé à l'heure locale, import_date en UTC
+    # file named in local time, import_date in UTC
     write_log(tmp_path, "Q1", "2026-05-08", [poi(69, 100)], succeeded=[100])
     import_id = insert_import(
         conn, import_date=datetime.datetime(2026, 5, 9, 0, 30, tzinfo=datetime.timezone.utc)

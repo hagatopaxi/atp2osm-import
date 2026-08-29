@@ -117,19 +117,19 @@ def download_large_file(
         raise
 
 
-# Le sort d'une intégration. Le détail du type d'erreur vit une ligne plus
-# bas, sur le département : c'est là qu'il a un sens.
+# The fate of an integration. The error type lives one level below, on the
+# département row: that is where it means something.
 IMPORT_STATUSES = ("success", "partial", "cancelled", "error")
 
 
 def status_group(status: str | None) -> str:
-    """Le statut lui-même, ou 'none' pour une marque jamais intégrée."""
+    """The status itself, or 'none' for a brand never integrated."""
     return status if status in IMPORT_STATUSES else "none"
 
 
-# Les filtres exposés par les pages historique et marques manquantes, et les
-# colonnes auxquelles ils s'appliquent. Définis ici parce que la page et son
-# export doivent proposer exactement les mêmes filtres.
+# The filters offered by the history and missing-brands pages, and the columns
+# they apply to. Defined here because a page and its export must offer exactly
+# the same filters.
 HISTORY_FILTERS = {
     "q": ("brand_name", "brand_wikidata"),
     "status": "status",
@@ -137,7 +137,7 @@ HISTORY_FILTERS = {
     "date": "import_date",
 }
 
-# Pas de statut ici : une marque encore à intégrer n'en a pas.
+# No status here: a brand still to integrate has none.
 TODO_FILTERS = {
     "q": ("brand_name", "brand_wikidata"),
     "user": "osm_user_id",
@@ -145,9 +145,9 @@ TODO_FILTERS = {
 }
 
 
-# La liste des marques manquantes masque par défaut celles qu'ATP connaît déjà :
-# c'est son objet même. ?show_in_atp=1 les réaffiche. Partagé entre la page et
-# son export, qui doivent renvoyer les mêmes lignes.
+# The missing-brands list hides by default the ones ATP already knows: that is
+# its whole point. ?show_in_atp=1 shows them again. Shared between the page and
+# its export, which must return the same rows.
 TODO_NOT_IN_ATP_SQL = """NOT EXISTS (
     SELECT 1 FROM atp_fr a
     WHERE a.brand_wikidata = todo_brands.brand_wikidata
@@ -264,9 +264,9 @@ def filter_brands(rows, args):
     return rows, active
 
 
-# ponytail: cache mémoire par process (pseudo OSM -> date d'expiration). Un
-# display_name ne bouge quasiment jamais, une semaine suffit. Si plusieurs
-# workers tournent, chacun a le sien — c'est voulu, pas la peine de sortir Redis.
+# ponytail: per-process in-memory cache (OSM user id -> expiry). A display_name
+# almost never changes, a week is enough. With several workers each keeps its
+# own — that is intended, no need to bring in Redis.
 OSM_USER_CACHE_TTL = timedelta(weeks=1)
 _osm_user_cache: dict[int, tuple[str, datetime]] = {}
 

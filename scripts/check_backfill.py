@@ -1,13 +1,13 @@
-"""Répétition générale de la reprise (migration 016) sur les données de prod.
+"""Dress rehearsal of the backfill (migration 016) on production data.
 
     uv run --env-file .env python scripts/check_backfill.py \
         data/prod-history.sql data/prod-logs [--keep]
 
-Charge le dump d'import_history dans une base jetable, applique 015 puis 016,
-imprime un rapport et ne touche à rien d'autre. Avec --keep, la base est
-conservée pour être inspectée à la main ; sans, elle est supprimée. Le rapport dit ce qui a été détaillé, ce qui ne l'a pas été et pourquoi,
-et surtout les écarts entre l'historique existant et ce que la reprise en
-déduit.
+Loads the import_history dump into a throwaway database, applies 015 then 016,
+prints a report and touches nothing else. With --keep the database is kept for
+manual inspection; without it, it is dropped. The report says what was
+detailed, what was not and why, and above all the discrepancies between the
+existing history and what the backfill derives from it.
 """
 
 import collections
@@ -29,14 +29,14 @@ CHECK_DB = "atp2osm_backfill_check"
 
 
 def psql(kwargs, sql: str):
-    """Joue du SQL sans jamais mettre le mot de passe dans une ligne de commande."""
+    """Run SQL without ever putting the password on a command line."""
     env = {**os.environ, "PGPASSWORD": kwargs["password"]}
     cmd = ["psql", "-v", "ON_ERROR_STOP=1", "-q",
            "-h", kwargs["host"], "-p", str(kwargs["port"]),
            "-U", kwargs["user"], "-d", kwargs["dbname"], "-f", "-"]
     done = subprocess.run(cmd, input=sql, text=True, env=env)
     if done.returncode:
-        raise SystemExit(f"psql a échoué (code {done.returncode})")
+        raise SystemExit(f"psql failed (exit code {done.returncode})")
 
 
 def main(dump, logs_dir, keep=False):
@@ -48,7 +48,7 @@ def main(dump, logs_dir, keep=False):
 
     kwargs = {**db.connect_kwargs, "dbname": CHECK_DB}
     try:
-        # le dump vient d'un autre serveur : ses OWNER/GRANT ne s'appliquent pas
+        # the dump comes from another server: its OWNER/GRANT do not apply
         sql = pathlib.Path(dump).read_text()
         sql = "\n".join(
             line for line in sql.splitlines()
@@ -76,10 +76,10 @@ def main(dump, logs_dir, keep=False):
     finally:
         if keep:
             print(
-                f"\nBase conservée. Pour l'inspecter :\n"
+                f"\nDatabase kept. To inspect it:\n"
                 f"  psql -h {kwargs['host']} -p {kwargs['port']} "
                 f"-U {kwargs['user']} -d {CHECK_DB}\n"
-                f"Pour la supprimer :\n"
+                f"To drop it:\n"
                 f"  dropdb -h {kwargs['host']} -p {kwargs['port']} "
                 f"-U {kwargs['user']} {CHECK_DB}"
             )
@@ -98,28 +98,28 @@ def report(conn):
     )[0][0]
     lines = q("SELECT COUNT(*) FROM import_departements")[0][0]
 
-    print(f"\n{'=' * 70}\nRAPPORT DE REPRISE\n{'=' * 70}")
-    print(f"{total} intégration(s) dans l'historique")
-    print(f"{detailed} détaillée(s), soit {lines} ligne(s) import_departements")
+    print(f"\n{'=' * 70}\nBACKFILL REPORT\n{'=' * 70}")
+    print(f"{total} integration(s) in the history")
+    print(f"{detailed} detailed, i.e. {lines} import_departements row(s)")
 
-    print("\nStatuts (intégration) :")
+    print("\nStatuses (integration):")
     for status, n, avec in q(
         """SELECT ih.status, COUNT(*),
                   COUNT(*) FILTER (WHERE EXISTS (
                       SELECT 1 FROM import_departements d WHERE d.import_id = ih.id))
            FROM import_history ih GROUP BY ih.status ORDER BY 2 DESC"""
     ):
-        print(f"  {status:<16} {n:>4}  dont {avec:>4} détaillée(s)")
+        print(f"  {status:<16} {n:>4}  of which {avec:>4} detailed")
 
-    print("\nStatuts (département) :")
+    print("\nStatuses (département):")
     for status, n in q(
         "SELECT status, COUNT(*) FROM import_departements GROUP BY status ORDER BY 2 DESC"
     ):
         print(f"  {status:<16} {n:>4}")
 
-    # Écart 1 : le statut dérivé des enfants doit correspondre au statut stocké
-    # (aux suffixes près, que la migration 018 supprime).
-    print("\nÉcarts entre le statut stocké et celui que la reprise déduit :")
+    # Discrepancy 1: the status derived from the children must match the stored
+    # status (up to the suffixes, which migration 018 drops).
+    print("\nDiscrepancies between the stored status and the derived one:")
     children = collections.defaultdict(list)
     for import_id, status in q(
         "SELECT import_id, status FROM import_departements"
@@ -134,12 +134,12 @@ def report(conn):
         derived = _determine_import_status(children[import_id])
         if derived != status.split("_")[0]:
             mismatches += 1
-            print(f"  #{import_id} : stocké {status}, déduit {derived}")
-    print(f"  {mismatches} écart(s)")
+            print(f"  #{import_id}: stored {status}, derived {derived}")
+    print(f"  {mismatches} discrepancy(ies)")
 
-    # Écart 2 : les POIs annoncés par l'historique et ceux des départements
-    # réussis doivent coïncider.
-    print("\nÉcarts sur items_count :")
+    # Discrepancy 2: the POIs announced by the history and those of the
+    # successful départements must coincide.
+    print("\nDiscrepancies on items_count:")
     rows = q(
         """SELECT ih.id, ih.items_count,
                   COALESCE(SUM(d.items_count) FILTER (WHERE d.status = 'success'), 0)
@@ -151,24 +151,24 @@ def report(conn):
            ORDER BY ih.id"""
     )
     for import_id, stored, computed in rows:
-        print(f"  #{import_id} : historique {stored}, départements {computed}")
-    print(f"  {len(rows)} écart(s)")
+        print(f"  #{import_id}: history {stored}, départements {computed}")
+    print(f"  {len(rows)} discrepancy(ies)")
 
-    # Ce qui reste sans détail, et pourquoi. Un abandon et une intégration
-    # vide n'ont rien à détailler : ce sont les autres qui coûtent.
-    print("\nIntégrations sans détail, par raison :")
+    # What stays without detail, and why. A cancellation and an empty
+    # integration have nothing to detail: the others are the ones that cost.
+    print("\nIntegrations without detail, by reason:")
     for reason, n in q(
         """SELECT CASE
-                    WHEN status = 'cancelled'  THEN 'abandon (rien à détailler)'
-                    WHEN items_count = 0       THEN 'aucun POI à intégrer'
-                    ELSE 'log manquant ou inexploitable'
+                    WHEN status = 'cancelled'  THEN 'cancelled (nothing to detail)'
+                    WHEN items_count = 0       THEN 'no POI to integrate'
+                    ELSE 'log missing or unusable'
                   END, COUNT(*)
            FROM import_history ih
            WHERE NOT EXISTS (SELECT 1 FROM import_departements d WHERE d.import_id = ih.id)
            GROUP BY 1 ORDER BY 2 DESC"""
     ):
         print(f"  {reason:<32} {n:>4}")
-    print("\n  Détail des pertes réelles :")
+    print("\n  Detail of the real losses:")
     for import_id, status, items, brand, date in q(
         """SELECT id, status, items_count, brand_wikidata, import_date::date
            FROM import_history ih
@@ -181,13 +181,13 @@ def report(conn):
         """SELECT COUNT(*) FROM import_history
            WHERE comment LIKE '%%Changesets : %%'"""
     )[0][0]
-    print(f"  dont {kept} avec leurs changesets conservés dans le commentaire")
+    print(f"  of which {kept} keep their changesets in the comment")
 
     orphans = q(
         """SELECT COUNT(*) FROM import_departements
            WHERE status <> 'success' AND osm_changeset_id IS NULL"""
     )[0][0]
-    print(f"\n{orphans} département(s) en échec sans changeset (création échouée)")
+    print(f"\n{orphans} failed département(s) with no changeset (creation failed)")
     print("=" * 70)
 
 
