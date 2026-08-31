@@ -5,6 +5,7 @@ import subprocess
 from datetime import datetime
 from email.utils import parsedate_to_datetime
 from src.pipeline import _matview
+from src.pipeline._version import app_version
 from src.pipeline.errors import SourceUnavailable
 from src.pipeline.constants import (
     ADMIN_LEVEL,
@@ -125,13 +126,20 @@ def download_pbf():
         last_date = last_import_date(conn, "osm")
         start_import(conn, "osm")  # puts the site in maintenance mode
 
-        if last_date and last_date >= newest_ts:
+        if (
+            last_date
+            and last_date >= newest_ts
+            # The tables must also have been written by the code running now.
+            and _matview.is_current(conn, "points", app_version())
+        ):
             logger.info(
                 "OSM data already up-to-date (last import: %s), skipping download",
                 last_date.date(),
             )
             record_import(conn, "osm", last_date, "skipped")
             return
+        if last_date and last_date >= newest_ts:
+            logger.info("New revision since the last import, reimporting")
     finally:
         conn.close()
 
@@ -186,6 +194,26 @@ def _build_subdivision_parts():
     """
     conn = connect()
     try:
+        # osm2pgsql runs with --create, so a reimport gives subdivisions a new
+        # oid: it identifies the data these pieces were cut from, with nothing
+        # to record on the side. Cutting takes about a minute, too much to
+        # repeat nightly for a table that has not moved.
+        with conn.cursor() as cur:
+            oid = cur.execute("SELECT to_regclass('subdivisions')::oid").fetchone()[0]
+        if oid is None:
+            # Unreachable now that the download is gated on the revision: a
+            # deploy that starts writing subdivisions reimports on its own.
+            # Kept as an assertion, on the branch that owns the table rather
+            # than three steps later in the ATP import.
+            raise RuntimeError(
+                "No subdivisions table: generic.lua did not write one on the "
+                "last import."
+            )
+        signature = _matview.signature(app_version(), oid)
+        if _matview.is_current(conn, "subdivision_parts", signature):
+            logger.info("Subdivision pieces already up-to-date, skipping")
+            return
+
         with conn.cursor() as cur:
             logger.info("Cutting subdivisions into index-sized pieces...")
             cur.execute("DROP TABLE IF EXISTS subdivision_parts")
@@ -201,13 +229,14 @@ def _build_subdivision_parts():
                     ON subdivision_parts (admin_level);
             """)
             count = cur.execute("SELECT count(*) FROM subdivision_parts").fetchone()[0]
+            _matview.stamp(cur, "subdivision_parts", signature, "TABLE")
         conn.commit()
         logger.info("%d subdivision piece(s) ready", count)
     finally:
         conn.close()
 
 
-def run_osm2pgsql():
+def _import_pbfs():
     # All-or-nothing: osm2pgsql runs with --create, which drops and recreates
     # points/polygons. Importing a subset would silently replace the whole
     # planet extract with whatever leftovers a previous failed run left behind.
@@ -258,9 +287,25 @@ def run_osm2pgsql():
     for p in pbf_paths:
         p.unlink()
 
-    _build_subdivision_parts()
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            _matview.stamp(cur, "points", app_version(), "TABLE")
+        conn.commit()
+    finally:
+        conn.close()
 
     logger.info("osm2pgsql import complete (%d file(s))", len(pbf_paths))
+
+
+def run_osm2pgsql():
+    _import_pbfs()
+    # Outside _import_pbfs on purpose: it returns early when Geofabrik has
+    # published nothing, and the pieces still have to exist — they are derived
+    # from our code, not from the data. Production found that out the hard way,
+    # the step reporting success while the ATP import then failed on a table
+    # that had never been built.
+    _build_subdivision_parts()
 
 
 def _mv_places_sql() -> str:
@@ -353,13 +398,12 @@ def setup_mv_places():
         # its published version rather than a date — that is what names the
         # content, and two releases can share a day.
         #
-        # nsi_tags is computed by nsi_match() and stored, so a migration that
-        # redefines the function is an input too: without it, the corrected
-        # rows only land the next time the OSM data happens to move.
+        # The OSM date is not an input here: it is the check below. The
+        # revision covers the rest — the view's own SQL, and nsi_match(),
+        # whose body a migration redefines and a migration ships with a deploy.
         signature = _matview.signature(
-            view_sql,
+            app_version(),
             last_import_comment(conn, "nsi"),
-            _matview.function_defs(conn, "nsi_match", "osm_primary_tag"),
         )
         if (
             last_date

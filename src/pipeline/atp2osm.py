@@ -2,6 +2,7 @@ import logging
 
 from src.matching import MATCHED_POI_SQL
 from src.pipeline import _matview
+from src.pipeline._version import app_version
 from src.pipeline._db import connect, last_import_comment, last_import_date
 
 logger = logging.getLogger(__name__)
@@ -38,11 +39,10 @@ def create_mv_places_brand():
         # while leaving the signature untouched — the list and /validate would
         # then disagree on how many POIs a brand has left.
         signature = _matview.signature(
-            view_sql,
+            app_version(),
             last_import_date(conn, "osm"),
             last_import_date(conn, "atp"),
             last_import_comment(conn, "nsi"),  # the NSI version string
-            _matview.function_defs(conn, "normalize_phone"),
         )
         if _matview.is_current(conn, "mv_places_brand", signature):
             logger.info("mv_places_brand already up-to-date, skipping")

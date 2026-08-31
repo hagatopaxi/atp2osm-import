@@ -16,9 +16,16 @@ import duckdb
 import requests
 
 from src.config import get_database
+from src.pipeline._version import app_version
 from src.pipeline.errors import unavailable_if_unreachable
 from src.pipeline.osm import forget_geofabrik_timestamp
-from src.pipeline._db import connect, last_import_date, record_import, start_import
+from src.pipeline._db import (
+    connect,
+    last_import_comment,
+    last_import_date,
+    record_import,
+    start_import,
+)
 from src.pipeline.ndgeojson_to_parquet import convert_to_parquet
 from src.utils import delete_file_if_exists, download_large_file
 
@@ -104,8 +111,14 @@ def download_atp():
             # here makes every one of them no-op on the guard it already has.
             _discard_workdir()
             # last_date, not the run's end_time: recording an older run would
-            # make the displayed source date go backwards.
-            record_import(conn, "atp", last_date, "skipped")
+            # make the displayed source date go backwards. And the stamp is the
+            # one already there, not app_version(): what it describes is the
+            # atp_fr sitting in the database, which this step did not rebuild.
+            # Recording the running revision here would tell import_atp the
+            # table is up to date when it is not.
+            record_import(
+                conn, "atp", last_date, "skipped", last_import_comment(conn, "atp")
+            )
             return
 
         delete_file_if_exists(ATP_DIR / "output.zip")
@@ -235,8 +248,13 @@ def import_atp():
             PARQUET_PATH.stat().st_mtime, tz=timezone.utc
         )
         last_date = last_import_date(conn, "atp")
+        version = app_version()
 
-        if last_date is not None and parquet_mtime <= last_date:
+        if (
+            last_date is not None
+            and parquet_mtime <= last_date
+            and last_import_comment(conn, "atp") == version
+        ):
             # download_atp already closed the row it opened with 'skipped':
             # recording here too would add a second row for the same run.
             logger.info(
@@ -324,7 +342,7 @@ def import_atp():
                 WHERE spider IN (SELECT DISTINCT spider_id FROM pg.atp_fr)
             """)
 
-            record_import(conn, "atp", parquet_mtime, "success")
+            record_import(conn, "atp", parquet_mtime, "success", version)
             logger.info("ATP import complete (parquet mtime: %s)", parquet_mtime.date())
 
         except Exception:

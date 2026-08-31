@@ -87,3 +87,88 @@ def test_forget_clears_it(monkeypatch):
     osm.GEOFABRIK_TS_PATH.write_text("2020-01-01T00:00:00+00:00")
     osm.forget_geofabrik_timestamp()
     assert not osm.GEOFABRIK_TS_PATH.exists()
+
+
+def test_the_subdivision_pieces_are_built_even_when_no_pbf_was_downloaded(
+    tmp_path, monkeypatch
+):
+    """The pieces are derived from our code, not from Geofabrik's data.
+
+    Production reported osm-import as done while the pieces had never been
+    built: the step returns early when nothing was downloaded, and the call
+    sat behind that return. The ATP import then failed on a missing table.
+    """
+    monkeypatch.setattr(
+        osm, "GEOFABRIK_REGIONS", {"france": {"pbf_path": tmp_path / "absent.pbf"}}
+    )
+    built = []
+    monkeypatch.setattr(osm, "_build_subdivision_parts", lambda: built.append(True))
+
+    osm.run_osm2pgsql()
+
+    assert built == [True]
+
+
+def test_a_missing_subdivisions_table_fails_on_the_branch_that_owns_it(monkeypatch):
+    """An assertion, not a remedy: the download is gated on generic.lua's shape,
+    so a deploy that starts writing subdivisions reimports on its own. Should it
+    ever go missing, it fails here rather than in the ATP import three steps on.
+    """
+    class _Cursor:
+        def __enter__(self): return self
+        def __exit__(self, *exc): return False
+        def execute(self, *a, **kw): return self
+        def fetchone(self): return (None,)
+
+
+    class _Conn:
+        def cursor(self, *a, **kw): return _Cursor()
+        def close(self): pass
+
+    monkeypatch.setattr(osm, "connect", lambda: _Conn())
+    with pytest.raises(RuntimeError, match="No subdivisions table"):
+        osm._build_subdivision_parts()
+
+
+class _FakeCursor:
+    def __enter__(self): return self
+    def __exit__(self, *exc): return False
+    def execute(self, *a, **kw): return self
+    def fetchone(self): return (None,)
+
+
+class _FakeConn:
+    def cursor(self, *a, **kw): return _FakeCursor()
+    def close(self): pass
+
+
+def _download_pbf_with(monkeypatch, tables_written_by_this_revision):
+    """Run download_pbf against a source that published nothing new."""
+    ts = datetime(2026, 8, 27, tzinfo=timezone.utc)
+    recorded = []
+    monkeypatch.setattr(osm, "_newest_geofabrik_timestamp", lambda: ts)
+    monkeypatch.setattr(osm, "connect", lambda: _FakeConn())
+    monkeypatch.setattr(osm, "last_import_date", lambda conn, kind: ts)
+    monkeypatch.setattr(osm, "start_import", lambda conn, kind: None)
+    monkeypatch.setattr(osm, "record_import",
+                        lambda conn, kind, date, status, *a: recorded.append(status))
+    monkeypatch.setattr(osm._matview, "is_current",
+                        lambda *a: tables_written_by_this_revision)
+    monkeypatch.setattr(osm, "GEOFABRIK_REGIONS", {})
+    osm.download_pbf()
+    return recorded
+
+
+def test_unchanged_data_and_unchanged_revision_skip_the_download(monkeypatch):
+    assert _download_pbf_with(monkeypatch, True) == ["skipped"]
+
+
+def test_a_new_revision_reimports_without_waiting_for_geofabrik(monkeypatch):
+    """The pipeline accounts for its own version, not only for the source's.
+
+    Editing generic.lua leaves the Geofabrik timestamp untouched, so the date
+    check alone would hold the new tables back until the upstream happens to
+    publish — which is how production ran code expecting a subdivisions table
+    against a database that had none.
+    """
+    assert _download_pbf_with(monkeypatch, False) == []

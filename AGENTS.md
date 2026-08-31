@@ -65,9 +65,17 @@ ATP2OSM_GEOFABRIK_PATHS=europe/france/provence-alpes-cote-d-azur,europe/france/m
 ## Architecture
 
 **Data pipeline** (runs outside the web server, via `run-pipeline.sh` and `src/pipeline/`):
-1. `run-pipeline.sh` — Entry point of the daily refresh: runs `src/pipeline` inside the container via podman. Copied into the project directory on every deploy. Triggered by a systemd timer (04:00 Europe/Paris). The ATP branch no-ops when the published export is not newer than the last import.
+1. `run-pipeline.sh` — Entry point of the daily refresh: runs `src/pipeline` inside the container via podman. Copied into the project directory on every deploy. Triggered by a systemd timer (04:00 Europe/Paris). A branch no-ops when nothing it depends on has moved — *including its own code*: see **Rebuild guards** below.
 2. `src/pipeline/` — Python module orchestrating the whole pipeline: OSM PBF download from Geofabrik, osm2pgsql import, ATP parquet download, load into `atp_fr` through DuckDB, materialized view refresh.
 3. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points`, `polygons` and `subdivisions` tables in PostGIS (SRID 4326). Administrative boundaries take a separate path, before the POI filters, down to `ATP2OSM_ADMIN_LEVEL` (6), the finest level the attachment reads. Two filters run on the POIs: objects that are definitely not places (roads, boundaries, transport…) and objects carrying none of the attributes a match can key on — no name, brand, email, phone or website. The second one drops ~95% of the objects.
+
+**Rebuild guards** — a step never decides on the freshness of its source alone. Editing `generic.lua`, `atp.py` or the NSI constants changes what the tables contain while the upstream timestamp stays put, so a date-only guard holds the change back until the source happens to publish. Production ran that way once: code expecting a `subdivisions` table, and a database that had none.
+
+The deployed revision answers it — `_version.app_version()`, which is `get_version()`, the commit `deploy/run` passes as `GIT_COMMIT` and that `src/config.py` refuses to start without in production. Two independent triggers, either of which rebuilds: **new data** or **new revision**. Coarser than digesting hand-picked sources, and more reliable — it also covers `MATCHED_POI_SQL`, `ndgeojson_to_parquet.py` and everything else a per-import digest would miss.
+
+Where it is compared: stamped on `points` and gating the PBF download; recorded as the ATP import's comment; folded into the NSI stamp next to the published version. Downstream, `_matview.signature()` takes it beside the freshness of each datasource — a reimport the deploy triggered moves no date, so a view guarded on dates alone would keep its stale rows. Nothing else needs to go in: the view's own SQL and the bodies of the SQL functions it calls are code, so the revision already covers them. Whatever an object *reads*, pass it there.
+
+In development the version is a constant, so nothing rebuilds on its own: rerun the step by hand (`python -m src.pipeline step osm-import`).
 
 **Deploy** (`deploy/run` — git hook `post-receive`):
 - Builds the container image, writes the `atp2osm.container` Quadlet, writes the `refresh.service` + `refresh.timer` systemd units from the `deploy/` templates, then runs `daemon-reload` + `restart` + `enable timer` directly.
