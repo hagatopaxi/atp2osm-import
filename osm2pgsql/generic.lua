@@ -22,6 +22,47 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
     { column = 'osm_timestamp', type = 'int8' },
 })
 
+-- Administrative boundaries, the source of the subdivision a POI is attached to.
+-- Imported down to ATP2OSM_ADMIN_LEVEL, the finest level the attachment reads:
+-- a deeper level would be dead weight, and the PBF is reimported daily anyway.
+local admin_level = tonumber(os.getenv("ATP2OSM_ADMIN_LEVEL")) or 6
+
+tables.subdivisions = osm2pgsql.define_area_table('subdivisions', {
+    -- The OSM relation id, the fallback identifier when ref is missing.
+    -- define_area_table adds an area_id of its own, which is not it.
+    { column = 'osm_id',      type = 'int8', not_null = true },
+    -- The official code: ref:INSEE in France, plain ref in most countries,
+    -- and the ISO code for a country — which is what identifies level 2.
+    { column = 'ref',         type = 'text' },
+    { column = 'name',        type = 'text', not_null = true },
+    { column = 'admin_level', type = 'int',  not_null = true },
+    { column = 'geom',        type = 'geometry', projection = srid, not_null = true },
+})
+
+-- Insert the object as a subdivision and report it, so the caller stops there:
+-- a boundary is never a place, and the POI filters below would drop it anyway.
+-- ponytail: relations only. Boundaries mapped as a closed way exist, but not at
+-- levels 2-8 in the countries served so far; revisit if one turns up missing.
+local function insert_subdivision(object)
+    local tags = object.tags
+    if tags['type'] ~= 'boundary' or tags['boundary'] ~= 'administrative' then
+        return false
+    end
+    local level = tonumber(tags['admin_level'])
+    if not level or level < 2 or level > admin_level then return false end
+    if not tags['name'] then return false end
+
+    tables.subdivisions:insert({
+        osm_id = object.id,
+        ref = tags['ref:INSEE'] or tags['ref']
+            or tags['ISO3166-1:alpha2'] or tags['ISO3166-1'],
+        name = tags['name'],
+        admin_level = level,
+        geom = object:as_multipolygon(),
+    })
+    return true
+end
+
 -- Based on tags wiki list, that removes every POI which are definitely not places
 -- https://wiki.openstreetmap.org/wiki/Map_features
 local function is_definitely_not_a_place(tags)
@@ -158,6 +199,7 @@ end
 
 function osm2pgsql.process_relation(object)
     local tags = object.tags
+    if insert_subdivision(object) then return end
     if is_definitely_not_a_place(tags) then return end
     if has_no_matchable_tag(tags) then return end
 

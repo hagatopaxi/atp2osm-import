@@ -57,6 +57,9 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 #   systemctl --user start atp2osm-gwenael-leger-fr-refresh.service
 # Manual trigger locally:
 #   OSM_DB_NAME=o2p OSM_DB_USER=o2p OSM_DB_PASSWORD=... OSM_DB_HOST=127.0.0.1 OSM_DB_PORT=5432 ./run-pipeline.sh
+
+# Import a fraction of the country instead of the nine extracts (dev only)
+ATP2OSM_GEOFABRIK_PATHS=europe/france/provence-alpes-cote-d-azur,europe/france/martinique
 ```
 
 ## Architecture
@@ -64,7 +67,7 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 **Data pipeline** (runs outside the web server, via `run-pipeline.sh` and `src/pipeline/`):
 1. `run-pipeline.sh` — Entry point of the daily refresh: runs `src/pipeline` inside the container via podman. Copied into the project directory on every deploy. Triggered by a systemd timer (04:00 Europe/Paris). The ATP branch no-ops when the published export is not newer than the last import.
 2. `src/pipeline/` — Python module orchestrating the whole pipeline: OSM PBF download from Geofabrik, osm2pgsql import, ATP parquet download, load into `atp_fr` through DuckDB, materialized view refresh.
-3. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points` and `polygons` tables in PostGIS (SRID 4326). Two filters run there: objects that are definitely not places (roads, boundaries, transport…) and objects carrying none of the attributes a match can key on — no name, brand, email, phone or website. The second one drops ~95% of the objects.
+3. `osm2pgsql/generic.lua` — Flex output style that imports OSM PBF into `points`, `polygons` and `subdivisions` tables in PostGIS (SRID 4326). Administrative boundaries take a separate path, before the POI filters, down to `ATP2OSM_ADMIN_LEVEL` (6), the finest level the attachment reads. Two filters run on the POIs: objects that are definitely not places (roads, boundaries, transport…) and objects carrying none of the attributes a match can key on — no name, brand, email, phone or website. The second one drops ~95% of the objects.
 
 **Deploy** (`deploy/run` — git hook `post-receive`):
 - Builds the container image, writes the `atp2osm.container` Quadlet, writes the `refresh.service` + `refresh.timer` systemd units from the `deploy/` templates, then runs `daemon-reload` + `restart` + `enable timer` directly.
@@ -77,17 +80,18 @@ podman-compose run osm2pgsql osm2pgsql --output flex -S /osm2pgsql/generic.lua -
 - SQL migrations in `migrations/` auto-run at startup (`src/migrate.py`), tracked in `schema_migrations` table
 
 **Core modules:**
-- `src/matching.py` — Spatial join queries between `mv_places` and `atp_fr` (`MATCHED_POI_SQL`, shared with the `mv_places_brand` view and never duplicated), tag diffing logic (`apply_on_node`), batch composition (`pack_departements`, `select_batch`), cooldown SQL, stats aggregation
+- `src/matching.py` — Spatial join queries between `mv_places` and `atp_fr` (`MATCHED_POI_SQL`, shared with the `mv_places_brand` view and never duplicated), tag diffing logic (`apply_on_node`), batch composition (`pack_subdivisions`, `select_batch`), cooldown SQL, stats aggregation
 - `src/upload.py` — `BulkUpload` class that creates OSM changesets grouped by department, uploads via `osmapi`
 - `src/migrate.py` — Simple sequential SQL migration runner
 
 **Key database objects:**
 - `points`, `polygons` — Raw OSM data (from osm2pgsql)
 - `mv_places` — Materialized view joining both with normalized columns, restricted to objects a match can key on (same filter as `generic.lua`, kept as a safety net)
-- `mv_places_brand` — Match count per (brand, département); `get_all` sums the départements that are not under cooldown
+- `subdivisions` — OSM administrative boundaries (from osm2pgsql). Each ATP POI is attached to the finest one containing it, walking down from `ADMIN_LEVEL` to the country
+- `mv_places_brand` — Match count per (brand, subdivision); `get_all` sums the subdivisions that are not under cooldown
 - `atp_fr` — ATP data filtered to metropolitan France
 - `import_history` — One row per human integration action
-- `import_departements` — One row per changeset: département, count, status. Carries the per-département blocking and the history detail
+- `import_subdivisions` — One row per changeset: subdivision code and name, count, status. Carries the per-subdivision blocking and the history detail
 
 ## Specs
 

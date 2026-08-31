@@ -4,6 +4,7 @@ import shutil
 import zipfile
 from datetime import datetime, timezone
 from src.pipeline.constants import (
+    ADMIN_LEVEL,
     ATP_DIR,
     GEOJSON_DIR,
     SPLIT_DIR,
@@ -163,6 +164,65 @@ def create_parquet_atp():
     logger.info("Created parquet from NDJSON files")
 
 
+def _attach_subdivisions(conn):
+    """Attach every POI to the administrative subdivision that contains it.
+
+    Replaces the derivation from the postcode, which only ever worked in
+    France. Levels are walked from ADMIN_LEVEL down to the country itself, so a
+    territory with no polygon at the finest level (Martinique and Guyane have no
+    admin_level 6, French Polynesia stops at 3) still lands somewhere instead of
+    vanishing.
+
+    Level 2 is a country, so failing to attach means one thing only: the POI
+    falls outside every country in the extracts. That replaces the
+    postcode-shaped regex, and catches more — a well-formed postcode with wrong
+    coordinates used to sail through.
+
+    ponytail: a Geofabrik extract carries the neighbours' national boundaries
+    too, so a POI can attach to Monaco or Andorra. They are not catching
+    orphans — a POI no subdivision covers falls back on the country itself, and
+    one outside every boundary is dropped above. What lands there is what is
+    physically there: 86 POIs, 83 of them with a Monaco postcode, that ATP tags
+    addr:country=FR. Kept, and integrated under a readable name. Filter on the
+    country code the day an instance objects to it.
+    """
+    logger.info("Attaching POIs to subdivisions (admin_level <= %d)...", ADMIN_LEVEL)
+    with conn.cursor() as cur:
+        cur.execute("""
+            ALTER TABLE atp_fr ADD COLUMN subdivision_code TEXT,
+                               ADD COLUMN subdivision_name TEXT;
+        """)
+        cur.execute(
+            """
+            UPDATE atp_fr atp
+               SET (subdivision_code, subdivision_name) = (
+                    -- ponytail: ref is not unique across levels — 16 codes in
+                    -- France name both a région and a département (75 is Paris
+                    -- and Nouvelle-Aquitaine, 93 is Seine-Saint-Denis and PACA).
+                    -- Harmless as long as no POI attaches at the coarser level,
+                    -- and a région being the union of its départements, a point
+                    -- inside one is inside the other. Qualify the code by its
+                    -- level the day a collision actually shows up.
+                    SELECT COALESCE(sub.ref, sub.osm_id::text), sub.name
+                      FROM subdivision_parts sub
+                     WHERE sub.admin_level <= %s
+                       AND ST_Intersects(sub.geom, ST_GeomFromGeoJSON(atp.geom))
+                     -- Finest level wins; osm_id only breaks a tie that should
+                     -- not happen, so the result never depends on the physical
+                     -- order of the rows.
+                     ORDER BY sub.admin_level DESC, sub.osm_id
+                     LIMIT 1
+                   );
+            """,
+            (ADMIN_LEVEL,),
+        )
+        cur.execute("DELETE FROM atp_fr WHERE subdivision_code IS NULL")
+        dropped = cur.rowcount
+    conn.commit()
+    if dropped:
+        logger.info("Dropped %d POI(s) falling outside the country", dropped)
+
+
 def import_atp():
     conn = connect()
     try:
@@ -211,11 +271,6 @@ def import_atp():
                     properties->>'$.addr:country'    AS country,
                     properties->>'$.addr:city'        AS city,
                     properties->>'$.addr:postcode'    AS postcode,
-                    CASE
-                        WHEN SUBSTRING(properties->>'$.addr:postcode', 1, 2) IN ('97', '98')
-                            THEN SUBSTRING(properties->>'$.addr:postcode', 1, 3)
-                        ELSE SUBSTRING(properties->>'$.addr:postcode', 1, 2)
-                    END AS departement_number,
                     properties->>'$.brand:wikidata'   AS brand_wikidata,
                     properties->>'$.brand'            AS brand,
                     properties->>'$.name'             AS name,
@@ -231,12 +286,12 @@ def import_atp():
                 FROM read_parquet('{PARQUET_PATH}')
                 WHERE properties->>'$.addr:country' = 'FR'
                     AND geom IS NOT NULL
-                    AND REGEXP_MATCHES(COALESCE(properties->>'$.addr:postcode', ''), '^(2[AB]|[0-9]{{2}})[0-9]{{3}}$')
             """)
+
+            _attach_subdivisions(conn)
 
             logger.info("Creating indexes for atp_fr...")
             with conn.cursor() as cur:
-                cur.execute("DELETE FROM atp_fr WHERE postcode IS NULL;")
                 cur.execute("""
                     CREATE INDEX IF NOT EXISTS atp_fr_geom_idx
                         ON atp_fr USING GIST ((ST_GeomFromGeoJSON(geom)::geography));
@@ -252,8 +307,8 @@ def import_atp():
                         ON atp_fr (normalize_phone(phone));
                     CREATE INDEX IF NOT EXISTS atp_fr_email_lower_idx
                         ON atp_fr (LOWER(email));
-                    CREATE INDEX IF NOT EXISTS atp_fr_departement_number_idx
-                        ON atp_fr (departement_number);
+                    CREATE INDEX IF NOT EXISTS atp_fr_subdivision_code_idx
+                        ON atp_fr (subdivision_code);
                     CREATE INDEX IF NOT EXISTS atp_fr_spider_idx
                         ON atp_fr (spider_id);
                     CREATE INDEX IF NOT EXISTS atp_fr_source_type_idx

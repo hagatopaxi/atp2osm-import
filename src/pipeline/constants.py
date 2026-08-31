@@ -2,6 +2,7 @@
 Shared constants for the ATP2OSM import pipeline.
 """
 
+import os
 from pathlib import Path
 
 from src.config import get_pipeline
@@ -45,6 +46,12 @@ NSI_CDN_URL = (
     "https://cdn.jsdelivr.net/npm/name-suggestion-index@{version}/dist/json/nsi.json"
 )
 
+# The finest administrative level a POI is attached to, and the deepest one
+# imported: the attachment falls back down to 2 (the country) when no polygon of
+# that level covers it, so anything below is dead weight. Phase D moves it to
+# the country configuration file.
+ADMIN_LEVEL = 6
+
 # Each entry: geofabrik path suffix (without -latest.osm.pbf).
 # url, state_url and pbf_path are derived automatically.
 # DOM are sub-regions of europe/france on Geofabrik.
@@ -63,6 +70,20 @@ _GEOFABRIK_PATHS = {
     "polynesie-francaise": "australia-oceania/polynesie-francaise",
     "wallis-et-futuna":    "australia-oceania/wallis-et-futuna",
 }
+
+# Local recipes need a fraction of the country, not the nine extracts: set
+# ATP2OSM_GEOFABRIK_PATHS to a comma-separated list of Geofabrik paths and it
+# replaces the table above entirely. The name of a region is the last path
+# segment, which is also what names its PBF file.
+# ponytail: dev-only override, superseded by the country file's `geofabrik` key
+# in phase D.
+_paths_override = os.getenv("ATP2OSM_GEOFABRIK_PATHS", "").strip()
+if _paths_override:
+    _GEOFABRIK_PATHS = {
+        path.strip().rsplit("/", 1)[-1]: path.strip()
+        for path in _paths_override.split(",")
+        if path.strip()
+    }
 
 GEOFABRIK_REGIONS = {
     name: {

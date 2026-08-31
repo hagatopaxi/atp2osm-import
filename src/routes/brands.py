@@ -19,7 +19,7 @@ from src.matching import (
     BATCH_MAX_SIZE,
     BLOCKED_BRANDS_SQL,
     get_all,
-    get_blocked_departements,
+    get_blocked_subdivisions,
     get_changes,
     get_filtered,
     get_stats,
@@ -75,8 +75,8 @@ def _get_blocking_import(brand_wikidata: str):
     """Changeset-less import still under cooldown, or None.
 
     Only ever blocks the whole brand: a cancellation, or a pre-migration row,
-    points at no département in particular. Per-département blocking lives in
-    get_blocked_departements().
+    points at no subdivision in particular. Per-subdivision blocking lives in
+    get_blocked_subdivisions().
 
     Same cooldowns as get_all(): it is the very same query constant.
     """
@@ -121,7 +121,7 @@ MATCHES_TIMEOUT = 30 * 60
 
 @cache.memoize(timeout=MATCHES_TIMEOUT)
 def brand_matches(brand_wikidata):
-    """Every match of a brand, whatever its département — the expensive part."""
+    """Every match of a brand, whatever its subdivision — the expensive part."""
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
         get_filtered(cursor, brand=brand_wikidata)
@@ -129,7 +129,7 @@ def brand_matches(brand_wikidata):
 
 
 def get_batch(brand_wikidata):
-    """Matches of the next batch, and its scope per département.
+    """Matches of the next batch, and its scope per subdivision.
 
     Recomposed on every call from the current state: two calls with no import in
     between give the same batch.
@@ -137,7 +137,7 @@ def get_batch(brand_wikidata):
     changes = brand_matches(brand_wikidata)
     osmdb = get_osmdb()
     with osmdb.cursor(row_factory=dict_row) as cursor:
-        blocked = get_blocked_departements(cursor, brand_wikidata)
+        blocked = get_blocked_subdivisions(cursor, brand_wikidata)
 
     return select_batch(changes, blocked)
 
@@ -301,8 +301,8 @@ def upload_changes(brand_wikidata):
 
     osmdb = get_osmdb()
     with osmdb.cursor() as cursor:
-        # changeset_ids is no longer filled: the per-département detail now
-        # lives in import_departements.
+        # changeset_ids is no longer filled: the per-subdivision detail now
+        # lives in import_subdivisions.
         cursor.execute(
             """INSERT INTO import_history (brand_wikidata, osm_user_id, status, comment, items_count, brand_name, tags_count)
                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
@@ -318,13 +318,15 @@ def upload_changes(brand_wikidata):
         )
         entry_id = cursor.fetchone()[0]
         cursor.executemany(
-            """INSERT INTO import_departements
-                   (import_id, departement_number, items_count, osm_changeset_id, status, comment)
-               VALUES (%s, %s, %s, %s, %s, %s)""",
+            """INSERT INTO import_subdivisions
+                   (import_id, subdivision_code, subdivision_name, items_count,
+                    osm_changeset_id, status, comment)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
             [
                 (
                     entry_id,
-                    r["departement_number"],
+                    r["subdivision_code"],
+                    r["subdivision_name"],
                     r["items_count"],
                     r["osm_changeset_id"],
                     r["status"],

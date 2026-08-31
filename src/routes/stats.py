@@ -138,7 +138,7 @@ SPIDERS_SQL = """
     GROUP BY 1
 """
 
-# One import_departements row = one changeset. A refused changeset says nothing
+# One import_subdivisions row = one changeset. A refused changeset says nothing
 # about the spider: it is the local OSM copy that has drifted since the import.
 CHANGESETS_SQL = """
     WITH periods AS (
@@ -155,7 +155,7 @@ CHANGESETS_SQL = """
     LEFT JOIN import_history h
            ON date_trunc('{unit}', h.import_date)::date = p.period
           {extra}
-    LEFT JOIN import_departements d ON d.import_id = h.id
+    LEFT JOIN import_subdivisions d ON d.import_id = h.id
     GROUP BY p.period
     ORDER BY p.period
 """

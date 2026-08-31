@@ -7,6 +7,7 @@ from email.utils import parsedate_to_datetime
 from src.pipeline import _matview
 from src.pipeline.errors import SourceUnavailable
 from src.pipeline.constants import (
+    ADMIN_LEVEL,
     PROJECT_ROOT,
     GEOFABRIK_REGIONS,
     GEOFABRIK_TS_PATH,
@@ -167,6 +168,45 @@ def _require_free_space(path, needed_bytes):
         )
 
 
+def _build_subdivision_parts():
+    """Cut the boundaries into index-sized pieces for the POI attachment.
+
+    An administrative boundary is a huge polygon: 140 of them carry 3.9M
+    vertices in France, up to 255k on a single one. The GIST index narrows a
+    point to two or three candidates, but the containment recheck that follows
+    then walks a quarter of a million vertices, once per POI — and the
+    per-POI loop throws away the prepared geometry PostGIS would otherwise
+    cache. Measured on 5000 points: 33 minutes extrapolated to a full ATP
+    import, against 17 seconds on the pieces, for identical results.
+
+    ST_Intersects, not ST_Contains: the pieces share their cut lines, and a
+    point landing exactly on one must not fall through to the coarser level.
+    It also stops dropping a POI sitting exactly on a real border, which is an
+    improvement — the ORDER BY still makes the answer deterministic.
+    """
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            logger.info("Cutting subdivisions into index-sized pieces...")
+            cur.execute("DROP TABLE IF EXISTS subdivision_parts")
+            cur.execute("""
+                CREATE TABLE subdivision_parts AS
+                SELECT osm_id, ref, name, admin_level, ST_Subdivide(geom, 256) AS geom
+                  FROM subdivisions
+            """)
+            cur.execute("""
+                CREATE INDEX subdivision_parts_geom_idx
+                    ON subdivision_parts USING GIST (geom);
+                CREATE INDEX subdivision_parts_admin_level_idx
+                    ON subdivision_parts (admin_level);
+            """)
+            count = cur.execute("SELECT count(*) FROM subdivision_parts").fetchone()[0]
+        conn.commit()
+        logger.info("%d subdivision piece(s) ready", count)
+    finally:
+        conn.close()
+
+
 def run_osm2pgsql():
     # All-or-nothing: osm2pgsql runs with --create, which drops and recreates
     # points/polygons. Importing a subset would silently replace the whole
@@ -194,6 +234,8 @@ def run_osm2pgsql():
     logger.info("Importing %d PBF file(s) into PostGIS...", len(pbf_paths))
     env = os.environ.copy()
     env["PGPASSWORD"] = db.password
+    # generic.lua reads it: the Lua style has no access to the configuration.
+    env["ATP2OSM_ADMIN_LEVEL"] = str(ADMIN_LEVEL)
     subprocess.run(
         [
             "osm2pgsql",
@@ -215,6 +257,9 @@ def run_osm2pgsql():
 
     for p in pbf_paths:
         p.unlink()
+
+    _build_subdivision_parts()
+
     logger.info("osm2pgsql import complete (%d file(s))", len(pbf_paths))
 
 

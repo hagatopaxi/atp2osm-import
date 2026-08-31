@@ -118,7 +118,7 @@ def download_large_file(
 
 
 # The fate of an integration. The error type lives one level below, on the
-# département row: that is where it means something.
+# subdivision row: that is where it means something.
 IMPORT_STATUSES = ("success", "partial", "cancelled", "error")
 
 
@@ -313,10 +313,10 @@ def fetch_osm_users(user_ids):
 
 
 def _determine_import_status(results: list[dict]) -> str:
-    """Derive the import_history status from its département rows.
+    """Derive the import_history status from its subdivision rows.
 
     All succeeded → success ; none → error ; a mix → partial. The error kind
-    (OSM API or unexpected) stays on the département row.
+    (OSM API or unexpected) stays on the subdivision row.
     """
     statuses = {r["status"] for r in results}
     if statuses <= {"success"}:

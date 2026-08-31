@@ -172,7 +172,7 @@
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body gap-3">
             <h2 class="card-title text-base">Changesets</h2>
-            {% if departements %}
+            {% if subdivisions %}
             <div class="overflow-x-auto shrink-0">
                 <table class="table table-sm">
                     <thead>
@@ -184,18 +184,18 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for dpt in departements %}
+                        {% for sub in subdivisions %}
                         <tr>
-                            <td>{{ dpt.departement_name }} <span class="text-base-content/50 font-mono text-xs">{{ dpt.departement_number }}</span></td>
-                            <td>{{ dpt.items_count }}</td>
+                            <td>{{ sub.subdivision_name }} <span class="text-base-content/50 font-mono text-xs">{{ sub.subdivision_code }}</span></td>
+                            <td>{{ sub.items_count }}</td>
                             <td>
-                                <span class="badge badge-sm {{ 'badge-success' if dpt.status == 'success' else 'badge-error' }}">
-                                    {{ 'Succès' if dpt.status == 'success' else 'Erreur' }}
+                                <span class="badge badge-sm {{ 'badge-success' if sub.status == 'success' else 'badge-error' }}">
+                                    {{ 'Succès' if sub.status == 'success' else 'Erreur' }}
                                 </span>
                             </td>
                             <td>
-                                {% if dpt.osm_changeset_id %}
-                                <a class="link font-mono" href="{{ api_url }}/changeset/{{ dpt.osm_changeset_id }}" target="_blank">{{ dpt.osm_changeset_id }}</a>
+                                {% if sub.osm_changeset_id %}
+                                <a class="link font-mono" href="{{ api_url }}/changeset/{{ sub.osm_changeset_id }}" target="_blank">{{ sub.osm_changeset_id }}</a>
                                 {% else %}
                                 <span class="text-base-content/50">—</span>
                                 {% endif %}

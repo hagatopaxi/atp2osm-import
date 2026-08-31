@@ -7,7 +7,7 @@ from pathlib import Path
 
 import osmapi
 from src.config import get_settings
-from src.matching import BATCH_MAX_SIZE, DEPARTEMENT_NAMES
+from src.matching import BATCH_MAX_SIZE, subdivision_names
 from osmapi.errors import ApiError
 from requests_oauthlib import OAuth2Session
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class BulkUpload:
     """
     Bulk uploads a changeset to the OSM server.
-    Batch by departement and brand wikidata
+    Batch by subdivision and brand wikidata
     """
 
     def __init__(self, changes: list, session: OAuth2Session):
@@ -34,8 +34,8 @@ class BulkUpload:
         self.brand_name = changes[0]["atp_brand"]
         self.brand_wikidata = changes[0]["tag"].get("brand:wikidata") or "unknown"
         self.changesets = []
-        self.uploaded_changes = []  # POIs whose département changeset succeeded
-        self.results = []  # one entry per département, mirrors import_departements
+        self.uploaded_changes = []  # POIs whose subdivision changeset succeeded
+        self.results = []  # one entry per subdivision, mirrors import_subdivisions
 
         settings = get_settings()
         self.is_dev = settings.is_dev
@@ -68,16 +68,17 @@ class BulkUpload:
         if len(self.changes) == 0:
             return []
 
-        changes_by_dpt = self._sorted_by_dpt()
+        changes_by_subdivision = self._sorted_by_subdivision()
+        names = subdivision_names(self.changes)
         errors = []
 
-        for dpt, dpt_changes in changes_by_dpt.items():
+        for sub, sub_changes in changes_by_subdivision.items():
             changeset = None
             try:
-                dept_label = DEPARTEMENT_NAMES.get(dpt, f"dép. {dpt}")
+                sub_label = names[sub]
                 changeset = self.api.changeset_create(
                     {
-                        "comment": f"Intégration des données ATP ({dept_label}; {self.brand_name})",
+                        "comment": f"Intégration des données ATP ({sub_label}; {self.brand_name})",
                         "created_by": "atp2osm",
                         "source": "https://alltheplaces.xyz",
                         "wiki": "https://wiki.openstreetmap.org/wiki/atp2osm",
@@ -89,7 +90,7 @@ class BulkUpload:
                 )
 
                 changingNodes = []
-                for poi in dpt_changes:
+                for poi in sub_changes:
                     poi["changeset"] = changeset
 
                     if poi["node_type"] == "node":
@@ -146,21 +147,21 @@ class BulkUpload:
 
                 self.api.changeset_close()
                 self.changesets.append(changeset)
-                self.uploaded_changes.extend(dpt_changes)
-                self._record(dpt, dpt_changes, "success", changeset, None)
+                self.uploaded_changes.extend(sub_changes)
+                self._record(sub, sub_changes, "success", changeset, None)
             except ApiError as error:
                 payload = error.payload.decode("utf-8", errors="replace") if isinstance(error.payload, bytes) else str(error.payload)
-                msg = f"OSM API error for dept {dpt}: HTTP {error.status} — {payload}"
+                msg = f"OSM API error for subdivision {sub}: HTTP {error.status} — {payload}"
                 logger.error(msg)
                 errors.append(("osm_api", msg))
                 # changeset is None only when its creation failed: it does
                 # exist when it is the upload that gave up.
-                self._record(dpt, dpt_changes, "error_osm_api", changeset, msg)
+                self._record(sub, sub_changes, "error_osm_api", changeset, msg)
             except Exception as unknown:
-                msg = f"Unknown error for dept {dpt}: {unknown}"
+                msg = f"Unknown error for subdivision {sub}: {unknown}"
                 logger.error(msg)
                 errors.append(("unknown", msg))
-                self._record(dpt, dpt_changes, "error_unknown", changeset, msg)
+                self._record(sub, sub_changes, "error_unknown", changeset, msg)
             finally:
                 # Ensure osmapi's internal changeset state is reset even if an
                 # exception occurred mid-upload (osmapi's Changeset context manager
@@ -174,11 +175,12 @@ class BulkUpload:
 
         return errors
 
-    def _record(self, dpt, dpt_changes, status, changeset, comment):
-        """One entry per département — becomes a row of import_departements."""
+    def _record(self, sub, sub_changes, status, changeset, comment):
+        """One entry per subdivision — becomes a row of import_subdivisions."""
         self.results.append({
-            "departement_number": dpt,
-            "items_count": len(dpt_changes),
+            "subdivision_code": sub,
+            "subdivision_name": sub_changes[0]["subdivision_name"],
+            "items_count": len(sub_changes),
             "osm_changeset_id": changeset,
             "status": status,
             "comment": comment,
@@ -238,13 +240,13 @@ class BulkUpload:
 
         logger.debug(f"DEV: OSC written to {osc_path}")
 
-    def _sorted_by_dpt(self):
+    def _sorted_by_subdivision(self):
         sorted_changes = {}
         for change in self.changes:
-            dpt = change["departement_number"]
-            if dpt in sorted_changes:
-                sorted_changes[dpt].append(change)
+            sub = change["subdivision_code"]
+            if sub in sorted_changes:
+                sorted_changes[sub].append(change)
             else:
-                sorted_changes[dpt] = [change]
+                sorted_changes[sub] = [change]
 
         return sorted_changes
