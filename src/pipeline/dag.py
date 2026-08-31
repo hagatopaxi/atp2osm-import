@@ -62,6 +62,26 @@ PIPELINE = {
 }
 
 
+def record_success():
+    """Resolve the 'pipeline' row a previous failure left pending.
+
+    The osm, atp and nsi rows resolve themselves: each branch opens one when it
+    starts and closes it when it ends, so a later run supersedes a stale one.
+    The 'pipeline' type has no such owner — record_failure posts it for the
+    steps that belong to no branch, mv-brand and cleanup — and nothing ever
+    wrote one on success. A single failed run therefore kept the site in
+    maintenance for good, however many clean runs followed.
+
+    Called on a complete run and on one a datasource outage cut short: in both
+    cases nothing is half-rebuilt, which is the only thing maintenance guards.
+    """
+    conn = connect()
+    try:
+        record_import(conn, "pipeline", None, "success")
+    finally:
+        conn.close()
+
+
 def record_failure(step_name, exc):
     """Failure hook for the runner: close the branch's open row on the failing
     step, keeping its full stack trace so a refresh can be diagnosed later.

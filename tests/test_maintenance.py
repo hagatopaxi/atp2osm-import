@@ -66,3 +66,29 @@ def test_a_relaunch_supersedes_the_row_a_crashed_run_left_behind(conn):
 
     # Only the latest row counts, so the stale one needs no cleanup.
     assert maintenance_since(conn) is None
+
+
+def test_a_clean_run_lifts_the_maintenance_a_failed_one_left(conn, monkeypatch):
+    """The 'pipeline' row has no owner to supersede it.
+
+    osm, atp and nsi each open a row when they start and close it when they
+    end, so a later run resolves a stale one on its own. record_failure posts
+    a 'pipeline' row for the steps that belong to no branch — mv-brand,
+    cleanup — and nothing wrote one on success: a single failed run kept the
+    site in maintenance for good, however many clean runs followed.
+    """
+    from src.pipeline import dag
+
+    monkeypatch.setattr(dag, "connect", lambda: conn)
+    monkeypatch.setattr(conn, "close", lambda: None, raising=False)
+
+    conn.execute(
+        "INSERT INTO data_imports (type, date, status, comment)"
+        " VALUES ('pipeline', NULL, 'pending', 'step ''mv-brand'' failed')"
+    )
+    conn.commit()
+    assert maintenance_since(conn) is not None
+
+    dag.record_success()
+
+    assert maintenance_since(conn) is None

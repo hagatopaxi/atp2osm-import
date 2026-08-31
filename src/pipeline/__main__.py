@@ -6,7 +6,7 @@ import psycopg
 
 from src.config import get_database
 from src.phone import ensure_normalize_phone
-from src.pipeline.dag import PIPELINE, record_failure
+from src.pipeline.dag import PIPELINE, record_failure, record_success
 from src.pipeline.errors import PipelineIncomplete
 from src.pipeline.osm import forget_geofabrik_timestamp
 from src.pipeline.runner import StepFormatter, main
@@ -47,5 +47,8 @@ try:
     main(PIPELINE, record_failure)
 except PipelineIncomplete as exc:
     # Everything else ran; exiting non-zero is what makes systemd retry in 4h.
+    record_success()
     logging.error("Datasource unavailable (%s) — retrying in 4h", exc)
     sys.exit(1)
+else:
+    record_success()
