@@ -167,9 +167,24 @@ local function has_no_matchable_tag(tags)
     return true
 end
 
+-- Filter out disused POIs: objects with disused=* or disused:*=* tags
+-- should not be matched with ATP data as they are no longer active.
+local function has_disused_tag(tags)
+    if tags['disused'] then return true end
+    local prefix = 'disused:'
+    local prefix_len = #prefix
+    for key, _ in pairs(tags) do
+        if #key >= prefix_len and key:sub(1, prefix_len) == prefix then
+            return true
+        end
+    end
+    return false
+end
+
 function osm2pgsql.process_way(object)
     local tags = object.tags
     if is_definitely_not_a_place(tags) then return end
+    if has_disused_tag(tags) then return end
     if has_no_matchable_tag(tags) then return end
 
     if object.is_closed then
@@ -187,6 +202,7 @@ end
 function osm2pgsql.process_node(object)
     local tags = object.tags
     if is_definitely_not_a_place(tags) then return end
+    if has_disused_tag(tags) then return end
     if has_no_matchable_tag(tags) then return end
 
     tables.points:insert({
@@ -201,6 +217,7 @@ function osm2pgsql.process_relation(object)
     local tags = object.tags
     if insert_subdivision(object) then return end
     if is_definitely_not_a_place(tags) then return end
+    if has_disused_tag(tags) then return end
     if has_no_matchable_tag(tags) then return end
 
     local relation_type = object.tags['type']
