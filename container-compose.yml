@@ -7,11 +7,11 @@ services:
       POSTGRES_DB: ${OSM_DB_NAME}
       POSTGRES_USER: ${OSM_DB_USER}
       POSTGRES_PASSWORD: ${OSM_DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgis_data:/var/lib/postgresql/data
     ports:
       - "${OSM_DB_PORT}:5432"
-    network_mode: host
 
   osm2pgsql:
     image: docker.io/iboates/osm2pgsql:latest
@@ -20,7 +20,8 @@ services:
     volumes:
       - ./data:/data
       - ./osm2pgsql:/osm2pgsql
-    network_mode: host
+    depends_on:
+      - postgis
 
 volumes:
   postgis_data:
