@@ -116,8 +116,16 @@
         <tr class="group">
             <td class="whitespace-nowrap">{{ entry.import_date.strftime('%d/%m/%Y %H:%M') }}</td>
             <td>
-                    {{ entry.brand_name if entry.brand_name else entry.brand_wikidata }}
-                <span class="text-xs text-base-content/50">{{ entry.brand_wikidata }}</span>
+                {% if entry.brand_name %}
+                    {{ entry.brand_name }}
+                {% elif entry.brand_wikidata %}
+                    <a class="link font-mono" href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
+                       target="_blank" rel="noopener">{{ entry.brand_wikidata }}</a>
+                {% endif %}
+                {% if entry.brand_wikidata %}
+                    <br><a class="link text-xs font-mono text-base-content/50" href="https://www.wikidata.org/wiki/{{ entry.brand_wikidata }}"
+                       target="_blank" rel="noopener">{{ entry.brand_wikidata }}</a>
+                {% endif %}
             </td>
             {% set status_labels = {
                     "success":   "Succès",

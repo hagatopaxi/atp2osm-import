@@ -108,10 +108,11 @@ endblock %}
     </thead>
     <tbody>
         {% for row in rows %}
-        <tr class="group">
-            <td>
-                {{ row["brand_wikidata"] }}
-            </td>
+         <tr class="group">
+             <td>
+                 <a class="link font-mono" href="https://www.wikidata.org/wiki/{{ row['brand_wikidata'] }}"
+                    target="_blank" rel="noopener">{{ row["brand_wikidata"] }}</a>
+             </td>
 
             <td class="whitespace-nowrap md:w-1/2 md:max-w-0 md:truncate" title="{{ row['brand'] }}">
                 {{ row["brand"] }}

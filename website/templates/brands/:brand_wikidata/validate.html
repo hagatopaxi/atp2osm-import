@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 
 {% from '_info_card.html' import info_card %}
-{% block title %}1/2 - Validation des données de {{ brand }} ({{brand_wikidata}}){% endblock %}
+{% block title %}1/2 - Validation des données de {{ brand }} (<a href="https://www.wikidata.org/wiki/{{ brand_wikidata }}" target="_blank" rel="noopener" class="link font-mono">{{ brand_wikidata }}</a>){% endblock %}
 {% block subtitle %}Validez {{ items | length }} des {{size}} points d'intérêt de ce lot, tirés au hasard. Les tags en <span
     class="text-success">verts</span> sont les nouvelles valeurs ajoutées, issues d'ATP ou du name-suggestion-index, les
 autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endblock %}
@@ -12,7 +12,7 @@ autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endbloc
 
 {% macro render_tag(key, label, icon, item) %}
 {# The diff never adds email/phone/website when the contact:* variant is already
-   there, so display that variant instead of hiding the value entirely. #}
+    there, so display that variant instead of hiding the value entirely. #}
 {% set k = key if key in item["tag"] else "contact:" ~ key %}
 {% if k in item["tag"] %}
 <div class="flex items-start">
@@ -23,6 +23,11 @@ autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endbloc
         {% if key == 'website' %}
         <p class="{{'text-success' if k in item['new_tags_keys']}}"><a href="{{ item['tag'][k] }}" target="_blank"
                 class="link">{{
+                item["tag"][k]
+                }}</a></p>
+        {% elif key == 'brand:wikidata' %}
+        <p class="{{'text-success' if k in item['new_tags_keys']}}"><a href="https://www.wikidata.org/wiki/{{ item['tag'][k] }}" target="_blank"
+                class="link font-mono">{{
                 item["tag"][k]
                 }}</a></p>
         {% elif key == 'opening_hours' %}

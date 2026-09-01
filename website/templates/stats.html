@@ -29,15 +29,21 @@
 {% block subtitle %}Ce que les intégrations ont apporté à OpenStreetMap : volumes, tags enrichis, fiabilité des spiders et des changesets.{% endblock %}
 
 {# Barres horizontales triées : la forme la plus lisible pour comparer des
-   catégories nommées. Libellé et valeur sont du texte, rien à doubler pour les
-   lecteurs d'écran. #}
+    catégories nommées. Libellé et valeur sont du texte, rien à doubler pour les
+    lecteurs d'écran. #}
 {% macro bar_list(rows, empty='Aucune donnée sur cette période.', alt=false) %}
 {% set top = rows[0].value if rows else 0 %}
 {% if rows %}
 <ul class="bar-list">
     {% for row in rows %}
     <li>
-        <span class="bar-label" title="{{ row.label }}">{{ row.label }}</span>
+        <span class="bar-label" title="{{ row.label }}">
+            {% if row.label and row.label.startswith('Q') and row.label[1:].isdigit() %}
+                <a href="https://www.wikidata.org/wiki/{{ row.label }}" target="_blank" rel="noopener" class="link font-mono">{{ row.label }}</a>
+            {% else %}
+                {{ row.label }}
+            {% endif %}
+        </span>
         <span class="bar-track"><span class="bar-fill{{ ' bar-fill-alt' if alt }}" style="--bar: {{ (100 * row.value / top) | round(1) }}%"></span></span>
         <span class="bar-value">{{ row.value }}</span>
     </li>
