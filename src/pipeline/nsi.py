@@ -64,8 +64,6 @@ NSI_WRITABLE_TAGS = frozenset({
     "operator:wikidata",
     "official_name",
     "alt_name",
-    "old_name",
-    "short_name",
     "brand:short",
     "name:en",
     "brand:en",
