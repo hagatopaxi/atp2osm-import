@@ -55,3 +55,36 @@ def test_apply_on_node_relation_id_is_negated():
                 atp_opening_hours="Mo-Fr 09:00-18:00")
     assert res["id"] == 42
     assert res["node_type"] == "relation"
+
+
+def test_apply_on_node_not_brand_wikidata_blocks_matching_value():
+    # not:brand:wikidata=Q123 should prevent brand:wikidata=Q123 from being applied
+    res = match(
+        {"not:brand:wikidata": "Q123"},
+        nsi_tags={"brand:wikidata": "Q123", "shop": "clothes"}
+    )
+    assert res["tag"] == {"not:brand:wikidata": "Q123", "shop": "clothes"}
+    assert "brand:wikidata" not in res["tag"]
+
+
+def test_apply_on_node_not_brand_wikidata_allows_different_value():
+    # not:brand:wikidata=Q123 should NOT prevent brand:wikidata=Q456 from being applied
+    res = match(
+        {"not:brand:wikidata": "Q123"},
+        nsi_tags={"brand:wikidata": "Q456", "shop": "clothes"}
+    )
+    assert res["tag"] == {
+        "not:brand:wikidata": "Q123",
+        "brand:wikidata": "Q456",
+        "shop": "clothes"
+    }
+
+
+def test_apply_on_node_not_tag_blocks_any_tag():
+    # not:shop=fuel should prevent shop=fuel from being applied
+    res = match(
+        {"not:shop": "fuel"},
+        nsi_tags={"shop": "fuel", "amenity": "fuel"}
+    )
+    assert res["tag"] == {"not:shop": "fuel", "amenity": "fuel"}
+    assert "shop" not in res["tag"]

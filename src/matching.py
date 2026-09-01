@@ -191,6 +191,10 @@ def apply_tag(tags: dict, key: str, value: Any) -> None:
     if value is None:
         return
     if key not in tags:
+        # Check for not:key with the same value - if it exists, don't apply the tag
+        not_key = f"not:{key}"
+        if not_key in tags and tags[not_key] == value:
+            return
         tags[key] = value
 
 
