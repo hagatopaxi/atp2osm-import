@@ -163,7 +163,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
             {{ entry.osm_user_id }}
             {% endif %}
           </td>
-          <td class="whitespace-nowrap">{{ entry.created_at.strftime('%d/%m/%Y') }}</td>
+          <td class="whitespace-nowrap">{{ entry.created_at | dateformat('short') }}</td>
           <td class="whitespace-nowrap">
             {% if entry.updated_by %}
             {% set updater_name = users.get(entry.updated_by) %}
@@ -173,7 +173,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
             {% else %}
             {{ entry.updated_by }}
             {% endif %}
-            <span class="text-base-content/60 text-sm">le {{ entry.updated_at.strftime('%d/%m/%Y') }}</span>
+            <span class="text-base-content/60 text-sm">le {{ entry.updated_at | dateformat('short') }}</span>
             {% else %}
             —
             {% endif %}

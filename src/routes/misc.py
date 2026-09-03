@@ -3,7 +3,7 @@ import logging
 
 from io import BytesIO
 
-from flask import Blueprint, render_template, Response, url_for, send_from_directory
+from flask import Blueprint, render_template, request, Response, url_for, send_from_directory
 from psycopg.rows import dict_row
 from staticmap import StaticMap, CircleMarker
 
@@ -84,7 +84,9 @@ def robots():
 
 @misc_bp.route("/sitemap.xml")
 def sitemap():
-    body = render_template("sitemap.xml", pages=PUBLIC_PAGES)
+    body = render_template(
+        "sitemap.xml", pages=PUBLIC_PAGES, root=request.host_url.rstrip("/")
+    )
     return Response(body, mimetype="application/xml")
 
 

@@ -142,12 +142,12 @@
             {# Une colonne pleine hauteur par période : le survol attrape la
                période entière, pas seulement le sommet d'une barre écrasée. #}
             <div class="series-chart" role="img"
-                aria-label="{% for p in series %}{{ p.period.strftime('%d/%m/%Y') }} : {{ p.pois }} POIs, cumul {{ p.cumulative }}. {% endfor %}">
+                aria-label="{% for p in series %}{{ p.period | dateformat('short') }} : {{ p.pois }} POIs, cumul {{ p.cumulative }}. {% endfor %}">
                 {% for p in series %}
                 <div class="series-col" data-value="{{ p.pois }}"
                     style="--bar: {{ (100 * p.pois / cumulative_max) | round(1) if cumulative_max else 0 }}%; --cumul: {{ (100 * p.cumulative / cumulative_max) | round(1) if cumulative_max else 0 }}%"
 >
-                    <span class="series-tip">{{ p.period.strftime('%d/%m/%Y') }} — {{ p.pois }} POIs ({{ p.imports }} intégration{{ 's' if p.imports > 1 }}), cumul {{ p.cumulative }}</span>
+                    <span class="series-tip">{{ p.period | dateformat('short') }} — {{ p.pois }} POIs ({{ p.imports }} intégration{{ 's' if p.imports > 1 }}), cumul {{ p.cumulative }}</span>
                     <span class="series-bar"></span>
                     {% if cumulative_max > 0 %}
                     <span class="series-dot" data-cumul="{{ p.cumulative }}"></span>
@@ -162,8 +162,8 @@
                 {% endif %}
             </div>
             <div class="flex justify-between gap-4 text-xs text-base-content/50 mt-1 whitespace-nowrap">
-                <span>{{ series[0].period.strftime('%d/%m/%Y') }}</span>
-                <span>{{ series[-1].period.strftime('%d/%m/%Y') }}</span>
+                <span>{{ series[0].period | dateformat('short') }}</span>
+                <span>{{ series[-1].period | dateformat('short') }}</span>
             </div>
         </div>
     </div>
@@ -208,11 +208,11 @@
     <div class="series-scroll series-grow">
         <div class="series-width" style="--bars: {{ spider_series | length }}">
             <div class="series-chart series-chart-mini" role="img"
-                aria-label="{% for p in spider_series if p.reliability is not none %}{{ p.period.strftime('%d/%m/%Y') }} : {{ p.reliability }} % de fiabilité. {% endfor %}">
+                aria-label="{% for p in spider_series if p.reliability is not none %}{{ p.period | dateformat('short') }} : {{ p.reliability }} % de fiabilité. {% endfor %}">
                 {% for p in spider_series %}
                 <div class="series-col" data-value="{{ (p.reliability ~ ' %') if p.reliability is not none else '' }}"
                     style="--bar: {{ 100 if p.reliability is not none else 0 }}%; --ok: {{ p.reliability or 0 }}%">
-                    <span class="series-tip">{{ p.period.strftime('%d/%m/%Y') }} — {{ p.integrated }} marque{{ 's' if p.integrated > 1 }} intégrée{{ 's' if p.integrated > 1 }}, {{ p.rejected }} rejetée{{ 's' if p.rejected > 1 }}</span>
+                    <span class="series-tip">{{ p.period | dateformat('short') }} — {{ p.integrated }} marque{{ 's' if p.integrated > 1 }} intégrée{{ 's' if p.integrated > 1 }}, {{ p.rejected }} rejetée{{ 's' if p.rejected > 1 }}</span>
                     {% if p.reliability is not none %}
                     <span class="series-stack-ok"></span>
                     <span class="series-stack-ko"></span>
@@ -221,8 +221,8 @@
                 {% endfor %}
             </div>
             <div class="flex justify-between gap-4 text-xs text-base-content/50 mt-1 whitespace-nowrap">
-                <span>{{ spider_series[0].period.strftime('%d/%m/%Y') }}</span>
-                <span>{{ spider_series[-1].period.strftime('%d/%m/%Y') }}</span>
+                <span>{{ spider_series[0].period | dateformat('short') }}</span>
+                <span>{{ spider_series[-1].period | dateformat('short') }}</span>
             </div>
         </div>
     </div>
@@ -241,12 +241,12 @@
             {# Colonnes normalisées : la lecture porte sur la part de réussite,
                pas sur le volume, que le graphe du haut donne déjà. #}
             <div class="series-chart series-chart-mini" role="img"
-                aria-label="{% for c in changesets if c.rate is not none %}{{ c.period.strftime('%d/%m/%Y') }} : {{ c.rate }} % de changesets acceptés. {% endfor %}">
+                aria-label="{% for c in changesets if c.rate is not none %}{{ c.period | dateformat('short') }} : {{ c.rate }} % de changesets acceptés. {% endfor %}">
                 {% for c in changesets %}
                 <div class="series-col" data-value="{{ (c.rate ~ ' %') if c.rate is not none else '' }}"
                     style="--bar: {{ 100 if c.rate is not none else 0 }}%; --ok: {{ c.rate or 0 }}%"
 >
-                    <span class="series-tip">{{ c.period.strftime('%d/%m/%Y') }} — {{ c.ok }} accepté{{ 's' if c.ok > 1 }}, {{ c.ko }} refusé{{ 's' if c.ko > 1 }}</span>
+                    <span class="series-tip">{{ c.period | dateformat('short') }} — {{ c.ok }} accepté{{ 's' if c.ok > 1 }}, {{ c.ko }} refusé{{ 's' if c.ko > 1 }}</span>
                     {% if c.rate is not none %}
                     <span class="series-stack-ok"></span>
                     <span class="series-stack-ko"></span>
@@ -255,8 +255,8 @@
                 {% endfor %}
             </div>
             <div class="flex justify-between gap-4 text-xs text-base-content/50 mt-1 whitespace-nowrap">
-                <span>{{ changesets[0].period.strftime('%d/%m/%Y') }}</span>
-                <span>{{ changesets[-1].period.strftime('%d/%m/%Y') }}</span>
+                <span>{{ changesets[0].period | dateformat('short') }}</span>
+                <span>{{ changesets[-1].period | dateformat('short') }}</span>
             </div>
         </div>
     </div>

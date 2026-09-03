@@ -114,7 +114,7 @@
     <tbody>
         {% for entry in entries %}
         <tr class="group">
-            <td class="whitespace-nowrap">{{ entry.import_date.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td class="whitespace-nowrap">{{ entry.import_date | datetimeformat('short') }}</td>
             <td>
                 {% if entry.brand_name %}
                     {{ entry.brand_name }}
