@@ -70,8 +70,10 @@ UNTOUCHED = [
     # Foreign numbers that must survive a French-only rule.
     "+49 30 123456",
     "+32 800 12 345",
-    # Short numbers: no trunk prefix, no international form, nothing to fix.
+    # Short numbers written the only correct way: nothing to fix.
     "3200",
+    "3631",
+    "1014",
     "118 712",
     # An 08 number that is not French: same digits, different country.
     "+44 800 123 456",
@@ -104,3 +106,54 @@ def test_none_passes_through():
 def test_rewriting_is_idempotent():
     once = format_phone("+33 820 33 22 11")
     assert format_phone(once) == once
+
+
+# Short numbers (3BPQ, 10XY) are outside E.164 — no international form exists.
+# A source that formats everything it holds the international way still emits
+# "+33 3631", and that prefix has to go: it is not a writing of the number,
+# and OSM holds the bare four digits.
+SHORT_PREFIXED = [
+    ("+33 3631", "3631"),
+    ("+333631", "3631"),
+    ("0033 3631", "3631"),
+    ("00333631", "3631"),
+    ("33 3631", "3631"),
+    ("tel:+33 3631", "3631"),
+    ("+33 36 31", "3631"),
+    ("(+33) 3646", "3646"),
+    ("+33-3949", "3949"),
+    ("+33.1014", "1014"),
+    ("+33 3477", "3477"),
+]
+
+
+@pytest.mark.parametrize("value,expected", SHORT_PREFIXED, ids=repr)
+def test_a_prefixed_short_number_loses_its_calling_code(value, expected):
+    assert format_phone(value) == expected
+
+
+SHORT_UNTOUCHED = [
+    # A calling code is not a prefix here: "3300" is a short number in its own
+    # right, and reading it as +33 then "00" would destroy it.
+    "3300",
+    "1033",
+    # An overseas calling code in front of a short number is not a writing
+    # anyone produces, and 262/590 numbers of that length are not short ones.
+    "+262 3631",
+    # A foreign short number: the rule is French-only.
+    "+49 3631",
+    # Not a short number, prefix or not.
+    "+33 2631",
+    "+33 36312",
+    "+33 363",
+]
+
+
+@pytest.mark.parametrize("value", SHORT_UNTOUCHED, ids=repr)
+def test_short_number_lookalikes_are_left_alone(value):
+    assert format_phone(value) is value
+
+
+def test_short_rewriting_is_idempotent():
+    once = format_phone("+33 3631")
+    assert format_phone(once) is once

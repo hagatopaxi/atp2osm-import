@@ -192,13 +192,22 @@ def ensure_normalize_phone(conn, calling_codes: tuple[str, ...] = CALLING_CODES,
 _FR_08 = re.compile(r"^(?:\+33|0033|33)?0?(8\d{8})$")
 
 
+# Short numbers have no international form at all (see SHORT_NUMBER): a
+# calling code in front of one is a formatting accident, and OSM wants the
+# four digits bare.
+_FR_SHORT = re.compile(rf"^(?:\+33|0033|33)({SHORT_NUMBER})$")
+
+
 def format_phone(value: str | None) -> str | None:
-    """Rewrite a French 08 number in national notation, pass anything else on."""
+    """Rewrite French 08 and short numbers the national way, pass the rest on."""
     if not value:
         return value
     digits = re.sub(r"[\s.()  -]|^tel:", "", value, flags=re.I)
     match = _FR_08.match(digits)
-    if not match:
-        return value
-    n = "0" + match.group(1)
-    return " ".join(n[i:i + 2] for i in range(0, 10, 2))
+    if match:
+        n = "0" + match.group(1)
+        return " ".join(n[i:i + 2] for i in range(0, 10, 2))
+    match = _FR_SHORT.match(digits)
+    if match:
+        return match.group(1)
+    return value
