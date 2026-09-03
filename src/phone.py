@@ -167,3 +167,24 @@ def ensure_normalize_phone(conn, calling_codes: tuple[str, ...] = CALLING_CODES,
     conn.commit()
     logger.info("normalize_phone installed for +%s", ", +".join(calling_codes))
     return True
+
+
+# Metropolitan special-rate numbers (08) are not reachable from abroad, so the
+# international writing OSM would otherwise get is misleading. The wiki asks
+# for the national writing in that case. Everything else is left untouched:
+# reformatting numbers we have no complaint about is not our job here.
+# The calling code and the trunk prefix are both optional and can be written
+# together: "+33 (0)8 20 33 22 11" carries the two.
+_FR_08 = re.compile(r"^(?:\+33|0033|33)?0?(8\d{8})$")
+
+
+def format_phone(value: str | None) -> str | None:
+    """Rewrite a French 08 number in national notation, pass anything else on."""
+    if not value:
+        return value
+    digits = re.sub(r"[\s.()  -]|^tel:", "", value, flags=re.I)
+    match = _FR_08.match(digits)
+    if not match:
+        return value
+    n = "0" + match.group(1)
+    return " ".join(n[i:i + 2] for i in range(0, 10, 2))

@@ -5,6 +5,8 @@ from psycopg import Cursor
 from psycopg.rows import dict_row
 from typing import Any, NamedTuple
 
+from src.phone import format_phone
+
 
 # The one ATP <-> OSM matching query, shared by /validate (get_filtered) and by
 # the mv_places_brand materialized view that feeds the counter on the brand
@@ -207,7 +209,7 @@ def apply_on_node(atp_osm_match: dict) -> dict:
     if "contact:email" not in new_tags:
         apply_tag(new_tags, "email", atp_osm_match["atp_email"])
     if "contact:phone" not in new_tags:
-        apply_tag(new_tags, "phone", atp_osm_match["atp_phone"])
+        apply_tag(new_tags, "phone", format_phone(atp_osm_match["atp_phone"]))
     if "contact:website" not in new_tags:
         apply_tag(new_tags, "website", atp_osm_match["atp_website"])
 
