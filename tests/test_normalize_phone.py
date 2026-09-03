@@ -133,6 +133,21 @@ EQUIVALENCE_CLASSES = {
         "+33 800 123 456",
         "0800123456",
     ],
+    # Short numbers have no international form: "+33 3631" is a source
+    # formatting everything the same way, not a writing of the number. It has
+    # to land on the bare digits OSM holds, or the POI is never matched.
+    "3631": [
+        "3631",
+        "+33 3631",
+        "0033 3631",
+        "33 3631",
+        "tel:+33 3631",
+        "+33 36 31",
+    ],
+    "1014": [
+        "1014",
+        "+33 1014",
+    ],
 }
 
 
@@ -210,6 +225,8 @@ def test_distinct_numbers_never_collide(conn):
         ("15", "01 23 45 67 15"),
         ("112", "01 23 45 61 12"),
         ("3310", "+33 1 23 45 33 10"),
+        # "3300" is a short number, not +33 followed by "00".
+        ("3300", "+33 1 23 45 33 00"),
     ],
 )
 def test_short_number_does_not_collide_with_a_long_one(conn, short, long_ending_the_same):
@@ -218,7 +235,8 @@ def test_short_number_does_not_collide_with_a_long_one(conn, short, long_ending_
 
 @pytest.mark.parametrize(
     "value,expected",
-    [("3949", "3949"), ("15", "15"), ("118 712", "118712"), ("3310", "3310")],
+    [("3949", "3949"), ("15", "15"), ("118 712", "118712"), ("3310", "3310"),
+     ("3300", "3300"), ("1033", "1033")],
 )
 def test_short_numbers_keep_all_their_digits(conn, value, expected):
     # Neither the calling code nor the trunk prefix may bite into a number too
@@ -341,6 +359,9 @@ DIVERGENCES = [
     # its separator class was ASCII only
     ("01 23 45 67 89", "01 23 45 67 89"),
     ("01 23 45 67 89", "01 23 45 67 89"),
+    # it refused to strip a calling code from anything shorter than six
+    # remaining digits, which left a prefixed short number in a group of its own
+    ("+33 3631", "3631"),
 ]
 
 

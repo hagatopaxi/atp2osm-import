@@ -33,6 +33,13 @@ logger = logging.getLogger(__name__)
 CALLING_CODES = ("33", "262", "508", "590", "594", "596", "681", "687", "689")
 TRUNK_PREFIX = "0"
 
+# Short numbers (3BPQ "3631", 10XY "1014"). They are outside E.164: no
+# international form exists, and they carry no trunk prefix either. A source
+# that formats every number it holds the international way still writes
+# "+33 3631", so the calling code has to come off for that writing to meet the
+# bare one. 118XYZ is six digits and already clears the length guard below.
+SHORT_NUMBER = r"(?:3\d{3}|10\d{2})"
+
 # Built on normalize_phone(), so they hold keys computed by whichever
 # definition was current when they were built.
 PHONE_INDEXES = ("atp_fr_phone_norm_idx", "mv_places_phone_norm_idx")
@@ -96,8 +103,15 @@ LANGUAGE SQL IMMUTABLE STRICT PARALLEL SAFE AS $fn$
           WHEN d LIKE '00' || code || '%'
             THEN SUBSTRING(d FROM 3 + LENGTH(code))
           -- The + is already gone. Guarded on the remaining length so that a
-          -- short number starting with a calling code stays whole.
-          WHEN d LIKE code || '%' AND LENGTH(d) - LENGTH(code) >= 6
+          -- short number starting with a calling code stays whole: '3300' is
+          -- not +33 followed by '00'. A short number wearing a calling code
+          -- that is not its own is the exception — it is shorter than the
+          -- guard allows, and stripping is the only way it meets the bare
+          -- writing the other side holds.
+          WHEN d LIKE code || '%' AND (
+                 LENGTH(d) - LENGTH(code) >= 6
+                 OR SUBSTRING(d FROM 1 + LENGTH(code)) ~ '^{SHORT_NUMBER}$'
+               )
             THEN SUBSTRING(d FROM 1 + LENGTH(code))
         END AS stripped, LENGTH(code) AS code_length
         FROM unnest(calling_codes) AS code
