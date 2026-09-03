@@ -88,3 +88,15 @@ def test_apply_on_node_not_tag_blocks_any_tag():
     )
     assert res["tag"] == {"not:shop": "fuel", "amenity": "fuel"}
     assert "shop" not in res["tag"]
+
+
+def test_apply_on_node_rewrites_08_in_national_notation():
+    # 08 numbers are not reachable from abroad: OSM wants them written the
+    # national way, unlike every other number ATP hands over.
+    res = match({}, atp_phone="+33 8 92 70 12 34")
+    assert res["tag"]["phone"] == "08 92 70 12 34"
+
+
+def test_apply_on_node_leaves_other_numbers_alone():
+    res = match({}, atp_phone="+33 1 23 45 67 89")
+    assert res["tag"]["phone"] == "+33 1 23 45 67 89"
