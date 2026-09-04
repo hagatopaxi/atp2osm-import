@@ -1,0 +1,43 @@
+#!/bin/sh
+# Basic CI before pushing: authorship check + tests.
+set -e
+
+# This machine's user: nobody else (no bot, no co-author) gets to push.
+AUTHOR=$(git config user.email)
+ZERO=0000000000000000000000000000000000000000
+
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+	[ "$local_sha" = "$ZERO" ] && continue
+	if [ "$remote_sha" = "$ZERO" ]; then range="$local_sha"; else range="$remote_sha..$local_sha"; fi
+
+	# ponytail: emails and trailers only, no signature check
+	bad=$(git log --format='%H %ae %ce' "$range" | grep -v " $AUTHOR $AUTHOR$" || true)
+	if [ -n "$bad" ]; then
+		echo "pre-push: commits not authored by $AUTHOR:" >&2
+		echo "$bad" >&2
+		exit 1
+	fi
+
+	coauthored=$(git log --format='%H %(trailers:key=Co-Authored-By)' "$range" | grep -v ' $' || true)
+	if [ -n "$coauthored" ]; then
+		echo "pre-push: commits carrying a Co-Authored-By trailer:" >&2
+		echo "$coauthored" >&2
+		exit 1
+	fi
+done
+
+uv sync --quiet
+
+# The DB-backed tests skip themselves without OSM_DB_*: load .env so they run.
+if [ ! -f .env ]; then
+	echo "pre-push: no .env, the database-backed tests cannot run" >&2
+	exit 1
+fi
+
+if ! uv run --env-file .env pytest -q; then
+	echo "pre-push: tests failed — is the database up? (podman-compose up -d)" >&2
+	exit 1
+fi
+
+uv run python -m compileall -q src scripts
+echo "pre-push: ok"

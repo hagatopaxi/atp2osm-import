@@ -12,6 +12,9 @@
 # checkout principal — jamais copié, jamais lu.
 set -euo pipefail
 
+# Share the versioned hooks (git never installs them on clone).
+git config core.hooksPath .githooks
+
 case "${1:-}" in
   up|down|logs) cmd="$1"; shift ;;
   *)            sed -n '2,7p' "$0" | cut -c3-; exit 1 ;;
