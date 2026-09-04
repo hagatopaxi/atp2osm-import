@@ -14,7 +14,7 @@
   {% macro nav_item(href, icon, label, exact=false) %}
   {% set is_active = (request.path == href) if exact else request.path.startswith(href) %}
   <li>
-    <a class="{{ 'bg-base-300 font-semibold hover:bg-base-200' if is_active else 'bg-white hover:bg-base-300' }} shadow-sm" href="{{ href }}">
+    <a class="{{ 'bg-base-300 font-semibold hover:bg-base-200' if is_active else 'bg-white hover:bg-base-300' }} shadow-sm" href="{{ request.script_root }}{{ href }}">
       <i class="{{ icon }}"></i><span class="sidebar-hide whitespace-nowrap">{{ label }}</span>
     </a>
   </li>
@@ -30,6 +30,24 @@
   </ul>
 
   <div class="flex-1"></div>
+
+  {% if locales | length > 1 %}
+  <nav class="w-full shrink-0 mt-6" aria-label="{{ _('Langue') }}">
+    <details class="dropdown dropdown-top w-full">
+      <summary class="btn btn-ghost btn-sm w-full justify-start">
+        <i class="iconoir-language"></i>
+        <span class="sidebar-hide">{{ locale_name(get_locale()) }}</span>
+      </summary>
+      <ul class="menu dropdown-content bg-base-100 rounded-md shadow-sm w-full">
+        {% for code in locales %}
+        <li><a href="{{ lang_url(code) }}" hreflang="{{ code }}"
+               {% if code == get_locale()|string %}aria-current="true"{% endif %}>
+          {{ locale_name(code) }}</a></li>
+        {% endfor %}
+      </ul>
+    </details>
+  </nav>
+  {% endif %}
 
   <div class="shrink-0 mt-6 mb-4 p-3 bg-base-100 rounded-md text-sm shadow-sm sidebar-hide">
     <p class="font-bold mb-1 flex gap-2 items-center"><i class="iconoir-info-circle"></i> À propos</p>

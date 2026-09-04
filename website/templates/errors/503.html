@@ -8,5 +8,5 @@
     Les données OpenStreetMap et All The Places sont en cours de rafraîchissement.
     Le site sera de nouveau disponible dès que le rafraîchissement sera terminé.
 </p>
-{% if since %}<p>Début : {{ since.strftime('%d %B %Y à %H:%M') }}</p>{% endif %}
+{% if since %}<p>Début : {{ since | datetimeformat('long') }}</p>{% endif %}
 {% endblock %}

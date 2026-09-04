@@ -144,7 +144,7 @@ endblock %}
 
             <td>
                 {% if row["last_import"] %}
-                {{ row["last_import"].strftime('%d/%m/%Y') }}
+                {{ row["last_import"] | dateformat('short') }}
                 {% else %}
                 Jamais
                 {% endif %}

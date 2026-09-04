@@ -67,7 +67,7 @@ autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endbloc
             <div class="flex flex-wrap items-center gap-2">
                 <span class="font-semibold text-sm">Notes de la dernière intégration</span>
                 <span class="badge badge-sm badge-{{ c_ }}">{{ labels.get(last_import.status, last_import.status) }}</span>
-                <a class="link text-xs text-base-content/60" href="/history/{{ last_import.id }}">le {{ last_import.import_date.strftime('%d %B %Y') }}</a>
+                <a class="link text-xs text-base-content/60" href="/history/{{ last_import.id }}">le {{ last_import.import_date | dateformat('long') }}</a>
                 <span class="text-xs text-base-content/60">par
                     {% if last_import.osm_user_name %}
                     <a class="link" href="{{ api_url }}/user/{{ last_import.osm_user_name }}" target="_blank">{{ last_import.osm_user_name }}</a>

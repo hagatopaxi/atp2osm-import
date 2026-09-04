@@ -1,5 +1,4 @@
 import logging
-import locale
 import json
 import psycopg
 
@@ -9,6 +8,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from src.config import TEMPLATE_DIR, STATIC_DIR, CACHE_DIR, get_settings
 from src.db import teardown_osmdb
 from src.extensions import cache
+from src import i18n
 from src.migrate import run_migrations
 from src.phone import ensure_normalize_phone
 from src.routes.auth import auth_bp
@@ -24,14 +24,13 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()  # fail fast at startup if any required env var is missing
 
+# The pages that exist in every language. Everything else — assets, the API,
+# the OAuth callback, robots.txt — stays language-free.
+TRANSLATED_PATHS = ("/", "/brands", "/history", "/stats", "/todo", "/docs")
+
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.secret_key = settings.secret_key
-
-try:
-    locale.setlocale(locale.LC_TIME, "fr_FR.utf8")
-except locale.Error:
-    logging.warning("French locale (fr_FR.UTF-8) not available — date formatting will use system default")
 
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0 if settings.is_dev else 31536000  # dev: always revalidate — prod: cache for a year
 app.config["CACHE_TYPE"] = "FileSystemCache"
@@ -40,6 +39,7 @@ app.config["CACHE_THRESHOLD"] = 1000
 app.config["CACHE_DEFAULT_TIMEOUT"] = 0  # Infinite cache duration
 
 cache.init_app(app)
+i18n.init_app(app, settings.locales, TRANSLATED_PATHS, settings.timezone)
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(brands_bp)
@@ -82,6 +82,7 @@ def inject_globals():
         "api_url": settings.api_url,
         "app_version": settings.app_version,
         "is_dev": settings.is_dev,
+        "country_code": settings.country_code,
         "error_reasons": ERROR_REASONS,
         "reason_labels": REASON_LABELS,
     }

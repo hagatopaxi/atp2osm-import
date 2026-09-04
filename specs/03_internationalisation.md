@@ -589,28 +589,48 @@ laquelle tout retombe.
 Une instance sert toujours **un seul pays** (§1) ; ce qu'on ouvre ici, c'est le
 choix de la langue à l'intérieur de ce pays, pas le choix du pays.
 
-#### Sélection de la langue, par ordre de priorité
+#### La langue est dans le chemin
 
-1. le paramètre d'URL `?lang=xx`, s'il fait partie de `country.locales` ;
-2. le cookie `lang`, posé quand l'utilisateur choisit dans le sélecteur ;
-3. `Accept-Language`, restreint aux locales du pays ;
-4. `country.locales[0]`.
+`/de/brands`, jamais `?lang=de`. Le sous-répertoire est la forme que les moteurs
+segmentent proprement ; le paramètre d'URL est celle que la documentation Google
+déconseille pour les variantes de langue — consolidation agressive des
+paramètres, langue invisible dans l'URL partagée, et une seconde URL créée dès
+qu'un tri ou un filtre est présent.
 
-En une ligne de `localeselector` :
+**Chaque page traduite est préfixée, y compris dans la langue par défaut.** Une
+URL sans préfixe ne sert rien : elle négocie et redirige (302) vers
+`/<locale>/…`. C'est elle que porte le `x-default`, et c'est le seul endroit où
+le cookie et `Accept-Language` interviennent encore :
 
-```python
-babel.init_app(app, locale_selector=lambda: (
-    _requested_locale() or request.accept_languages.best_match(country.locales)
-    or country.locales[0]
-))
-```
+1. le cookie `lang`, posé à chaque page servie dans une langue ;
+2. `Accept-Language`, restreint aux locales du pays ;
+3. `country.locales[0]`.
 
-Le paramètre d'URL prime sur le cookie et **est honoré sans redirection**. C'est
-ce qui rend les pages publiques indexables dans chaque langue : `/docs?lang=it`
-est une URL réelle, crawlable, stable. Le cookie ne fait que mémoriser le choix
-pour la navigation suivante. `sitemap.xml` liste alors les pages publiques
-croisées avec les locales du pays, avec les `hreflang` correspondants — pour la
-France, une seule locale, il ne change pas.
+Un code de langue inconnu (`/es/brands`) est retiré, puis la même négociation
+s'applique. Une fois sur une URL préfixée, **le chemin fait autorité** : ni le
+cookie ni le navigateur ne peuvent servir une autre langue que celle affichée.
+
+**Le mécanisme.** Un middleware WSGI déplace le préfixe de `PATH_INFO` vers
+`SCRIPT_NAME`. Werkzeug préfixe alors tous les `url_for` tout seul : aucune
+route, aucun `url_for`, aucun `nav_item` n'a à connaître la langue. Le seul
+ajout dans les gabarits est `request.script_root` devant les `href` écrits en
+dur.
+
+Ne sont **pas** préfixés — ils ne portent pas de langue et le middleware les
+laisse passer : les assets, `robots.txt`, `sitemap.xml`, `llms.txt`, le rappel
+OAuth et tout ce qui n'est pas une page. La liste positive des chemins traduits
+vit dans `app.py`, à côté des routes : une nouvelle route est sans langue par
+défaut, donc rien ne casse en silence. Un asset référencé depuis une page passe
+par `static_url()`, qui échappe au préfixe — sinon `SCRIPT_NAME` dupliquerait le
+cache des assets par langue.
+
+`sitemap.xml` liste les pages publiques croisées avec les locales du pays, chaque
+entrée portant ses `xhtml:link` alternates et un `x-default` sur l'URL sans
+préfixe. `llms.txt` pointe la langue courante. Pour la France, une seule locale.
+
+**Ce que ça n'est pas.** Pas de préférence stockée par compte OSM : le cookie
+suffit, et rien côté serveur ne survit à un redéploiement aujourd'hui (le jeton
+lui-même vit dans le cookie signé).
 
 #### Le sélecteur
 
@@ -662,15 +682,16 @@ qu'il ne lit pas. `babel.Locale.parse(code).get_display_name(code)` le fournit,
 aucune table à tenir.
 
 **`lang_url(code)`** est un global Jinja qui reconstruit l'URL courante en
-remplaçant `lang` dans la query string — chemin, filtres, tri et pagination
+remplaçant le préfixe de langue — chemin, filtres, tri et pagination
 préservés. Changer de langue ne doit jamais renvoyer à l'accueil ni perdre un
 tri en cours (`history.html` et `todo.html` en ont).
 
-**Le cookie.** Posé dans un `after_request` quand `?lang=` est valide : nom
-`lang`, un an, `SameSite=Lax`, **hors de la session signée**. Le choix de langue
-n'a rien à voir avec l'authentification : le mettre dans la session le ferait
-disparaître à la déconnexion et l'interdirait aux visiteurs non connectés, qui
-sont précisément le public de `/` et `/docs`.
+**Le cookie.** Posé dans un `after_request` à chaque page servie dans une
+langue : nom `lang`, un an, `SameSite=Lax`, **hors de la session signée**. Il ne
+décide de rien sur une URL préfixée ; il ne sert qu'à la négociation d'une URL
+sans préfixe. Le choix de langue n'a rien à voir avec l'authentification : le
+mettre dans la session le ferait disparaître à la déconnexion et l'interdirait
+aux visiteurs non connectés, qui sont précisément le public de `/` et `/docs`.
 
 **Ce qu'il reste à toucher dans `_base.html`** — quatre valeurs codées en dur
 qui ne sont pas des chaînes traduisibles et que l'extraction Babel ne verra
@@ -679,22 +700,26 @@ donc pas :
 - `<html lang="fr">` → `{{ get_locale() }}` ;
 - `<meta property="og:locale" content="fr_FR">` → la locale courante, plus un
   `og:locale:alternate` par autre langue du pays ;
-- `<link rel="canonical">` → doit porter `?lang=` quand la langue n'est pas
-  `locales[0]`, sinon les trois versions suisses se déclarent canoniques sur la
-  même URL ;
+- `<link rel="canonical">` → `request.base_url`, qui porte déjà le préfixe :
+  chaque langue est canonique sur sa propre URL ;
 - un `<link rel="alternate" hreflang="…">` par locale, plus `x-default` vers
-  `locales[0]`.
+  l'URL sans préfixe, celle qui négocie.
 
 **Ce qu'on ne fait pas.** Pas de préférence de langue stockée par compte OSM :
 le cookie suffit, et rien côté serveur ne survit à un redéploiement aujourd'hui
-(le jeton lui-même vit dans le cookie signé). Pas non plus de préfixe de langue
-dans le chemin (`/de/brands`) : ça imposerait de retoucher chaque `url_for` et
-chaque `nav_item` de `_aside.html` pour un gain d'indexation que `?lang=` +
-`hreflang` obtient déjà.
+(le jeton lui-même vit dans le cookie signé). Pas de sélection de langue par sous-domaine
+ni par ccTLD : le sous-répertoire donne la même séparation sans multiplier les
+certificats ni les déploiements.
 
 Concerne : `website/templates/` (14 gabarits + `brands/`, `errors/`),
 `src/error_reasons.py`, et le contenu éditorial — `docs.html`, les `meta` et
 `og:description` de `home.html`, `llms.txt`, `sitemap.xml`.
+
+**Les dates.** `locale.setlocale(LC_TIME, "fr_FR.utf8")` disparaît : c'est un
+état global au processus, non thread-safe sous gunicorn, et il ne peut porter
+qu'une langue — l'inverse de ce qu'un pays multilingue demande. Les
+`strftime('%d/%m/%Y')` codés en dur dans les gabarits passent à `format_date` /
+`format_datetime`, qui lisent la locale active de la requête.
 
 `docs.html` est de la documentation rédigée, pas des libellés : elle se traduit
 comme un texte, éventuellement en la sortant des gabarits vers du Markdown rendu.
@@ -1091,11 +1116,12 @@ couverture que la phase A.
 
 **Phase C.** Ce qui se teste vraiment, sans tester Babel lui-même :
 
-- le sélecteur de locale, table complète : `?lang` valide / invalide / absent ×
-  cookie présent / absent / invalide × `Accept-Language` correspondant /
-  non correspondant / absent. Vingt-sept cas, générés, pas énumérés à la main ;
+- le middleware de préfixe : préfixe valide (le chemin fait autorité, même
+  contre un cookie contraire), préfixe inconnu (retiré puis négocié), préfixe
+  absent (redirection vers cookie, puis `Accept-Language`, puis la locale par
+  défaut), query string conservée, chemin sans langue laissé intact ;
 - `lang_url()` : conservation du chemin, des filtres, du tri et de la pagination,
-  remplacement d'un `lang` déjà présent, URL sans query ;
+  remplacement du préfixe déjà présent, URL sans query ;
 - **aucune chaîne non traduite** : un test qui charge chaque catalogue et échoue
   s'il reste des `msgstr` vides ou des `#, fuzzy` ;
 - **aucune locale manquante** : pour chaque locale du pays, un

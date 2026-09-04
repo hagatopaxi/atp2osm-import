@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 
 {% block title %}Intégration #{{ entry.id }}{% endblock %}
-{% block subtitle %}Détails de l'intégration du {{ entry.import_date.strftime('%d/%m/%Y à %H:%M') }}.{% endblock %}
+{% block subtitle %}Détails de l'intégration du {{ entry.import_date | datetimeformat('short') }}.{% endblock %}
 
 {% from '_info_card.html' import info_card %}
 
@@ -69,7 +69,7 @@
                 </dd>
 
                 <dt class="text-base-content/60">Date</dt>
-                <dd>{{ entry.import_date.strftime('%d/%m/%Y %H:%M:%S') }}</dd>
+                <dd>{{ entry.import_date | datetimeformat('medium') }}</dd>
 
                 {% set status_labels = {
                     "success":   "Succès",

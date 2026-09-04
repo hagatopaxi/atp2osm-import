@@ -7,7 +7,7 @@ Projet open-source (GPL-3.0). Données © OpenStreetMap contributors (ODbL) et A
 ## Pages
 
 {% for endpoint, label, desc in pages -%}
-- [{{ label }}]({{ url_for(endpoint, _external=True) }}) : {{ desc }}
+- [{{ label }}]({{ localized_url_for(endpoint) }}) : {{ desc }}
 {% endfor %}
 ## Ressources
 

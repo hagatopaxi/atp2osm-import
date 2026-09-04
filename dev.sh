@@ -42,7 +42,10 @@ while [ $port = 5060 ] || [ $port = 5061 ]; do port=$((port + 2)); done
 # sinon tous les localhost:50xx partageraient la même session OSM.
 host="localhost"; [ "$wt" = "$main" ] || host="$name.localhost"
 log="$wt/.dev.log"
-pattern="flask --app ./src/app.py run --port $port"
+# Une seule définition : le motif a déjà divergé de la commande une fois, et
+# `down` annonçait alors un arrêt qui ne tuait rien.
+flask_args="--app ./src/app.py run --debug --port $port"
+pattern="flask $flask_args"
 
 if [ "$cmd" = down ]; then
   pkill -f "$pattern" || true
@@ -66,7 +69,7 @@ fi
 # ponytail: les worktrees partagent la base PostGIS de dev (OSM_DB_* dans .env).
 # Suffisant pour tester ; override OSM_DB_NAME si des migrations entrent en conflit.
 : > "$log"
-setsid bash -c "cd '$wt' && exec uv run --env-file .env flask --app ./src/app.py run --debug --port $port" >>"$log" 2>&1 &
+setsid bash -c "cd '$wt' && exec uv run --env-file .env flask $flask_args" >>"$log" 2>&1 &
 
 echo "worktree : $name"
 echo "app      : http://$host:$port"

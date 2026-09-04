@@ -145,7 +145,7 @@
                 {% endif %}
                 <p class="text-sm mt-1">
                     <span class="text-base-content/60">Source :</span>
-                    {% if row.date %} {{ row.date.strftime("%d/%m/%Y") }} {%
+                    {% if row.date %} {{ row.date | dateformat('short') }} {%
                     else %}
                     <span class="text-base-content/60">—</span>
                     {% endif %}
@@ -154,7 +154,7 @@
                     <span class="text-base-content/60"
                         >Dernière vérification :</span
                     >
-                    {{ row.created_at.strftime("%d/%m/%Y") }}
+                    {{ row.created_at | dateformat('short') }}
                 </p>
                 {% else %}
                 <p class="text-sm text-base-content/60">

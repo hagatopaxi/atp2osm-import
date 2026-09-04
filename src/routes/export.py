@@ -57,7 +57,7 @@ def export_departements(fmt):
 @export_bp.route("/api/export/<dataset>.<fmt>")
 def export(dataset, fmt):
     if dataset not in DATASETS or fmt not in ("json", "csv"):
-        return {"error": "Jeu de données ou format inconnu"}, 404
+        return {"error": "Unknown dataset or format"}, 404
 
     columns, table, filter_spec, order_by = DATASETS[dataset]
     where, params, _ = build_filters(request.args, filter_spec)

@@ -19,6 +19,7 @@ dependencies = [
     "scp>=0.15.0",
     "staticmap>=0.5.7",
     "gunicorn>=23.0.0",
+    "flask-babel>=4.0.0",
 ]
 
 [dependency-groups]
