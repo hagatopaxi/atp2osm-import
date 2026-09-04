@@ -44,7 +44,7 @@ echo "    Tagged as ${IMAGE_NAME}:latest and ${IMAGE_NAME}:${GIT_SHORT}"
 echo "--> [3/3] Writing unit files..."
 mkdir -p "$QUADLET_DIR" "$SYSTEMD_USER_DIR" "$PROJECT_DIR/data" "$PROJECT_DIR/logs"
 
-export PROJECT_NAME PROJECT_DIR IMAGE_NAME CONTAINER_NAME
+export PROJECT_NAME PROJECT_DIR IMAGE_NAME CONTAINER_NAME GIT_SHORT
 
 # Container Quadlet
 envsubst < "$WORK_DIR/deploy/atp2osm.container" > "$QUADLET_DIR/${CONTAINER_NAME}.container"
@@ -73,10 +73,11 @@ systemctl --user enable --now "${CONTAINER_NAME}-refresh.timer"
 
 # Keep the 3 most recent git-tagged images, remove older ones
 echo "    Pruning old images (keeping last 3)..."
-podman images --format "{{.Repository}}:{{.Tag}}" \
-  | grep "^${IMAGE_NAME}:" | grep -v ":latest" \
-  | sort | head -n -3 \
+podman images --format "{{.CreatedAt}}\t{{.Repository}}:{{.Tag}}" \
+  | grep "/${IMAGE_NAME}:" | grep -v ":latest" \
+  | sort -r | tail -n +4 | cut -f2 \
   | xargs -r podman rmi 2>/dev/null || true
+podman image prune -f >/dev/null || true
 
 echo ""
 echo "==> Done — $PROJECT_NAME deploying on port $PORT"
