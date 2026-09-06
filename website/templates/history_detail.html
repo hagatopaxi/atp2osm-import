@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 
-{% block title %}Intégration #{{ entry.id }}{% endblock %}
-{% block subtitle %}Détails de l'intégration du {{ entry.import_date | datetimeformat('short') }}.{% endblock %}
+{% block title %}{% trans id=entry.id %}Integration #{{ id }}{% endtrans %}{% endblock %}
+{% block subtitle %}{% trans date=entry.import_date | datetimeformat('short') %}Details of the integration of {{ date }}.{% endtrans %}{% endblock %}
 
 {% from '_info_card.html' import info_card %}
 
@@ -12,32 +12,39 @@
 {% set s = entry['status'] %}
 {% if s == 'success' %}
   {% set banner_kind = 'success' %}
-  {% set banner_text %}Votre intégration a été effectuée avec succès —
-    {% if entry['items_count'] %}<strong>{{ entry['items_count'] }} POI{{ 's' if entry['items_count'] > 1 }}</strong> enrichi{{ 's' if entry['items_count'] > 1 }} dans OpenStreetMap.
-    {% else %}les données ont été envoyées dans OpenStreetMap.{% endif %}{% endset %}
-  {% set banner_btn_label = 'Intégrer une autre marque' %}
+  {% set banner_text %}
+    {%- if entry['items_count'] -%}
+      {% trans count=entry['items_count'] %}Your integration went through — <strong>{{ count }} POI</strong> enriched in OpenStreetMap.{% pluralize %}Your integration went through — <strong>{{ count }} POIs</strong> enriched in OpenStreetMap.{% endtrans %}
+    {%- else -%}
+      {{ _('Your integration went through — the data has been sent to OpenStreetMap.') }}
+    {%- endif -%}{% endset %}
+  {% set banner_btn_label = _('Integrate another brand') %}
   {% set banner_btn_href = '/brands' %}
 {% elif s == 'partial' %}
   {% set banner_kind = 'warning' %}
-  {% set banner_text %}L'intégration s'est terminée partiellement —
-    {% if entry['items_count'] %}<strong>{{ entry['items_count'] }} POI{{ 's' if entry['items_count'] > 1 }}</strong> enrichi{{ 's' if entry['items_count'] > 1 }}, mais {% endif %}certains départements n'ont pas pu être intégrés.{% endset %}
-  {% set banner_btn_label = 'Intégrer une autre marque' %}
+  {% set banner_text %}
+    {%- if entry['items_count'] -%}
+      {% trans count=entry['items_count'] %}The integration only partly completed — <strong>{{ count }} POI</strong> enriched, but some subdivisions could not be integrated.{% pluralize %}The integration only partly completed — <strong>{{ count }} POIs</strong> enriched, but some subdivisions could not be integrated.{% endtrans %}
+    {%- else -%}
+      {{ _('The integration only partly completed — some subdivisions could not be integrated.') }}
+    {%- endif -%}{% endset %}
+  {% set banner_btn_label = _('Integrate another brand') %}
   {% set banner_btn_href = '/brands' %}
 {% elif s == 'cancelled' %}
   {% set banner_kind = 'info' %}
-  {% set banner_text %}Votre signalement a bien été enregistré. Ces retours sont précieux pour améliorer la qualité des données AllThePlaces.{% endset %}
-  {% set banner_btn_label = 'Voir les marques disponibles' %}
+  {% set banner_text %}{{ _('Your report has been recorded. This feedback is valuable to improve the quality of the AllThePlaces data.') }}{% endset %}
+  {% set banner_btn_label = _('See the available brands') %}
   {% set banner_btn_href = '/brands' %}
 {% else %}
   {% set banner_kind = 'warning' %}
-  {% set banner_text %}Une erreur technique indépendante de notre volonté a empêché l'intégration de se terminer. Aucune modification n'a été envoyée à OpenStreetMap.{% endset %}
-  {% set banner_btn_label = 'Voir les marques disponibles' %}
+  {% set banner_text %}{{ _('A technical error beyond our control stopped the integration. Nothing was sent to OpenStreetMap.') }}{% endset %}
+  {% set banner_btn_label = _('See the available brands') %}
   {% set banner_btn_href = '/brands' %}
 {% endif %}
 
 {% call info_card(banner_kind, 'shadow-lg mb-6 py-6') %}
 <div>
-    <p class="text-xl font-bold">Merci {{ session['user']['name'] }} !</p>
+    <p class="text-xl font-bold">{% trans name=session['user']['name'] %}Thank you {{ name }}!{% endtrans %}</p>
     <p class="text-base mt-1">{{ banner_text }}</p>
 </div>
 <a href="{{ banner_btn_href }}" class="btn btn-lg w-full md:w-auto">
@@ -47,7 +54,7 @@
 {% endif %}
 
 <a class="btn btn-sm btn-ghost self-start -mt-2 mb-2" href="{{ url_for('history.history', **request.args) }}">
-    <i class="iconoir-arrow-left"></i> Retour à l'historique
+    <i class="iconoir-arrow-left"></i> {{ _('Back to the history') }}
 </a>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
@@ -56,9 +63,9 @@
 
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body gap-3">
-            <h2 class="card-title text-base">Informations générales</h2>
+            <h2 class="card-title text-base">{{ _('General information') }}</h2>
             <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-                <dt class="text-base-content/60">Marque</dt>
+                <dt class="text-base-content/60">{{ _('Brand') }}</dt>
                 <dd class="font-medium">
                     {{ entry.brand_name if entry.brand_name else '—' }}
                     {% if entry.brand_wikidata %}
@@ -68,14 +75,14 @@
                     {% endif %}
                 </dd>
 
-                <dt class="text-base-content/60">Date</dt>
+                <dt class="text-base-content/60">{{ _('Date') }}</dt>
                 <dd>{{ entry.import_date | datetimeformat('medium') }}</dd>
 
                 {% set status_labels = {
-                    "success":   "Succès",
-                    "partial":   "Partiel",
-                    "cancelled": "Annulé",
-                    "error":     "Erreur"
+                    "success":   _('Success'),
+                    "partial":   _('Partial'),
+                    "cancelled": _('Cancelled'),
+                    "error":     _('Error')
                 } %}
                 {% set status_classes = {
                     "success":   "badge-success",
@@ -83,7 +90,7 @@
                     "cancelled": "badge-info",
                     "error":     "badge-error"
                 } %}
-                <dt class="text-base-content/60">Statut</dt>
+                <dt class="text-base-content/60">{{ _('Status') }}</dt>
                 <dd class="flex flex-col gap-1">
                     <span class="badge {{ status_classes.get(entry.status, 'badge-info') }}">
                         {{ status_labels.get(entry.status, entry.status) }}
@@ -93,17 +100,17 @@
                     </span>
                     {% set s = entry.status %}
                     {% if s == 'success' %}
-                    <p class="text-xs text-base-content/60 leading-relaxed">L'intégration s'est déroulée avec succès. Tous les changements ont été envoyés à OpenStreetMap et sont désormais visibles publiquement.</p>
+                    <p class="text-xs text-base-content/60 leading-relaxed">{{ _('The integration went through. Every change has been sent to OpenStreetMap and is now publicly visible.') }}</p>
                     {% elif s == 'partial' %}
-                    <p class="text-xs text-base-content/60 leading-relaxed">L'intégration s'est déroulée partiellement. Certains départements n'ont pas pu être intégrés — les changements envoyés sont néanmoins visibles sur OpenStreetMap. Les données non intégrées resteront disponibles pour une prochaine intégration.</p>
+                    <p class="text-xs text-base-content/60 leading-relaxed">{{ _('The integration only partly completed. Some subdivisions could not be integrated — the changes that were sent are visible on OpenStreetMap all the same. The data left out stays available for a later integration.') }}</p>
                     {% elif s == 'cancelled' %}
-                    <p class="text-xs text-base-content/60 leading-relaxed">L'intégration a été annulée suite au signalement d'erreurs dans les données. Ces signalements permettront aux contributeurs AllThePlaces de corriger le spider correspondant lors de ses prochaines mises à jour.</p>
+                    <p class="text-xs text-base-content/60 leading-relaxed">{{ _('The integration was cancelled after errors were reported in the data. These reports let the AllThePlaces contributors fix the matching spider on its next updates.') }}</p>
                     {% else %}
-                    <p class="text-xs text-base-content/60 leading-relaxed">L'intégration n'a pas abouti. Aucune modification n'a été envoyée à OpenStreetMap. Il est possible de relancer l'intégration ultérieurement en retournant sur la page de la marque concernée.</p>
+                    <p class="text-xs text-base-content/60 leading-relaxed">{{ _('The integration did not complete. Nothing was sent to OpenStreetMap. It can be started again later from the page of the brand concerned.') }}</p>
                     {% endif %}
                 </dd>
 
-                <dt class="text-base-content/60">Utilisateur OSM</dt>
+                <dt class="text-base-content/60">{{ _('OSM user') }}</dt>
                 <dd>
                     {% set display_name = users.get(entry.osm_user_id) %}
                     {% if display_name %}
@@ -113,7 +120,7 @@
                     {% endif %}
                 </dd>
 
-                <dt class="text-base-content/60">POIs intégrés</dt>
+                <dt class="text-base-content/60">{{ _('POIs integrated') }}</dt>
                 <dd>{{ entry.items_count if entry.items_count is not none else '—' }}</dd>
             </dl>
         </div>
@@ -122,7 +129,7 @@
     {% if entry.comment %}
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body gap-3">
-            <h2 class="card-title text-base">Commentaire</h2>
+            <h2 class="card-title text-base">{{ _('Comment') }}</h2>
             {% set comments = entry.comment | parse_comment %}
             {% if comments is iterable and comments is not string %}
             <ul class="flex flex-col gap-1">
@@ -145,7 +152,7 @@
     {% if entry.tags_count %}
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body gap-3">
-            <h2 class="card-title text-base">Tags mis à jour</h2>
+            <h2 class="card-title text-base">{{ _('Tags updated') }}</h2>
             {% set tag_icons = {
                 "opening_hours": "iconoir-clock",
                 "phone":         "iconoir-phone",
@@ -171,16 +178,16 @@
 
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body gap-3">
-            <h2 class="card-title text-base">Changesets</h2>
+            <h2 class="card-title text-base">{{ _('Changesets') }}</h2>
             {% if subdivisions %}
             <div class="overflow-x-auto shrink-0">
                 <table class="table table-sm">
                     <thead>
                         <tr>
-                            <th>Département</th>
-                            <th>POIs</th>
-                            <th>Statut</th>
-                            <th>Changeset</th>
+                            <th>{{ _('Subdivision') }}</th>
+                            <th>{{ _('POIs') }}</th>
+                            <th>{{ _('Status') }}</th>
+                            <th>{{ _('Changeset') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -190,7 +197,7 @@
                             <td>{{ sub.items_count }}</td>
                             <td>
                                 <span class="badge badge-sm {{ 'badge-success' if sub.status == 'success' else 'badge-error' }}">
-                                    {{ 'Succès' if sub.status == 'success' else 'Erreur' }}
+                                    {{ _('Success') if sub.status == 'success' else _('Error') }}
                                 </span>
                             </td>
                             <td>
@@ -207,13 +214,11 @@
             </div>
             <div class="alert alert-info alert-soft text-sm">
                 <span>
-                    Un changeset s'est mal passé ? Il peut être annulé avec
-                    <a class="link" href="https://revert.monicz.dev/" target="_blank" rel="noopener">OSM Revert</a>,
-                    en y collant l'identifiant du changeset concerné.
+                    {% trans link='https://revert.monicz.dev/' %}A changeset went wrong? It can be reverted with <a class="link" href="{{ link }}" target="_blank" rel="noopener">OSM Revert</a>, by pasting in the identifier of the changeset concerned.{% endtrans %}
                 </span>
             </div>
             {% else %}
-            <p class="text-sm text-base-content/50">Aucun changeset enregistré.</p>
+            <p class="text-sm text-base-content/50">{{ _('No changeset recorded.') }}</p>
             {% endif %}
         </div>
     </div>
