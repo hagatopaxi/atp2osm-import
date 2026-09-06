@@ -28,9 +28,9 @@
 {% block title %}{{ _('Statistics') }}{% endblock %}
 {% block subtitle %}{{ _('What the integrations brought to OpenStreetMap: volumes, tags enriched, reliability of the spiders and of the changesets.') }}{% endblock %}
 
-{# Barres horizontales triées : la forme la plus lisible pour comparer des
-    catégories nommées. Libellé et valeur sont du texte, rien à doubler pour les
-    lecteurs d'écran. #}
+{# Sorted horizontal bars: the most readable form to compare named
+    categories. Label and value are text, so there is nothing to duplicate for
+    screen readers. #}
 {% macro bar_list(rows, empty=None, alt=false) %}
 {% set empty = empty or _('No data over this period.') %}
 {% set top = rows[0].value if rows else 0 %}
@@ -139,8 +139,8 @@
     </figcaption>
     <div class="series-scroll">
         <div class="series-width" style="--bars: {{ series | length }}">
-            {# Une colonne pleine hauteur par période : le survol attrape la
-               période entière, pas seulement le sommet d'une barre écrasée. #}
+            {# One full-height column per period: the hover catches the whole
+               period, not just the top of a flattened bar. #}
             <div class="series-chart" role="img"
                 aria-label="{% for p in series %}{% trans period=p.period | dateformat('short'), pois=p.pois, cumulative=p.cumulative %}{{ period }}: {{ pois }} POIs, running total {{ cumulative }}. {% endtrans %}{% endfor %}">
                 {% for p in series %}
@@ -155,7 +155,7 @@
                 </div>
                 {% endfor %}
                 {% if cumulative_max > 0 and series | length > 1 %}
-                {# La courbe passe par le centre des colonnes, où sont les pastilles. #}
+                {# The line runs through the centre of the columns, where the dots are. #}
                 <svg class="series-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                     <polyline points="{% for p in series %}{{ (100 * (loop.index0 + 0.5) / (series | length)) | round(2) }},{{ (100 - 100 * p.cumulative / cumulative_max) | round(2) }} {% endfor %}" />
                 </svg>
@@ -237,8 +237,8 @@
     {% if changesets_max %}
     <div class="series-scroll series-grow">
         <div class="series-width" style="--bars: {{ changesets | length }}">
-            {# Colonnes normalisées : la lecture porte sur la part de réussite,
-               pas sur le volume, que le graphe du haut donne déjà. #}
+            {# Normalised columns: the reading is about the success share, not
+               the volume, which the chart above already gives. #}
             <div class="series-chart series-chart-mini" role="img"
                 aria-label="{% for c in changesets if c.rate is not none %}{% trans period=c.period | dateformat('short'), rate=c.rate %}{{ period }}: {{ rate }} % of changesets accepted. {% endtrans %}{% endfor %}">
                 {% for c in changesets %}
