@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-06 19:06+0200\n"
+"POT-Creation-Date: 2026-09-06 19:10+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,35 +22,35 @@ msgid "Toggle the sidebar"
 msgstr ""
 
 #: website/templates/_aside.html:24 website/templates/brands.html:14
-#: website/templates/history.html:15 website/templates/stats.html:13
-#: website/templates/todo.html:16
+#: website/templates/history.html:15 website/templates/llms.txt:10
+#: website/templates/stats.html:13 website/templates/todo.html:16
 msgid "Home"
 msgstr ""
 
 #: website/templates/_aside.html:25 website/templates/brands.html:5
 #: website/templates/brands.html:6 website/templates/brands.html:15
-#: website/templates/todo.html:23
+#: website/templates/llms.txt:11 website/templates/todo.html:23
 msgid "Brands to integrate"
 msgstr ""
 
 #: website/templates/_aside.html:26 website/templates/history.html:6
 #: website/templates/history.html:7 website/templates/history.html:16
-#: website/templates/history.html:27
+#: website/templates/history.html:27 website/templates/llms.txt:12
 msgid "Integration history"
 msgstr ""
 
 #: website/templates/_aside.html:27 website/templates/home.html:81
-#: website/templates/stats.html:4 website/templates/stats.html:14
-#: website/templates/stats.html:28
+#: website/templates/llms.txt:13 website/templates/stats.html:4
+#: website/templates/stats.html:14 website/templates/stats.html:28
 msgid "Statistics"
 msgstr ""
 
-#: website/templates/_aside.html:28 website/templates/todo.html:7
-#: website/templates/todo.html:17
+#: website/templates/_aside.html:28 website/templates/llms.txt:14
+#: website/templates/todo.html:7 website/templates/todo.html:17
 msgid "Missing brands"
 msgstr ""
 
-#: website/templates/_aside.html:29
+#: website/templates/_aside.html:29 website/templates/llms.txt:15
 msgid "Documentation"
 msgstr ""
 
@@ -568,6 +568,50 @@ msgstr ""
 
 #: website/templates/home.html:132
 msgid "No data integrated"
+msgstr ""
+
+#: website/templates/llms.txt:3
+msgid "A semi-automatic tool to integrate the AllThePlaces (ATP) data into OpenStreetMap. It matches the ATP records against the existing OSM nodes and relations by spatial proximity (500 m) and attribute similarity (brand, name, email, phone, website), then lets OSM contributors review and upload the tag changes."
+msgstr ""
+
+#: website/templates/llms.txt:5
+msgid "Open-source project (GPL-3.0). Data © OpenStreetMap contributors (ODbL) and All The Places (CC0)."
+msgstr ""
+
+#: website/templates/llms.txt:7
+msgid "Pages"
+msgstr ""
+
+#: website/templates/llms.txt:10
+msgid "introduction and integration statistics."
+msgstr ""
+
+#: website/templates/llms.txt:11
+msgid "the ATP brands available for integration."
+msgstr ""
+
+#: website/templates/llms.txt:12
+msgid "integrations carried out, dates and statuses."
+msgstr ""
+
+#: website/templates/llms.txt:13
+msgid "metrics and charts of the integrations carried out."
+msgstr ""
+
+#: website/templates/llms.txt:14
+msgid "brands absent from ATP."
+msgstr ""
+
+#: website/templates/llms.txt:15
+msgid "how it works and how to contribute."
+msgstr ""
+
+#: website/templates/llms.txt:21
+msgid "Resources"
+msgstr ""
+
+#: website/templates/llms.txt:23
+msgid "Source code"
 msgstr ""
 
 #: website/templates/stats.html:3
@@ -1102,5 +1146,46 @@ msgstr ""
 
 #: website/templates/brands/:brand_wikidata/validate.html:232
 msgid "Submit"
+msgstr ""
+
+#: website/templates/errors/403.html:3
+msgid "403 - Not authorised"
+msgstr ""
+
+#: website/templates/errors/403.html:6
+msgid "You tried something forbidden, maybe next time."
+msgstr ""
+
+#: website/templates/errors/404.html:3
+msgid "404 - Not found"
+msgstr ""
+
+#: website/templates/errors/404.html:6
+msgid "This page cannot be found."
+msgstr ""
+
+#: website/templates/errors/500.html:3
+msgid "500 - Internal error"
+msgstr ""
+
+#: website/templates/errors/500.html:6
+msgid "Internal error, sorry."
+msgstr ""
+
+#: website/templates/errors/503.html:3
+msgid "503 - Maintenance"
+msgstr ""
+
+#: website/templates/errors/503.html:6
+msgid "Data refresh in progress"
+msgstr ""
+
+#: website/templates/errors/503.html:8
+msgid "The OpenStreetMap and All The Places data is being refreshed. The site will be available again as soon as the refresh is over."
+msgstr ""
+
+#: website/templates/errors/503.html:10
+#, python-format
+msgid "Started: %(date)s"
 msgstr ""
 

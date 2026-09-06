@@ -1,16 +1,25 @@
 # atp2osm
 
-> Outil d'intégration semi-automatique des données AllThePlaces (ATP) dans OpenStreetMap pour les points d'intérêt français. Il rapproche les fiches ATP des nœuds/relations OSM existants par proximité spatiale (500 m) et similarité d'attributs (marque, nom, email, téléphone, site web), puis laisse les contributeurs OSM valider et téléverser les changements de tags.
+> {{ _("A semi-automatic tool to integrate the AllThePlaces (ATP) data into OpenStreetMap. It matches the ATP records against the existing OSM nodes and relations by spatial proximity (500 m) and attribute similarity (brand, name, email, phone, website), then lets OSM contributors review and upload the tag changes.") }}
 
-Projet open-source (GPL-3.0). Données © OpenStreetMap contributors (ODbL) et All The Places (CC0).
+{% trans %}Open-source project (GPL-3.0). Data © OpenStreetMap contributors (ODbL) and All The Places (CC0).{% endtrans %}
 
-## Pages
+## {{ _("Pages") }}
 
-{% for endpoint, label, desc in pages -%}
+{% set descriptions = {
+    'misc.home':       (_('Home'), _('introduction and integration statistics.')),
+    'brands.brands':   (_('Brands to integrate'), _('the ATP brands available for integration.')),
+    'history.history': (_('Integration history'), _('integrations carried out, dates and statuses.')),
+    'stats.stats':     (_('Statistics'), _('metrics and charts of the integrations carried out.')),
+    'todo.todo':       (_('Missing brands'), _('brands absent from ATP.')),
+    'misc.docs':       (_('Documentation'), _('how it works and how to contribute.'))
+} -%}
+{% for endpoint in pages -%}
+{% set label, desc = descriptions[endpoint] -%}
 - [{{ label }}]({{ localized_url_for(endpoint) }}) : {{ desc }}
 {% endfor %}
-## Ressources
+## {{ _("Resources") }}
 
-- [Code source](https://github.com/hagatopaxi/atp2osm-import)
+- [{{ _("Source code") }}](https://github.com/hagatopaxi/atp2osm-import)
 - [All The Places](https://alltheplaces.xyz)
 - [OpenStreetMap](https://www.openstreetmap.org)

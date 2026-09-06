@@ -35,7 +35,7 @@ def test_export_routes_stay_out_of_the_sitemap():
     """The sitemap is built from PUBLIC_PAGES: the API has no place in it."""
     from src.routes.misc import PUBLIC_PAGES
 
-    assert not any(endpoint.startswith("export.") for endpoint, _, _ in PUBLIC_PAGES)
+    assert not any(endpoint.startswith("export.") for endpoint in PUBLIC_PAGES)
 
 
 def test_robots_disallows_the_api():
