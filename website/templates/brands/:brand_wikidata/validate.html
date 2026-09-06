@@ -1,10 +1,9 @@
 {% extends '_base.html' %}
+{% import '_error_reasons.html' as reasons %}
 
 {% from '_info_card.html' import info_card %}
-{% block title %}1/2 - Validation des données de {{ brand }} (<a href="https://www.wikidata.org/wiki/{{ brand_wikidata }}" target="_blank" rel="noopener" class="link font-mono">{{ brand_wikidata }}</a>){% endblock %}
-{% block subtitle %}Validez {{ items | length }} des {{size}} points d'intérêt de ce lot, tirés au hasard. Les tags en <span
-    class="text-success">verts</span> sont les nouvelles valeurs ajoutées, issues d'ATP ou du name-suggestion-index, les
-autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endblock %}
+{% block title %}{% trans brand=brand %}1/2 - Reviewing the data of {{ brand }}{% endtrans %} (<a href="https://www.wikidata.org/wiki/{{ brand_wikidata }}" target="_blank" rel="noopener" class="link font-mono">{{ brand_wikidata }}</a>){% endblock %}
+{% block subtitle %}{% trans shown=items | length, size=size %}Review {{ shown }} of the {{ size }} points of interest of this batch, drawn at random. The tags in <span class="text-success">green</span> are the new values, coming from ATP or from the name-suggestion-index; the others are already in OSM and will not be updated.{% endtrans %}{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/validate.js?v={{ app_version }}" type="text/javascript"></script>
@@ -18,7 +17,7 @@ autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endbloc
 <div class="flex items-start">
     <i class="{{icon}} mr-2 mt-1"></i>
     <div>
-        <strong>{{label}} :</strong>{% if k.startswith('contact:') %} <span class="badge badge-xs badge-ghost font-mono">{{ k }}</span>{% endif %}{% if key == 'opening_hours' %}<span class="tooltip tooltip-right align-middle" data-tip="Valeur insérée dans OSM : {{ item['tag']['opening_hours'] }}"><i class="iconoir-info-circle text-info text-xs cursor-help ml-1"></i></span>{% endif %}
+        <strong>{% trans label=label %}{{ label }}:{% endtrans %}</strong>{% if k.startswith('contact:') %} <span class="badge badge-xs badge-ghost font-mono">{{ k }}</span>{% endif %}{% if key == 'opening_hours' %}<span class="tooltip tooltip-right align-middle" data-tip="{% trans value=item['tag']['opening_hours'] %}Value written to OSM: {{ value }}{% endtrans %}"><i class="iconoir-info-circle text-info text-xs cursor-help ml-1"></i></span>{% endif %}
 
         {% if key == 'website' %}
         <p class="{{'text-success' if k in item['new_tags_keys']}}"><a href="{{ item['tag'][k] }}" target="_blank"
@@ -49,39 +48,39 @@ autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endbloc
 <div class="flex flex-col gap-2" data-brand-name="{{ brand }}">
     <div class="flex flex-col md:flex-row items-start justify-between gap-4">
         <p class="text-xs text-base-content/60">
-            Ce lot couvre {{ scope | length }} département{{ 's' if scope | length > 1 }} —
+            {% trans count=scope | length %}This batch covers {{ count }} subdivision{% pluralize %}This batch covers {{ count }} subdivisions{% endtrans %} —
             {% for sub in scope %}{{ sub.name }} ({{ sub.count }}){{ ', ' if not loop.last }}{% endfor %}
-            — soit {{ size }} POI{{ 's' if size > 1 }}.
+            — {% trans count=size %}that is {{ count }} POI.{% pluralize %}that is {{ count }} POIs.{% endtrans %}
         </p>
         <a href="/brands/{{brand_wikidata}}/validate" class="btn btn-outline btn-info btn-sm shrink-0 w-full md:w-auto">
-            <i class="iconoir-refresh"></i>Recommencer la saisie
+            <i class="iconoir-refresh"></i>{{ _('Start the review over') }}
         </a>
     </div>
 
     {% if last_import %}
-    {% set labels = {"success": "Succès", "partial": "Partiel", "cancelled": "Annulé", "error": "Erreur"} %}
+    {% set labels = {"success": _('Success'), "partial": _('Partial'), "cancelled": _('Cancelled'), "error": _('Error')} %}
     {% set colors = {"success": "success", "partial": "warning", "cancelled": "info", "error": "error"} %}
     {% set c_ = colors.get(last_import.status, 'error') %}
     {% call info_card(c_, 'my-4') %}
         <div class="flex flex-col gap-2">
             <div class="flex flex-wrap items-center gap-2">
-                <span class="font-semibold text-sm">Notes de la dernière intégration</span>
+                <span class="font-semibold text-sm">{{ _('Notes from the last integration') }}</span>
                 <span class="badge badge-sm badge-{{ c_ }}">{{ labels.get(last_import.status, last_import.status) }}</span>
-                <a class="link text-xs text-base-content/60" href="/history/{{ last_import.id }}">le {{ last_import.import_date | dateformat('long') }}</a>
-                <span class="text-xs text-base-content/60">par
+                <a class="link text-xs text-base-content/60" href="/history/{{ last_import.id }}">{% trans date=last_import.import_date | dateformat('long') %}on {{ date }}{% endtrans %}</a>
+                <span class="text-xs text-base-content/60">{{ _('by') }}
                     {% if last_import.osm_user_name %}
                     <a class="link" href="{{ api_url }}/user/{{ last_import.osm_user_name }}" target="_blank">{{ last_import.osm_user_name }}</a>
                     {% else %}{{ last_import.osm_user_id }}{% endif %}
                 </span>
             </div>
             {% if last_import.comment %}
-            <p class="text-xs text-base-content/70">Relevé par un contributeur lors du dernier contrôle — vérifiez ces points plus attentivement.</p>
+            <p class="text-xs text-base-content/70">{{ _('Reported by a contributor during the last review — check these points more closely.') }}</p>
             {% set comments = last_import.comment | parse_comment %}
             {% if comments is iterable and comments is not string %}
             <ul class="flex flex-col gap-2">
                 {% for c in comments %}
                 <li class="border-l-2 border-{{ c_ }}/60 pl-3">
-                    <p class="text-sm italic">{{ c.comment or 'Sans commentaire' }}</p>
+                    <p class="text-sm italic">{{ c.comment or _('No comment') }}</p>
                     <p class="text-xs text-base-content/50 font-mono">
                         <a class="link" href="{{ api_url }}/{{ c.osm_type }}/{{ c.osm_id }}" target="_blank">{{ c.osm_type }}/{{ c.osm_id }}</a>
                         {% if c.atp_id %}· ATP {{ c.spider_id ~ "/" if c.spider_id }}{{ c.atp_id }}{% endif %}
@@ -98,8 +97,8 @@ autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endbloc
     {% else %}
     {% call info_card('warning', 'my-4') %}
         <div class="flex flex-col gap-2">
-            <p class="font-semibold text-sm">Première intégration de cette marque</p>
-            <p class="text-xs text-base-content/70">Aucun contrôle précédent ne peut vous guider : soyez particulièrement vigilant sur l'ensemble des tags, et signalez la moindre donnée douteuse.</p>
+            <p class="font-semibold text-sm">{{ _('First integration of this brand') }}</p>
+            <p class="text-xs text-base-content/70">{{ _('No earlier review can guide you: be especially careful on every tag, and report the slightest doubtful value.') }}</p>
         </div>
     {% endcall %}
     {% endif %}
@@ -116,50 +115,48 @@ autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endbloc
             <div class="flex flex-col gap-2">
                 {% if item['source_type'] == 'api' %}
                 {% call info_card('info') %}
-                <span>Les données proviennent directement d'une API officielle.</span>
+                <span>{{ _('The data comes straight from an official API.') }}</span>
                 {% endcall %}
                 {% elif item['source_uri'] %}
                 <a class="btn btn-accent btn-sm" href="{{ item['source_uri'] }}" target="_blank"
                     data-source-btn="{{ item['node_type'] }}-{{ item['id'] }}"
                     onclick="markSourceChecked(`{{ item['node_type'] }}-{{ item['id'] }}`)">
-                    Ouvrir la source de données <i class="iconoir-open-new-window ml-1"></i>
+                    {{ _('Open the data source') }} <i class="iconoir-open-new-window ml-1"></i>
                 </a>
                 {% call info_card('info', 'hidden', 'data-api-question="' ~ item['node_type'] ~ '-' ~ item['id'] ~ '"') %}
-                <span data-api-msg>Est-ce une API ? Si oui, la source ne sera plus obligatoire pour les points restants.</span>
+                <span data-api-msg>{{ _('Is this an API? If so, the source will no longer be required for the remaining points.') }}</span>
                 <div class="flex gap-2" data-api-choices>
-                    <button class="btn btn-xs btn-outline bg-white flex-1" onclick="answerIsApi(this, true)">Oui</button>
-                    <button class="btn btn-xs btn-outline bg-white flex-1" onclick="answerIsApi(this, false)">Non</button>
+                    <button class="btn btn-xs btn-outline bg-white flex-1" onclick="answerIsApi(this, true)">{{ _('Yes') }}</button>
+                    <button class="btn btn-xs btn-outline bg-white flex-1" onclick="answerIsApi(this, false)">{{ _('No') }}</button>
                 </div>
                 {% endcall %}
                 {% endif %}
 
-                {{ render_tag("brand", "Nom de la marque", "iconoir-shop", item) }}
+                {{ render_tag("brand", _('Brand name'), "iconoir-shop", item) }}
 
-                {{ render_tag('brand:wikidata', "Code Wikidata", "iconoir-database", item) }}
+                {{ render_tag('brand:wikidata', _('Wikidata code'), "iconoir-database", item) }}
 
                 {% if item['brand_wikidata_source'] == 'nsi' %}
                 {% call info_card('warning') %}
-                <span>Ce code Wikidata a été <strong>déduit du nom</strong> de l'objet via le
-                    name-suggestion-index, il n'était pas présent dans OSM. Vérifiez qu'il
-                    s'agit bien de cette enseigne.</span>
+                <span>{{ _('This Wikidata code was <strong>inferred from the name</strong> of the object through the name-suggestion-index; it was not in OSM. Check that it really is this brand.') }}</span>
                 {% endcall %}
                 {% endif %}
 
-                {{ render_tag('name', "Nom du magasin", "iconoir-quote", item) }}
+                {{ render_tag('name', _('Shop name'), "iconoir-quote", item) }}
 
-                {{ render_tag('email', "Email", "iconoir-mail", item) }}
+                {{ render_tag('email', _('Email'), "iconoir-mail", item) }}
 
-                {{ render_tag('phone', "Téléphone", "iconoir-phone", item) }}
+                {{ render_tag('phone', _('Phone'), "iconoir-phone", item) }}
 
-                {{ render_tag('website', "Site web", "iconoir-globe", item) }}
+                {{ render_tag('website', _('Website'), "iconoir-globe", item) }}
 
-                {{ render_tag('opening_hours', "Horaires", "iconoir-clock", item) }}
+                {{ render_tag('opening_hours', _('Opening hours'), "iconoir-clock", item) }}
 
                 {% if item['other_new_tags'] %}
                 <div class="flex items-start">
                     <i class="iconoir-label mr-2 mt-1"></i>
                     <div>
-                        <strong>Tags NSI :</strong>
+                        <strong>{% trans label=_('NSI tags') %}{{ label }}:{% endtrans %}</strong>
                         <ul class="text-success font-mono text-sm">
                             {% for key, value in item['other_new_tags'].items() %}
                             <li>{{ key }} = {{ value }}</li>
@@ -182,10 +179,10 @@ autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endbloc
                 <div class="map-container rounded-lg overflow-hidden shadow-md border-base-200 border-2">
                     <a href="{{ api_url }}/{{ item['node_type'] }}/{{item['id']}}" target="_blank" class="block relative">
                         <img class="w-full block"
-                            src="/staticmap/{{item['lon']}}/{{item['lat']}}" alt="Carte de {{item['title']}}" />
+                            src="/staticmap/{{item['lon']}}/{{item['lat']}}" alt="{% trans title=item['title'] %}Map of {{ title }}{% endtrans %}" />
                         <div class="map-hover-overlay"></div>
                         <span class="map-badge">
-                            <i class="iconoir-open-new-window"></i> Voir dans OSM
+                            <i class="iconoir-open-new-window"></i> {{ _('View in OSM') }}
                         </span>
                     </a>
                 </div>
@@ -195,18 +192,18 @@ autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endbloc
                         <button class="btn btn-error btn-sm flex-1" {{ 'disabled' if needs_source }}
                             data-validate-btn="{{ item['node_type'] }}-{{ item['id'] }}"
                             onclick="invalidateData(`{{ item['node_type'] }}-{{ item['id'] }}`)">
-                            Invalider <i class="iconoir-prohibition"></i>
+                            {{ _('Reject') }} <i class="iconoir-prohibition"></i>
                         </button>
                         <button class="btn btn-success btn-sm flex-1" {{ 'disabled' if needs_source }}
                             data-validate-btn="{{ item['node_type'] }}-{{ item['id'] }}"
                             onclick="validateData(`{{ item['node_type'] }}-{{ item['id'] }}`)">
-                            Valider <i class="iconoir-check"></i>
+                            {{ _('Accept') }} <i class="iconoir-check"></i>
                         </button>
                     </div>
                     {% if needs_source %}
                     <p class="text-xs text-warning text-right"
                         data-source-warning="{{ item['node_type'] }}-{{ item['id'] }}">
-                        <i class="iconoir-info-circle"></i> Vérifiez la source avant de valider.
+                        <i class="iconoir-info-circle"></i> {{ _('Check the source before accepting.') }}
                     </p>
                     {% endif %}
                 </div>
@@ -217,25 +214,23 @@ autres sont déjà présentes dans OSM et ne seront pas mises à jour.{% endbloc
     {% endfor %}
 
 
-    <a class="nextStep btn btn-primary mt-4 self-end" disabled href="/brands/{{brand_wikidata}}/confirm">Passer à
-        l'étape
-        suivante</a>
+    <a class="nextStep btn btn-primary mt-4 self-end" disabled href="/brands/{{brand_wikidata}}/confirm">{{ _('Go to the next step') }}</a>
 
 </div>
 
 <dialog id="invalidation_modal" class="modal">
     <div class="modal-box">
-        <h3 class="font-bold text-lg">Pourquoi invalidez-vous cette donnée ?</h3>
+        <h3 class="font-bold text-lg">{{ _('Why are you rejecting this data?') }}</h3>
         <div id="invalidation_reasons" class="flex flex-wrap gap-2 mt-4">
-            {% for key, label in error_reasons %}
-            <button type="button" class="btn btn-sm btn-outline reason-btn" data-reason="{{ key }}">{{ label }}</button>
+            {% for key in error_reasons %}
+            <button type="button" class="btn btn-sm btn-outline reason-btn" data-reason="{{ key }}">{{ reasons.LABELS.get(key, key) }}</button>
             {% endfor %}
         </div>
         <textarea id="invalidation_comment" class="textarea textarea-bordered w-full mt-4 hidden"
-            placeholder="Expliquez ici..."></textarea>
+            placeholder="{{ _('Explain here…') }}"></textarea>
         <div class="modal-action">
-            <button id="submit_invalidation" class="btn btn-error" onclick="publishComment()">Soumettre</button>
-            <button onclick="document.getElementById('invalidation_modal').close()" class="btn">Annuler</button>
+            <button id="submit_invalidation" class="btn btn-error" onclick="publishComment()">{{ _('Submit') }}</button>
+            <button onclick="document.getElementById('invalidation_modal').close()" class="btn">{{ _('Cancel') }}</button>
         </div>
     </div>
 </dialog>

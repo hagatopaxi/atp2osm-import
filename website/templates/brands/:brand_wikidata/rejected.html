@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 
-{% block title %}Intégration annulée{% endblock %}
-{% block subtitle %}Des erreurs ont été détectées dans les données, l'intégration ne sera pas effectuée.{% endblock %}
+{% block title %}{{ _('Integration cancelled') }}{% endblock %}
+{% block subtitle %}{{ _('Errors were found in the data; the integration will not be carried out.') }}{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/rejected.js?v={{ app_version }}" type="text/javascript"></script>
@@ -10,21 +10,20 @@
 {% block content %}
 <div class="flex flex-col gap-4">
 
-    <h2 class="text-lg font-semibold">Points de données invalidés</h2>
+    <h2 class="text-lg font-semibold">{{ _('Data points rejected') }}</h2>
 
     <div id="invalidations_list" class="flex flex-col gap-2">
     </div>
 
     <div class="card bg-base-100 border-base-300 border shadow-md p-6">
-        <p class="text-base">En confirmant, vos signalements seront enregistrés dans l'historique. Les données concernées
-            seront écartées des prochaines intégrations, tant qu'elles n'auront pas été corrigées.</p>
+        <p class="text-base">{{ _('On confirmation, your reports are recorded in the history. The data concerned is left out of the next integrations until it has been fixed.') }}</p>
     </div>
 
     <div class="flex gap-2 self-end">
-        <a class="btn btn-ghost" href="/brands">Annuler</a>
+        <a class="btn btn-ghost" href="/brands">{{ _('Cancel') }}</a>
         <button id="confirm_btn" class="btn btn-error" onclick="confirmRejection()">
             <div id="loading" class="loading loading-spinner loading-md hidden"></div>
-            Confirmer le signalement
+            {{ _('Confirm the report') }}
         </button>
     </div>
 

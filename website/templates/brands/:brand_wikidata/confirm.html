@@ -1,8 +1,8 @@
 {% extends '_base.html' %}
 {% from '_info_card.html' import info_card %}
 
-{% block title %}2/2 - Confirmation de l'intégration{% endblock %}
-{% block subtitle %}Dernière étape avant l'intégration.{% endblock %}
+{% block title %}{{ _('2/2 - Confirming the integration') }}{% endblock %}
+{% block subtitle %}{{ _('Last step before the integration.') }}{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/confirm.js?v={{ app_version }}" type="text/javascript"></script>
@@ -18,27 +18,27 @@
 {% endmacro %}
 
 {% block content %}
-<h2 class="text-lg">Taille de l'intégration</h2>
+<h2 class="text-lg">{{ _('Size of the integration') }}</h2>
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-    {{ render_stat_card("Nombre de POI", stats["size"]) }}
-    {{ render_stat_card("Nombre de tag", stats["total_tag_updates"]) }}
+    {{ render_stat_card(_('POI count'), stats["size"]) }}
+    {{ render_stat_card(_('Tag count'), stats["total_tag_updates"]) }}
 </div>
 
-<h2 class="text-lg">Nombre de mise à jour par tag</h2>
+<h2 class="text-lg">{{ _('Updates per tag') }}</h2>
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
     {% for stat in stats["by_tag"] %}
     {{ render_stat_card(stat, stats["by_tag"][stat]) }}
     {% endfor %}
 </div>
 
-<h2 class="text-lg">Nombre de mise à jour par département</h2>
+<h2 class="text-lg">{{ _('Updates per subdivision') }}</h2>
 <div class="overflow-x-auto shrink-0">
     <table class="table table-zebra w-full">
         <thead>
             <tr>
-                <th>N°</th>
-                <th>Département</th>
-                <th>Points mis à jour</th>
+                <th>{{ _('Code') }}</th>
+                <th>{{ _('Subdivision') }}</th>
+                <th>{{ _('Points updated') }}</th>
             </tr>
         </thead>
         <tbody>
@@ -53,21 +53,21 @@
     </table>
 </div>
 
-<button class="btn btn-primary mt-4 self-end" onclick="document.getElementById('last_confirm_modal').show()">Confirmer l'intégration</button>
+<button class="btn btn-primary mt-4 self-end" onclick="document.getElementById('last_confirm_modal').show()">{{ _('Confirm the integration') }}</button>
 <dialog id="last_confirm_modal" class="modal">
     <div class="modal-box">
-        <h3 class="font-bold text-lg">Attention cette action est irréversible ?</h3>
+        <h3 class="font-bold text-lg">{{ _('This action cannot be undone') }}</h3>
         {% call info_card('warning', '', 'id="warning"') %}
-        <span>Attention ! Les changements seront irréversibles.</span>
+        <span>{{ _('Careful! The changes cannot be reverted from here.') }}</span>
         {% endcall %}
 
         <div class="modal-action">
             <button id="submit_importation" class="btn btn-error" onclick="confirm_import()">
                 <div id="loading" class="loading loading-spinner loading-md hidden"></div>
-                Intégrer les données
+                {{ _('Integrate the data') }}
             </button>
             <button id="cancel" onclick="document.getElementById('last_confirm_modal').close()"
-                class="btn">Annuler</button>
+                class="btn">{{ _('Cancel') }}</button>
         </div>
     </div>
 </dialog>

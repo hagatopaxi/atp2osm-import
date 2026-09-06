@@ -151,3 +151,16 @@ def test_every_message_is_translated():
             strings = message.string if isinstance(message.string, tuple) else (message.string,)
             assert all(strings), f"{path}: untranslated {message.id!r}"
             assert not message.fuzzy, f"{path}: fuzzy {message.id!r}"
+
+
+def test_every_template_compiles():
+    """A `{% trans %}` block that is malformed only shows up at render time."""
+    from flask import Flask
+
+    from src import i18n
+    from src.config import TEMPLATE_DIR
+
+    app = Flask(__name__, template_folder=TEMPLATE_DIR)
+    i18n.init_app(app, ("fr",), ("/",))
+    for name in app.jinja_env.list_templates():
+        app.jinja_env.get_template(name)
