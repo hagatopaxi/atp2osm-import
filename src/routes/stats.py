@@ -16,12 +16,13 @@ FILTERS = {
     "user": "osm_user_id",
 }
 
-# Quick time ranges: (label, bar granularity, first period shown). The
-# granularity follows from the range, so the charts always hold 5 to 8 bars.
+# Quick time ranges: (bar granularity, first period shown). The granularity
+# follows from the range, so the charts always hold 5 to 8 bars. The labels
+# belong to the template, which is where a translated string can be resolved.
 RANGES = {
-    "7days": ("7 jours", "day", "date_trunc('day', NOW()) - INTERVAL '6 days'"),
-    "8weeks": ("8 semaines", "week", "date_trunc('week', NOW()) - INTERVAL '7 weeks'"),
-    "all": ("Total", "month", "date_trunc('month', (SELECT MIN(import_date) FROM import_history))"),
+    "7days": ("day", "date_trunc('day', NOW()) - INTERVAL '6 days'"),
+    "8weeks": ("week", "date_trunc('week', NOW()) - INTERVAL '7 weeks'"),
+    "all": ("month", "date_trunc('month', (SELECT MIN(import_date) FROM import_history))"),
 }
 DEFAULT_RANGE = "8weeks"
 
@@ -173,7 +174,7 @@ def stats():
     range_key = request.args.get("range", DEFAULT_RANGE)
     if range_key not in RANGES:
         range_key = DEFAULT_RANGE
-    _, unit, start = RANGES[range_key]
+    unit, start = RANGES[range_key]
     if range_key != "all":
         where = f"{where} AND import_date >= {start}" if where else f"WHERE import_date >= {start}"
     filters["range"] = range_key

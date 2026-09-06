@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-06 18:43+0200\n"
+"POT-Creation-Date: 2026-09-06 19:01+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -22,7 +22,7 @@ msgid "Toggle the sidebar"
 msgstr ""
 
 #: website/templates/_aside.html:24 website/templates/brands.html:14
-#: website/templates/history.html:15
+#: website/templates/history.html:15 website/templates/stats.html:13
 msgid "Home"
 msgstr ""
 
@@ -37,7 +37,9 @@ msgstr ""
 msgid "Integration history"
 msgstr ""
 
-#: website/templates/_aside.html:27
+#: website/templates/_aside.html:27 website/templates/home.html:81
+#: website/templates/stats.html:4 website/templates/stats.html:14
+#: website/templates/stats.html:28
 msgid "Statistics"
 msgstr ""
 
@@ -132,11 +134,12 @@ msgid "Sign in with your OpenStreetMap account to start an integration."
 msgstr ""
 
 #: website/templates/brands.html:49 website/templates/history.html:41
-#: website/templates/history_detail.html:68
+#: website/templates/history_detail.html:68 website/templates/stats.html:71
 msgid "Brand"
 msgstr ""
 
 #: website/templates/brands.html:52 website/templates/history.html:44
+#: website/templates/stats.html:74
 msgid "Name or Wikidata code"
 msgstr ""
 
@@ -145,7 +148,7 @@ msgid "Previous status"
 msgstr ""
 
 #: website/templates/brands.html:59 website/templates/history.html:51
-#: website/templates/history.html:61
+#: website/templates/history.html:61 website/templates/stats.html:81
 msgid "All"
 msgstr ""
 
@@ -175,7 +178,7 @@ msgstr ""
 #: website/templates/brands.html:65 website/templates/brands.html:129
 #: website/templates/history.html:35 website/templates/history.html:133
 #: website/templates/history_detail.html:85
-#: website/templates/history_detail.html:200
+#: website/templates/history_detail.html:200 website/templates/home.html:114
 msgid "Error"
 msgstr ""
 
@@ -192,10 +195,12 @@ msgid "To"
 msgstr ""
 
 #: website/templates/brands.html:84 website/templates/history.html:79
+#: website/templates/stats.html:100
 msgid "Filter"
 msgstr ""
 
 #: website/templates/brands.html:85 website/templates/history.html:81
+#: website/templates/stats.html:102
 msgid "Reset"
 msgstr ""
 
@@ -252,11 +257,11 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: website/templates/history.html:59
+#: website/templates/history.html:59 website/templates/stats.html:79
 msgid "User"
 msgstr ""
 
-#: website/templates/history.html:68
+#: website/templates/history.html:68 website/templates/stats.html:88
 msgid "Period"
 msgstr ""
 
@@ -272,7 +277,7 @@ msgstr ""
 msgid "No integration recorded yet."
 msgstr ""
 
-#: website/templates/history.html:99
+#: website/templates/history.html:99 website/templates/stats.html:150
 #, python-format
 msgid "%(count)s integration"
 msgid_plural "%(count)s integrations"
@@ -292,6 +297,7 @@ msgid "OSM user"
 msgstr ""
 
 #: website/templates/history.html:108 website/templates/history_detail.html:123
+#: website/templates/home.html:89 website/templates/stats.html:110
 msgid "POIs integrated"
 msgstr ""
 
@@ -413,5 +419,274 @@ msgstr ""
 
 #: website/templates/history_detail.html:221
 msgid "No changeset recorded."
+msgstr ""
+
+#: website/templates/home.html:3
+msgid "atp2osm enriches OpenStreetMap with the AllThePlaces data: opening hours, phone, website, email. A semi-automatic integration reviewed by OSM contributors."
+msgstr ""
+
+#: website/templates/home.html:4
+msgid "atp2osm — Enrich OpenStreetMap with the AllThePlaces data"
+msgstr ""
+
+#: website/templates/home.html:5
+msgid "A collaborative tool to integrate the AllThePlaces points of interest into OpenStreetMap."
+msgstr ""
+
+#: website/templates/home.html:13
+msgid "A semi-automatic tool to integrate the AllThePlaces (ATP) data into OpenStreetMap. Spatial matching and collaborative review of the tags."
+msgstr ""
+
+#: website/templates/home.html:36
+msgid "A tool to integrate the AllThePlaces data into OpenStreetMap."
+msgstr ""
+
+#: website/templates/home.html:49
+msgid "Enrich OpenStreetMap with the AllThePlaces data"
+msgstr ""
+
+#: website/templates/home.html:50
+msgid "Integrate the AllThePlaces points of interest into OpenStreetMap."
+msgstr ""
+
+#: website/templates/home.html:55
+#, python-format
+msgid "<strong>atp2osm</strong> matches the points of interest (POIs) of the <a href=\"%(atp)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">All The Places</a> database against the objects that already exist in <a href=\"%(osm)s\" class=\"link link-primary\" target=\"_blank\" rel=\"noopener\">OpenStreetMap</a>."
+msgstr ""
+
+#: website/templates/home.html:58
+msgid "For every brand, the tool finds the matches by geographic proximity and by attributes (name, brand, phone, email, website), then offers the tag updates for review before integration."
+msgstr ""
+
+#: website/templates/home.html:61
+#, python-format
+msgid "To follow how the integrations progress in your area, the result can be browsed on this site: <a class=\"link link-primary\" href=\"%(link)s\" target=\"_blank\" rel=\"noopener\">%(link)s</a>"
+msgstr ""
+
+#: website/templates/home.html:68
+msgid "Start integrating!"
+msgstr ""
+
+#: website/templates/home.html:72
+msgid "Sign in to OSM to start"
+msgstr ""
+
+#: website/templates/home.html:76
+msgid "How does it work?"
+msgstr ""
+
+#: website/templates/home.html:83
+msgid "See all"
+msgstr ""
+
+#: website/templates/home.html:90 website/templates/stats.html:111
+msgid "Tags added"
+msgstr ""
+
+#: website/templates/home.html:91 website/templates/stats.html:203
+msgid "Brands integrated"
+msgstr ""
+
+#: website/templates/home.html:92 website/templates/stats.html:114
+msgid "Contributors"
+msgstr ""
+
+#: website/templates/home.html:105
+msgid "Data status"
+msgstr ""
+
+#: website/templates/home.html:116
+msgid "Syncing"
+msgstr ""
+
+#: website/templates/home.html:121
+msgid "Source:"
+msgstr ""
+
+#: website/templates/home.html:128
+msgid "Last check:"
+msgstr ""
+
+#: website/templates/home.html:132
+msgid "No data integrated"
+msgstr ""
+
+#: website/templates/stats.html:3
+msgid "Statistics of the AllThePlaces integrations into OpenStreetMap: POI volume, tags enriched, spider reliability, brands and contributors."
+msgstr ""
+
+#: website/templates/stats.html:5
+msgid "Integration statistics"
+msgstr ""
+
+#: website/templates/stats.html:29
+msgid "What the integrations brought to OpenStreetMap: volumes, tags enriched, reliability of the spiders and of the changesets."
+msgstr ""
+
+#: website/templates/stats.html:35
+msgid "No data over this period."
+msgstr ""
+
+#: website/templates/stats.html:90
+msgid "7 days"
+msgstr ""
+
+#: website/templates/stats.html:90
+msgid "8 weeks"
+msgstr ""
+
+#: website/templates/stats.html:90
+msgid "All time"
+msgstr ""
+
+#: website/templates/stats.html:112 website/templates/stats.html:178
+msgid "Integrations"
+msgstr ""
+
+#: website/templates/stats.html:113
+msgid "Brands"
+msgstr ""
+
+#: website/templates/stats.html:115
+msgid "Spider reliability"
+msgstr ""
+
+#: website/templates/stats.html:129
+msgid "day"
+msgstr ""
+
+#: website/templates/stats.html:129
+msgid "week"
+msgstr ""
+
+#: website/templates/stats.html:129
+msgid "month"
+msgstr ""
+
+#: website/templates/stats.html:131
+msgid "Pace and progress"
+msgstr ""
+
+#: website/templates/stats.html:133
+#, python-format
+msgid "What each %(unit)s brought to OpenStreetMap, and what it all adds up to. Both series share one scale: the height of a bar reads directly as the share of that period in the total."
+msgstr ""
+
+#: website/templates/stats.html:136
+#, python-format
+msgid "POIs integrated per %(unit)s"
+msgstr ""
+
+#: website/templates/stats.html:137
+msgid "Running total"
+msgstr ""
+
+#: website/templates/stats.html:145
+#, python-format
+msgid "%(period)s: %(pois)s POIs, running total %(cumulative)s. "
+msgstr ""
+
+#: website/templates/stats.html:150
+#, python-format
+msgid "running total %(cumulative)s"
+msgstr ""
+
+#: website/templates/stats.html:174
+msgid "Integrations per contributor"
+msgstr ""
+
+#: website/templates/stats.html:175
+msgid "OSM contributors ranked by integration volume."
+msgstr ""
+
+#: website/templates/stats.html:185
+msgid "Missing brands added"
+msgstr ""
+
+#: website/templates/stats.html:186
+msgid "OSM contributors ranked by the number of brands missing from ATP they added."
+msgstr ""
+
+#: website/templates/stats.html:192
+msgid "Tags enriched"
+msgstr ""
+
+#: website/templates/stats.html:196
+msgid "Most integrated brands"
+msgstr ""
+
+#: website/templates/stats.html:200
+msgid "Reliability of the ATP data"
+msgstr ""
+
+#: website/templates/stats.html:201
+#, python-format
+msgid "Share of the brands whose integration was accepted, per %(unit)s. A brand counts once, whatever the volume behind it; a period without data is empty."
+msgstr ""
+
+#: website/templates/stats.html:204
+msgid "Brands rejected"
+msgstr ""
+
+#: website/templates/stats.html:210
+#, python-format
+msgid "%(period)s: %(rate)s %% reliability. "
+msgstr ""
+
+#: website/templates/stats.html:214
+#, python-format
+msgid "%(count)s brand integrated"
+msgid_plural "%(count)s brands integrated"
+msgstr[0] ""
+msgstr[1] ""
+
+#: website/templates/stats.html:214
+#, python-format
+msgid "%(count)s rejected"
+msgid_plural "%(count)s rejected"
+msgstr[0] ""
+msgstr[1] ""
+
+#: website/templates/stats.html:229
+msgid "No review over this period."
+msgstr ""
+
+#: website/templates/stats.html:232
+msgid "Reliability of the OSM data"
+msgstr ""
+
+#: website/templates/stats.html:232
+msgid "A changeset is almost always refused because the local copy of OpenStreetMap has aged: one of the POIs no longer carries the same version in OSM and in the atp2osm database. The API then rejects the changeset as a whole."
+msgstr ""
+
+#: website/templates/stats.html:234
+msgid "Accepted"
+msgstr ""
+
+#: website/templates/stats.html:235
+msgid "Refused"
+msgstr ""
+
+#: website/templates/stats.html:243
+#, python-format
+msgid "%(period)s: %(rate)s %% of changesets accepted. "
+msgstr ""
+
+#: website/templates/stats.html:248
+#, python-format
+msgid "%(count)s accepted"
+msgid_plural "%(count)s accepted"
+msgstr[0] ""
+msgstr[1] ""
+
+#: website/templates/stats.html:248
+#, python-format
+msgid "%(count)s refused"
+msgid_plural "%(count)s refused"
+msgstr[0] ""
+msgstr[1] ""
+
+#: website/templates/stats.html:263
+msgid "No changeset over this period."
 msgstr ""
 
