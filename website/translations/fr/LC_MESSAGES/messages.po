@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-06 19:36+0200\n"
+"POT-Creation-Date: 2026-09-06 19:39+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -17,6 +17,11 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
+
+#: src/upload.py:89
+#, python-format
+msgid "ATP data integration (%(subdivision)s; %(brand)s)"
+msgstr "Intégration des données ATP (%(subdivision)s ; %(brand)s)"
 
 #: website/templates/_aside.html:8
 msgid "Toggle the sidebar"

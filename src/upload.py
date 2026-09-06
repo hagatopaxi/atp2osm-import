@@ -6,6 +6,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import osmapi
+from flask_babel import gettext
+
 from src.config import get_settings
 from src.matching import BATCH_MAX_SIZE, subdivision_names
 from osmapi.errors import ApiError
@@ -64,7 +66,12 @@ class BulkUpload:
 
     def upload(self) -> list[tuple[str, str]]:
         """Upload all changes. Returns a list of (error_type, message) tuples; empty list means full success.
-        error_type is 'osm_api' for OSM API errors (ApiError), 'unknown' for unexpected exceptions."""
+        error_type is 'osm_api' for OSM API errors (ApiError), 'unknown' for unexpected exceptions.
+
+        The changeset comment follows the language the contributor is browsing
+        in. That is a language of the country — LOCALES holds the country's
+        languages — so the community that reviews the changeset can read it,
+        whoever uploaded it."""
         if len(self.changes) == 0:
             return []
 
@@ -78,7 +85,11 @@ class BulkUpload:
                 sub_label = names[sub]
                 changeset = self.api.changeset_create(
                     {
-                        "comment": f"Intégration des données ATP ({sub_label}; {self.brand_name})",
+                        "comment": gettext(
+                            "ATP data integration (%(subdivision)s; %(brand)s)",
+                            subdivision=sub_label,
+                            brand=self.brand_name,
+                        ),
                         "created_by": "atp2osm",
                         "source": "https://alltheplaces.xyz",
                         "wiki": "https://wiki.openstreetmap.org/wiki/atp2osm",

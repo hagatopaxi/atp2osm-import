@@ -304,7 +304,7 @@ def fetch_osm_users(user_ids):
         }
     except Exception:
         logger.exception("Failed to fetch OSM user details")
-        return cached  # l'API est muette : on sert au moins ce qu'on a
+        return cached  # the API said nothing: serve at least what we hold
 
     expires = now + OSM_USER_CACHE_TTL
     for uid, name in fetched.items():

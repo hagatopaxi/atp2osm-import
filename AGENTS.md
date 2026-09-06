@@ -12,7 +12,25 @@ Code is written **in English**: comments, docstrings, variable, function and tes
 
 Log messages and the output of the `scripts/` maintenance tools count as code, and are English too.
 
-French stays the language of user-facing text (templates, displayed error messages, labels) and of the OSM changeset comment.
+User-facing text is written in English too, and translated through gettext.
+A label in a template is `{{ _('Brands to integrate') }}`; a sentence with a
+variable, a plural or inline markup is a `{% trans %}` block. French is one
+catalog among others, in `website/translations/fr/`.
+
+Nothing translatable lives in a module constant: a string there is read before
+any request exists, so it has no locale to resolve against. The keys stay in
+Python — they are data — and the labels go to the template that displays them
+(`RANGES`, `ERROR_REASONS`, `PUBLIC_PAGES` all work that way).
+
+The scripts get their strings from `_js_strings.html`, rendered as a JSON block
+and read by `t()` in `static/js/i18n.js`. Babel does not read `.js`.
+
+`./scripts/i18n.sh` extracts, updates and compiles the catalogs — run it after
+touching a translatable string, and fill the empty `msgstr` it leaves behind.
+The `.mo` files are build artefacts: gitignored, compiled in the image.
+
+The OSM changeset comment follows the contributor's language, which `LOCALES`
+constrains to the languages of the country served.
 
 ## Commits
 
