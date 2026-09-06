@@ -1,17 +1,17 @@
 # French translations for atp2osm.
-# Copyright (C) 2026 ORGANIZATION
+# Copyright (C) 2026 the atp2osm contributors
 # This file is distributed under the same license as the atp2osm project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+# The atp2osm contributors, 2026.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
-"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-06 19:39+0200\n"
+"Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
+"POT-Creation-Date: 2026-09-06 20:10+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
-"Language-Team: fr <LL@li.org>\n"
+"Language-Team: fr <https://github.com/hagatopaxi/atp2osm-import>\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
