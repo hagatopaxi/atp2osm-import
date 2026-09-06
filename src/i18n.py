@@ -18,6 +18,8 @@ from flask_babel import Babel, get_locale
 from werkzeug.utils import redirect
 from werkzeug.wrappers import Request
 
+from src.config import TRANSLATIONS_DIR
+
 logger = logging.getLogger(__name__)
 
 COOKIE_NAME = "lang"
@@ -133,6 +135,7 @@ def init_app(app, locales, translated, timezone="UTC"):
     """Wire the prefix middleware, Babel, the cookie and the Jinja globals."""
     app.wsgi_app = LanguagePrefix(app.wsgi_app, locales, translated)
     app.config["BABEL_DEFAULT_LOCALE"] = locales[0]
+    app.config["BABEL_TRANSLATION_DIRECTORIES"] = str(TRANSLATIONS_DIR)
     app.config["BABEL_DEFAULT_TIMEZONE"] = timezone
     babel.init_app(
         app, locale_selector=lambda: request.environ.get(ENVIRON_KEY) or locales[0]

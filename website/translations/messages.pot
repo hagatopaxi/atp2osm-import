@@ -1,0 +1,96 @@
+# Translations template for atp2osm.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the atp2osm project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: atp2osm VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-09-06 17:05+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: website/templates/_aside.html:8
+msgid "Toggle the sidebar"
+msgstr ""
+
+#: website/templates/_aside.html:24
+msgid "Home"
+msgstr ""
+
+#: website/templates/_aside.html:25
+msgid "Brands to integrate"
+msgstr ""
+
+#: website/templates/_aside.html:26
+msgid "Integration history"
+msgstr ""
+
+#: website/templates/_aside.html:27
+msgid "Statistics"
+msgstr ""
+
+#: website/templates/_aside.html:28
+msgid "Missing brands"
+msgstr ""
+
+#: website/templates/_aside.html:29
+msgid "Documentation"
+msgstr ""
+
+#: website/templates/_aside.html:35
+msgid "Language"
+msgstr ""
+
+#: website/templates/_aside.html:53
+msgid "About"
+msgstr ""
+
+#: website/templates/_aside.html:54
+msgid "Open-source project. Contributions welcome!"
+msgstr ""
+
+#: website/templates/_aside.html:59
+msgid "GPL-3.0 licence"
+msgstr ""
+
+#: website/templates/_aside.html:60
+#, python-format
+msgid "Data © <a href=\"%(link)s\" target=\"_blank\" rel=\"noopener\" class=\"link\">OpenStreetMap contributors</a>, ODbL"
+msgstr ""
+
+#: website/templates/_aside.html:78
+msgid "Log out"
+msgstr ""
+
+#: website/templates/_aside.html:84 website/templates/_aside.html:86
+msgid "Sign in with OSM"
+msgstr ""
+
+#: website/templates/_base.html:7
+msgid "Enrich OpenStreetMap with AllThePlaces"
+msgstr ""
+
+#: website/templates/_base.html:8
+msgid "atp2osm — Integrate AllThePlaces points of interest into OpenStreetMap. A collaborative contribution tool for OSM mappers."
+msgstr ""
+
+#: website/templates/_base.html:23 website/templates/_base.html:28
+msgid "atp2osm — Enrich OpenStreetMap with AllThePlaces"
+msgstr ""
+
+#: website/templates/_base.html:24
+msgid "Integrate AllThePlaces points of interest into OpenStreetMap. A collaborative contribution tool for OSM mappers."
+msgstr ""
+
+#: website/templates/_base.html:56
+msgid "Open the sidebar"
+msgstr ""
+

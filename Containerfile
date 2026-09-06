@@ -20,6 +20,9 @@ COPY website/ website/
 COPY static/ static/
 COPY migrations/ migrations/
 
+# Catalogs are compiled here: only the .po files are tracked
+RUN uv run --no-sync pybabel compile -d website/translations
+
 ARG GIT_COMMIT
 LABEL git-commit=${GIT_COMMIT}
 ENV GIT_COMMIT=${GIT_COMMIT}

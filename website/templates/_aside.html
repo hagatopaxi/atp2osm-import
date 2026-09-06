@@ -5,7 +5,7 @@
       <img src="/static/img/logo.svg" alt="atp2osm logo" class="w-6 h-6 shrink-0" />
       atp2osm{% if is_dev %}<span class="badge badge-warning badge-sm">DEV</span>{% endif %}
     </div>
-    <label for="sidebar-toggle" class="btn btn-ghost btn-sm btn-square shrink-0" title="Basculer la barre latérale">
+    <label for="sidebar-toggle" class="btn btn-ghost btn-sm btn-square shrink-0" title="{{ _('Toggle the sidebar') }}">
       <i class="iconoir-sidebar-collapse sidebar-collapse-icon"></i>
       <i class="iconoir-sidebar-expand sidebar-expand-icon"></i>
     </label>
@@ -21,18 +21,18 @@
   {% endmacro %}
 
   <ul class="menu p-0 w-full gap-2">
-    {{ nav_item('/',        'iconoir-home',    'Accueil',             exact=true) }}
-    {{ nav_item('/brands',  'iconoir-archery', 'Marques à intégrer') }}
-    {{ nav_item('/history', 'iconoir-clock',   'Historique des intégrations') }}
-    {{ nav_item('/stats',   'iconoir-graph-up', 'Statistiques') }}
-    {{ nav_item('/todo',    'iconoir-list',    'Marques manquantes') }}
-    {{ nav_item('/docs',    'iconoir-book',    'Documentation') }}
+    {{ nav_item('/',        'iconoir-home',    _('Home'),                  exact=true) }}
+    {{ nav_item('/brands',  'iconoir-archery', _('Brands to integrate')) }}
+    {{ nav_item('/history', 'iconoir-clock',   _('Integration history')) }}
+    {{ nav_item('/stats',   'iconoir-graph-up', _('Statistics')) }}
+    {{ nav_item('/todo',    'iconoir-list',    _('Missing brands')) }}
+    {{ nav_item('/docs',    'iconoir-book',    _('Documentation')) }}
   </ul>
 
   <div class="flex-1"></div>
 
   {% if locales | length > 1 %}
-  <nav class="w-full shrink-0 mt-6" aria-label="{{ _('Langue') }}">
+  <nav class="w-full shrink-0 mt-6" aria-label="{{ _('Language') }}">
     <details class="dropdown dropdown-top w-full">
       <summary class="btn btn-ghost btn-sm w-full justify-start">
         <i class="iconoir-language"></i>
@@ -50,14 +50,14 @@
   {% endif %}
 
   <div class="shrink-0 mt-6 mb-4 p-3 bg-base-100 rounded-md text-sm shadow-sm sidebar-hide">
-    <p class="font-bold mb-1 flex gap-2 items-center"><i class="iconoir-info-circle"></i> À propos</p>
-    <p class="mb-2">Projet open-source. Contributions bienvenues !</p>
+    <p class="font-bold mb-1 flex gap-2 items-center"><i class="iconoir-info-circle"></i> {{ _('About') }}</p>
+    <p class="mb-2">{{ _('Open-source project. Contributions welcome!') }}</p>
     <a href="https://github.com/hagatopaxi/atp2osm-import" class="link link-primary text-xs" target="_blank"
       rel="noopener">
       <i class="iconoir-github"></i> GitHub
     </a>
-    <p class="mt-1 text-xs opacity-60">Licence GPL-3.0</p>
-    <p class="mt-1 text-xs opacity-60">Données © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" class="link">OpenStreetMap contributors</a>, ODbL</p>
+    <p class="mt-1 text-xs opacity-60">{{ _('GPL-3.0 licence') }}</p>
+    <p class="mt-1 text-xs opacity-60">{% trans link='https://www.openstreetmap.org/copyright' %}Data © <a href="{{ link }}" target="_blank" rel="noopener" class="link">OpenStreetMap contributors</a>, ODbL{% endtrans %}</p>
     <p class="mt-1 text-xs opacity-60 font-mono">{{ app_version }}</p>
   </div>
 
@@ -75,15 +75,15 @@
           data-tip="{{ session['user']['name'] }}" target="_blank" rel="noopener">{{ session['user']['name'] }}</a>
         <p class="text-xs opacity-60">OpenStreetMap</p>
       </div>
-      <button class="btn btn-ghost btn-sm btn-square text-error sidebar-hide" onclick="logout()" title="Deconnexion">
+      <button class="btn btn-ghost btn-sm btn-square text-error sidebar-hide" onclick="logout()" title="{{ _('Log out') }}">
         <i class="iconoir-log-out text-xl"></i>
       </button>
     </div>
     {% else %}
     <button class="btn btn-primary w-full rounded-full sidebar-hide" onclick="login()">
-      <i class="iconoir-log-in"></i> Se connecter avec OSM
+      <i class="iconoir-log-in"></i> {{ _('Sign in with OSM') }}
     </button>
-    <button class="btn btn-primary btn-circle sidebar-show" onclick="login()" title="Se connecter avec OSM">
+    <button class="btn btn-primary btn-circle sidebar-show" onclick="login()" title="{{ _('Sign in with OSM') }}">
       <i class="iconoir-log-in"></i>
     </button>
     {% endif %}
