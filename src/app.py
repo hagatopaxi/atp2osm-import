@@ -13,7 +13,7 @@ from src.migrate import run_migrations
 from src.phone import ensure_normalize_phone
 from src.routes.auth import auth_bp
 from src.routes.brands import brands_bp
-from src.error_reasons import ERROR_REASONS, REASON_LABELS
+from src.error_reasons import ERROR_REASONS
 from src.routes.export import export_bp
 from src.routes.history import history_bp
 from src.routes.misc import misc_bp
@@ -84,7 +84,6 @@ def inject_globals():
         "is_dev": settings.is_dev,
         "country_code": settings.country_code,
         "error_reasons": ERROR_REASONS,
-        "reason_labels": REASON_LABELS,
     }
 
 

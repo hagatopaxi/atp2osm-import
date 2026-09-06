@@ -1,9 +1,9 @@
 {% extends '_base.html' %}
 {% from '_sort_th.html' import sort_th with context %}
 
-{% block meta_description %}Liste des {{ total_brands }} marques disponibles à l'intégration dans OpenStreetMap via atp2osm. Données issues d'AllThePlaces, validées par les contributeurs OSM.{% endblock %}
-{% block page_title %}Marques à intégrer{% endblock %}
-{% block og_title %}Marques à intégrer — atp2osm{% endblock %}
+{% block meta_description %}{% trans count=total_brands %}The {{ count }} brands available for integration into OpenStreetMap through atp2osm. Data from AllThePlaces, reviewed by OSM contributors.{% endtrans %}{% endblock %}
+{% block page_title %}{{ _('Brands to integrate') }}{% endblock %}
+{% block og_title %}{{ _('Brands to integrate') }} — atp2osm{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -11,16 +11,15 @@
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "{{ request.host_url }}" },
-    { "@type": "ListItem", "position": 2, "name": "Marques à intégrer" }
+    { "@type": "ListItem", "position": 1, "name": "{{ _('Home') }}", "item": "{{ request.host_url }}" },
+    { "@type": "ListItem", "position": 2, "name": "{{ _('Brands to integrate') }}" }
   ]
 }
 </script>
 {% endblock %}
 
-{% block title %}Liste des marques à intégrer dans OpenStreetMap{% endblock %}
-{% block subtitle %}{{ total_brands }} marque{{ 's' if total_brands > 1 }} — données issues de la base All The Places.{%
-endblock %}
+{% block title %}{{ _('Brands to integrate into OpenStreetMap') }}{% endblock %}
+{% block subtitle %}{% trans count=total_brands %}{{ count }} brand — data from the All The Places database.{% pluralize %}{{ count }} brands — data from the All The Places database.{% endtrans %}{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/filters.js?v={{ app_version }}"></script>
@@ -33,11 +32,11 @@ endblock %}
 {% if 'user' not in session %}
 {% call info_card('info', 'mb-4 max-w-3xl') %}
 <div>
-    <p class="font-semibold">Connexion requise</p>
-    <p class="text-sm">Connectez-vous avec votre compte OpenStreetMap pour lancer une intégration.</p>
+    <p class="font-semibold">{{ _('Sign-in required') }}</p>
+    <p class="text-sm">{{ _('Sign in with your OpenStreetMap account to start an integration.') }}</p>
 </div>
 <button onclick="login('/brands')" class="btn btn-sm btn-primary rounded-full self-start">
-    <i class="iconoir-log-in"></i> Se connecter avec OSM
+    <i class="iconoir-log-in"></i> {{ _('Sign in with OSM') }}
 </button>
 {% endcall %}
 {% endif %}
@@ -47,23 +46,23 @@ endblock %}
 <input type="hidden" name="dir" value="{{ direction }}" />
     <div class="flex flex-wrap items-end gap-3 mb-4">
         <fieldset class="fieldset">
-            <legend class="fieldset-legend">Marque</legend>
+            <legend class="fieldset-legend">{{ _('Brand') }}</legend>
             <label class="input input-sm w-56">
                 <i class="iconoir-search opacity-50"></i>
-                <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="Nom ou code Wikidata"
+                <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
                     {{ 'autofocus' if filters.q }} />
             </label>
         </fieldset>
         <fieldset class="fieldset">
-            <legend class="fieldset-legend">Précédent statut</legend>
+            <legend class="fieldset-legend">{{ _('Previous status') }}</legend>
             <div class="filter">
-                <input class="btn btn-sm filter-reset" type="radio" name="status" value="" aria-label="Tous" />
+                <input class="btn btn-sm filter-reset" type="radio" name="status" value="" aria-label="{{ _('All') }}" />
                 {% for value, label, color in [
-                    ('none',      'Jamais intégrée', ''),
-                    ('success',   'Succès',          'btn-success'),
-                    ('partial',   'Partiel',         'btn-warning'),
-                    ('cancelled', 'Annulé',          'btn-info'),
-                    ('error',     'Erreur',          'btn-error')
+                    ('none',      _('Never integrated'), ''),
+                    ('success',   _('Success'),          'btn-success'),
+                    ('partial',   _('Partial'),          'btn-warning'),
+                    ('cancelled', _('Cancelled'),        'btn-info'),
+                    ('error',     _('Error'),            'btn-error')
                 ] %}
                 <input class="btn btn-sm {{ color }}" type="radio" name="status" value="{{ value }}"
                     aria-label="{{ label }}" {{ 'checked' if filters.status == value }} />
@@ -71,39 +70,39 @@ endblock %}
             </div>
         </fieldset>
         <fieldset class="fieldset">
-            <legend class="fieldset-legend">Dernière intégration</legend>
+            <legend class="fieldset-legend">{{ _('Last integration') }}</legend>
             <div class="join">
                 <input type="date" name="from" value="{{ filters['from'] or '' }}" class="input input-sm join-item"
-                    aria-label="Du" />
+                    aria-label="{{ _('From') }}" />
                 <input type="date" name="to" value="{{ filters['to'] or '' }}" class="input input-sm join-item"
-                    aria-label="Au" />
+                    aria-label="{{ _('To') }}" />
             </div>
         </fieldset>
         <fieldset class="fieldset">
             <legend class="fieldset-legend">&nbsp;</legend>
             <div class="join">
-                <button type="submit" class="btn btn-sm btn-primary join-item">Filtrer</button>
-                <a href="{{ url_for('brands.brands') }}" class="btn btn-sm btn-soft join-item">Réinitialiser</a>
+                <button type="submit" class="btn btn-sm btn-primary join-item">{{ _('Filter') }}</button>
+                <a href="{{ url_for('brands.brands') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
             </div>
         </fieldset>
-        <span class="text-sm text-base-content/60 ml-auto mb-2">{{ shown }} marque{{ 's' if shown > 1 }}</span>
+        <span class="text-sm text-base-content/60 ml-auto mb-2">{% trans count=shown %}{{ count }} brand{% pluralize %}{{ count }} brands{% endtrans %}</span>
     </div>
 </form>
 
 {% if shown == 0 %}
-<p class="text-base-content/60">Aucune marque ne correspond à ces filtres.</p>
+<p class="text-base-content/60">{{ _('No brand matches these filters.') }}</p>
 {% endif %}
 
 <div class="overflow-x-auto shrink-0">
 <table data-infinite-scroll class="table table-compact bg-base-100 rounded-2">
     <thead>
         <tr>
-            {{ sort_th('brands.brands', 'wikidata', 'Code Wikidata') }}
-            {{ sort_th('brands.brands', 'brand', 'Nom') }}
-            {{ sort_th('brands.brands', 'total', 'POIs à intégrer') }}
-            {{ sort_th('brands.brands', 'status', 'Précédent statut') }}
-            {{ sort_th('brands.brands', 'last_import', 'Dernière intégration') }}
-            <th>Actions</th>
+            {{ sort_th('brands.brands', 'wikidata', _('Wikidata code')) }}
+            {{ sort_th('brands.brands', 'brand', _('Name')) }}
+            {{ sort_th('brands.brands', 'total', _('POIs to integrate')) }}
+            {{ sort_th('brands.brands', 'status', _('Previous status')) }}
+            {{ sort_th('brands.brands', 'last_import', _('Last integration')) }}
+            <th>{{ _('Actions') }}</th>
         </tr>
     </thead>
     <tbody>
@@ -124,10 +123,10 @@ endblock %}
 
             <td>
                 {% set status_labels = {
-                    "success":   "Succès",
-                    "partial":   "Partiel",
-                    "cancelled": "Annulé",
-                    "error":     "Erreur"
+                    "success":   _('Success'),
+                    "partial":   _('Partial'),
+                    "cancelled": _('Cancelled'),
+                    "error":     _('Error')
                 } %}
                 {% set status_classes = {
                     "success":   "badge-success",
@@ -146,21 +145,21 @@ endblock %}
                 {% if row["last_import"] %}
                 {{ row["last_import"] | dateformat('short') }}
                 {% else %}
-                Jamais
+                {{ _('Never') }}
                 {% endif %}
             </td>
 
             <td>
                 <div class="row-actions">
                     {% if 'user' not in session %}
-                    {% set tooltip = "Vous devez vous connecter" %}
+                    {% set tooltip = _('You must sign in') %}
                     {% endif %}
                     {% set disabled = tooltip is defined %}
                     <div class="{{ 'tooltip tooltip-left' if disabled }}" {{ ('data-tip="' + tooltip + '"') | safe if disabled }}>
                         <a {% if not disabled %}href="/brands/{{ row['brand_wikidata'] }}/validate"{% endif %}
                         {{ 'disabled' if disabled }} class="btn btn-sm rounded-md whitespace-nowrap {{ 'btn-soft btn-accent' if not disabled }}">
                         <i class="iconoir-double-check"></i>
-                        Intégrer
+                        {{ _('Integrate') }}
                         </a>
                     </div>
                 </div>

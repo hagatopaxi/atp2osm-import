@@ -11,3 +11,4 @@ dist
 .worktrees
 .dev.log
 .claude
+*.mo

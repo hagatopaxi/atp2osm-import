@@ -3,9 +3,9 @@
 {% from '_export_menu.html' import export_menu %}
 {% from '_sort_th.html' import sort_th with context %}
 
-{% block meta_description %}Liste des marques françaises absentes d'AllThePlaces. Contribuez en signalant les enseignes manquantes pour enrichir OpenStreetMap.{% endblock %}
-{% block page_title %}Marques manquantes{% endblock %}
-{% block og_title %}Marques manquantes dans AllThePlaces — atp2osm{% endblock %}
+{% block meta_description %}{{ _('The brands missing from AllThePlaces. Report the ones absent to help enrich OpenStreetMap.') }}{% endblock %}
+{% block page_title %}{{ _('Missing brands') }}{% endblock %}
+{% block og_title %}{{ _('Brands missing from AllThePlaces') }} — atp2osm{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -13,16 +13,15 @@
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "{{ request.host_url }}" },
-    { "@type": "ListItem", "position": 2, "name": "Marques manquantes" }
+    { "@type": "ListItem", "position": 1, "name": "{{ _('Home') }}", "item": "{{ request.host_url }}" },
+    { "@type": "ListItem", "position": 2, "name": "{{ _('Missing brands') }}" }
   ]
 }
 </script>
 {% endblock %}
 
-{% block title %}Marques à intégrer{% endblock %}
-{% block subtitle %}Liste des marques identifiées pour lesquelles aucun spiders AllThePlaces n'existe. Cette liste
-permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquantes.{% endblock %}
+{% block title %}{{ _('Brands to integrate') }}{% endblock %}
+{% block subtitle %}{{ _('The brands identified for which no AllThePlaces spider exists. This list gives the AllThePlaces contributors a view of what is missing.') }}{% endblock %}
 
 {% block custom_js %}
 <script src="/static/js/filters.js?v={{ app_version }}"></script>
@@ -35,22 +34,22 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
 
   <div class="card bg-base-100 shadow-sm">
     <div class="card-body p-4">
-      <h2 class="card-title text-base">Ajouter une marque</h2>
+      <h2 class="card-title text-base">{{ _('Add a brand') }}</h2>
       <form id="add-form" onsubmit="addEntry(event)" class="flex flex-col gap-3">
         <div class="flex flex-wrap gap-3">
           <label class="form-control flex-1 min-w-48">
-            <div class="label"><span class="label-text">Nom de la marque</span></div>
-            <input id="input-name" type="text" placeholder="ex: Carrefour" class="input input-bordered"
+            <div class="label"><span class="label-text">{{ _('Brand name') }}</span></div>
+            <input id="input-name" type="text" placeholder="{{ _('e.g. Carrefour') }}" class="input input-bordered"
               onblur="checkDuplicate()" {% if 'user' not in session %}disabled{% endif %} />
           </label>
           <label class="form-control flex-1 min-w-48">
-            <div class="label"><span class="label-text">Code Wikidata <span class="text-base-content/50">(optionnel)</span></span></div>
-            <input id="input-wikidata" type="text" placeholder="ex: Q123456" class="input input-bordered"
+            <div class="label"><span class="label-text">{{ _('Wikidata code') }} <span class="text-base-content/50">{{ _('(optional)') }}</span></span></div>
+            <input id="input-wikidata" type="text" placeholder="{{ _('e.g. Q123456') }}" class="input input-bordered"
               onblur="checkDuplicate()" {% if 'user' not in session %}disabled{% endif %} />
           </label>
           <label class="form-control flex-1 min-w-48">
-            <div class="label"><span class="label-text">Estimation nb. POIs <span class="text-base-content/50">(optionnel)</span></span></div>
-            <input id="input-estimation" type="number" min="0" placeholder="ex: 200" class="input input-bordered"
+            <div class="label"><span class="label-text">{{ _('Estimated POI count') }} <span class="text-base-content/50">{{ _('(optional)') }}</span></span></div>
+            <input id="input-estimation" type="number" min="0" placeholder="{{ _('e.g. 200') }}" class="input input-bordered"
               {% if 'user' not in session %}disabled{% endif %} />
           </label>
         </div>
@@ -60,12 +59,12 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
 <div>
           {% if 'user' in session %}
           <button type="submit" class="btn btn-primary btn-sm">
-            <i class="iconoir-plus"></i> Ajouter
+            <i class="iconoir-plus"></i> {{ _('Add') }}
           </button>
           {% else %}
-          <div class="tooltip" data-tip="Vous devez vous connecter pour ajouter une marque">
+          <div class="tooltip" data-tip="{{ _('You must sign in to add a brand') }}">
             <button type="button" disabled class="btn btn-primary btn-sm">
-              <i class="iconoir-plus"></i> Ajouter
+              <i class="iconoir-plus"></i> {{ _('Add') }}
             </button>
           </div>
           {% endif %}
@@ -75,69 +74,69 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
   </div>
 
   {% if total == 0 %}
-  <p class="text-base-content/60">Aucune marque dans la liste pour le moment.</p>
+  <p class="text-base-content/60">{{ _('No brand in the list yet.') }}</p>
   {% else %}
   <form method="get" data-autosubmit class="flex flex-wrap items-end gap-3">
     <input type="hidden" name="sort" value="{{ sort }}" />
     <input type="hidden" name="dir" value="{{ direction }}" />
     <fieldset class="fieldset">
-      <legend class="fieldset-legend">Marque</legend>
+      <legend class="fieldset-legend">{{ _('Brand') }}</legend>
       <label class="input input-sm w-56">
         <i class="iconoir-search opacity-50"></i>
-        <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="Nom ou code Wikidata"
+        <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
           {{ 'autofocus' if filters.q }} />
       </label>
     </fieldset>
     <fieldset class="fieldset">
-      <legend class="fieldset-legend">Ajouté par</legend>
+      <legend class="fieldset-legend">{{ _('Added by') }}</legend>
       <select name="user" class="select select-sm">
-        <option value="">Tous</option>
+        <option value="">{{ _('All') }}</option>
         {% for uid, name in filter_users %}
         <option value="{{ uid }}" {{ 'selected' if filters.user == uid }}>{{ name }}</option>
         {% endfor %}
       </select>
     </fieldset>
     <fieldset class="fieldset">
-      <legend class="fieldset-legend">Date d'ajout</legend>
+      <legend class="fieldset-legend">{{ _('Date added') }}</legend>
       <div class="join">
         <input type="date" name="from" value="{{ filters['from'] or '' }}" class="input input-sm join-item"
-          aria-label="Du" />
+          aria-label="{{ _('From') }}" />
         <input type="date" name="to" value="{{ filters['to'] or '' }}" class="input input-sm join-item"
-          aria-label="Au" />
+          aria-label="{{ _('To') }}" />
       </div>
     </fieldset>
     <fieldset class="fieldset">
-      <legend class="fieldset-legend">Présence dans ATP</legend>
+      <legend class="fieldset-legend">{{ _('Presence in ATP') }}</legend>
       <label class="label cursor-pointer gap-2 h-8">
         <input type="checkbox" name="show_in_atp" value="1" class="toggle toggle-sm"
           {{ 'checked' if filters.show_in_atp }} />
-        <span class="label-text">Afficher celles déjà dans ATP</span>
+        <span class="label-text">{{ _('Show the ones already in ATP') }}</span>
       </label>
     </fieldset>
     <fieldset class="fieldset">
       <legend class="fieldset-legend">&nbsp;</legend>
       <div class="join">
-        <button type="submit" class="btn btn-sm btn-primary join-item">Filtrer</button>
-        <a href="{{ url_for('todo.todo') }}" class="btn btn-sm btn-soft join-item">Réinitialiser</a>
+        <button type="submit" class="btn btn-sm btn-primary join-item">{{ _('Filter') }}</button>
+        <a href="{{ url_for('todo.todo') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
       </div>
     </fieldset>
     <div class="ml-auto mb-2">{{ export_menu('todo', filters) }}</div>
   </form>
 
   {% if entries|length == 0 %}
-  <p class="text-base-content/60">Aucune marque ne correspond à ces filtres.</p>
+  <p class="text-base-content/60">{{ _('No brand matches these filters.') }}</p>
   {% else %}
-  <p class="text-sm text-base-content/60 mb-2">{{ entries|length }} marque{{ 's' if entries|length > 1 }}</p>
+  <p class="text-sm text-base-content/60 mb-2">{% trans count=entries|length %}{{ count }} brand{% pluralize %}{{ count }} brands{% endtrans %}</p>
   <div class="overflow-x-auto shrink-0">
     <table data-infinite-scroll class="table table-compact bg-base-100 rounded-2">
       <thead>
         <tr>
-          {{ sort_th('todo.todo', 'name', 'Nom') }}
-          {{ sort_th('todo.todo', 'wikidata', 'Wikidata') }}
-          {{ sort_th('todo.todo', 'estimation', 'Estimation') }}
-          {{ sort_th('todo.todo', 'user', 'Ajouté par') }}
-          {{ sort_th('todo.todo', 'date', 'Date') }}
-          <th>Modifié par</th>
+          {{ sort_th('todo.todo', 'name', _('Name')) }}
+          {{ sort_th('todo.todo', 'wikidata', _('Wikidata')) }}
+          {{ sort_th('todo.todo', 'estimation', _('Estimate')) }}
+          {{ sort_th('todo.todo', 'user', _('Added by')) }}
+          {{ sort_th('todo.todo', 'date', _('Date')) }}
+          <th>{{ _('Edited by') }}</th>
           <th class="w-0"></th>
         </tr>
       </thead>
@@ -173,7 +172,7 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
             {% else %}
             {{ entry.updated_by }}
             {% endif %}
-            <span class="text-base-content/60 text-sm">le {{ entry.updated_at | dateformat('short') }}</span>
+            <span class="text-base-content/60 text-sm">{% trans date=entry.updated_at | dateformat('short') %}on {{ date }}{% endtrans %}</span>
             {% else %}
             —
             {% endif %}
@@ -181,13 +180,13 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
           <td class="w-0 whitespace-nowrap">
             {% if current_user_id %}
             <div class="row-actions flex justify-end gap-1">
-              <button class="btn btn-sm btn-soft rounded-md" aria-label="Modifier"
+              <button class="btn btn-sm btn-soft rounded-md" aria-label="{{ _('Edit') }}"
                 onclick='editEntry({{ entry.id }}, {{ entry.brand_name|tojson }}, {{ entry.brand_wikidata|tojson }}, {{ entry.estimation|tojson }})'>
                 <i class="iconoir-edit-pencil"></i>
               </button>
               {% if current_user_id == entry.osm_user_id %}
               <button class="btn btn-sm btn-soft btn-error rounded-md" onclick="deleteEntry({{ entry.id }})"
-                aria-label="Supprimer">
+                aria-label="{{ _('Delete') }}">
                 <i class="iconoir-trash"></i>
               </button>
               {% endif %}
@@ -204,29 +203,29 @@ permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquante
 
   <dialog id="edit-dialog" class="modal">
     <div class="modal-box">
-      <h3 class="text-lg font-bold mb-3">Modifier la marque</h3>
+      <h3 class="text-lg font-bold mb-3">{{ _('Edit the brand') }}</h3>
       <form onsubmit="saveEntry(event)" class="flex flex-col gap-3">
         <input type="hidden" id="edit-id" />
         <fieldset class="fieldset">
-          <legend class="fieldset-legend">Nom de la marque</legend>
+          <legend class="fieldset-legend">{{ _('Brand name') }}</legend>
           <input id="edit-name" type="text" class="input input-bordered w-full" required />
         </fieldset>
         <fieldset class="fieldset">
-          <legend class="fieldset-legend">Code Wikidata <span class="text-base-content/50">(optionnel)</span></legend>
+          <legend class="fieldset-legend">{{ _('Wikidata code') }} <span class="text-base-content/50">{{ _('(optional)') }}</span></legend>
           <input id="edit-wikidata" type="text" class="input input-bordered w-full" />
         </fieldset>
         <fieldset class="fieldset">
-          <legend class="fieldset-legend">Estimation nb. POIs <span class="text-base-content/50">(optionnel)</span></legend>
+          <legend class="fieldset-legend">{{ _('Estimated POI count') }} <span class="text-base-content/50">{{ _('(optional)') }}</span></legend>
           <input id="edit-estimation" type="number" min="0" class="input input-bordered w-full" />
         </fieldset>
         <div class="modal-action">
           <button type="button" class="btn btn-sm btn-soft"
-            onclick="document.getElementById('edit-dialog').close()">Annuler</button>
-          <button type="submit" class="btn btn-sm btn-primary">Enregistrer</button>
+            onclick="document.getElementById('edit-dialog').close()">{{ _('Cancel') }}</button>
+          <button type="submit" class="btn btn-sm btn-primary">{{ _('Save') }}</button>
         </div>
       </form>
     </div>
-    <form method="dialog" class="modal-backdrop"><button>Fermer</button></form>
+    <form method="dialog" class="modal-backdrop"><button>{{ _('Close') }}</button></form>
   </dialog>
 
 </div>

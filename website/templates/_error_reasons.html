@@ -1,0 +1,23 @@
+{# Labels of the invalidation reasons, keyed like `src/error_reasons.py`.
+
+   They live in a template because a translated string has to be resolved
+   inside a request. The keys stay in Python: they are written to
+   `import_history.comment`, so they are data, not display.
+
+   Usage:
+     {% import '_error_reasons.html' as reasons %}
+     {{ reasons.LABELS.get(key, key) }}
+#}
+{% set LABELS = {
+    'website_generic':     _('Generic / brand website'),
+    'website_broken':      _('Invalid website (404, redirect)'),
+    'website_language':    _('Website not in the local language'),
+    'phone_wrong':         _('Wrong phone number'),
+    'phone_format':        _('Phone number in the wrong format'),
+    'opening_hours_wrong': _('Wrong opening hours'),
+    'address_wrong':       _('Wrong address'),
+    'email_generic':       _('Generic e-mail'),
+    'poi_mismatch':        _('Does not target the right POI'),
+    'data_unverifiable':   _('Data that cannot be verified'),
+    'other':               _('Other')
+} %}

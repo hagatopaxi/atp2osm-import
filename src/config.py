@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = pathlib.Path(__file__).parent.parent.resolve()
 TEMPLATE_DIR = PROJECT_ROOT / "website" / "templates"
+TRANSLATIONS_DIR = PROJECT_ROOT / "website" / "translations"
 CACHE_DIR = PROJECT_ROOT / ".cache"
 STATIC_DIR = PROJECT_ROOT / "static"
 

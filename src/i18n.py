@@ -18,6 +18,8 @@ from flask_babel import Babel, get_locale
 from werkzeug.utils import redirect
 from werkzeug.wrappers import Request
 
+from src.config import TRANSLATIONS_DIR
+
 logger = logging.getLogger(__name__)
 
 COOKIE_NAME = "lang"
@@ -62,6 +64,11 @@ class LanguagePrefix:
         head, _, tail = path[1:].partition("/")
 
         if head in self.locales:
+            # A language-free resource — sitemap.xml, llms.txt, an asset — is
+            # served under its own URL only: a prefixed one would be a second
+            # address for the same bytes.
+            if not self._is_translated("/" + tail):
+                return self._redirect(environ, start_response, "/" + tail)
             environ["SCRIPT_NAME"] = environ.get("SCRIPT_NAME", "") + "/" + head
             environ["PATH_INFO"] = "/" + tail
             environ[ENVIRON_KEY] = head
@@ -73,11 +80,16 @@ class LanguagePrefix:
         elif not self._is_translated(path):
             return self.wsgi_app(environ, start_response)
 
+        return self._redirect(
+            environ, start_response, f"/{self.negotiate(environ)}{path}"
+        )
+
+    def _redirect(self, environ, start_response, path):
+        """Send a GET elsewhere, query string kept; leave any body alone."""
         if environ.get("REQUEST_METHOD") not in ("GET", "HEAD"):
             return self.wsgi_app(environ, start_response)
-
         query = environ.get("QUERY_STRING", "")
-        target = f"/{self.negotiate(environ)}{path}" + (f"?{query}" if query else "")
+        target = path + (f"?{query}" if query else "")
         return redirect(target)(environ, start_response)
 
 
@@ -133,6 +145,7 @@ def init_app(app, locales, translated, timezone="UTC"):
     """Wire the prefix middleware, Babel, the cookie and the Jinja globals."""
     app.wsgi_app = LanguagePrefix(app.wsgi_app, locales, translated)
     app.config["BABEL_DEFAULT_LOCALE"] = locales[0]
+    app.config["BABEL_TRANSLATION_DIRECTORIES"] = str(TRANSLATIONS_DIR)
     app.config["BABEL_DEFAULT_TIMEZONE"] = timezone
     babel.init_app(
         app, locale_selector=lambda: request.environ.get(ENVIRON_KEY) or locales[0]

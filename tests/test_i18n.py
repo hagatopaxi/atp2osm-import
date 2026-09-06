@@ -132,3 +132,53 @@ def test_a_bad_language_or_timezone_refuses_to_start(monkeypatch):
 
     monkeypatch.delenv("TIMEZONE")
     assert config.get_timezone() == "Europe/Paris"
+
+
+def test_every_message_is_translated():
+    """A missing or fuzzy translation silently falls back to the English msgid."""
+    from pathlib import Path
+
+    from babel.messages.pofile import read_po
+
+    from src.config import TRANSLATIONS_DIR
+
+    for path in Path(TRANSLATIONS_DIR).glob("*/LC_MESSAGES/messages.po"):
+        with path.open("rb") as f:
+            catalog = read_po(f)
+        for message in catalog:
+            if not message.id:
+                continue
+            strings = message.string if isinstance(message.string, tuple) else (message.string,)
+            assert all(strings), f"{path}: untranslated {message.id!r}"
+            assert not message.fuzzy, f"{path}: fuzzy {message.id!r}"
+
+
+def test_every_template_compiles():
+    """A `{% trans %}` block that is malformed only shows up at render time."""
+    from flask import Flask
+
+    from src import i18n
+    from src.config import TEMPLATE_DIR
+
+    app = Flask(__name__, template_folder=TEMPLATE_DIR)
+    i18n.init_app(app, ("fr",), ("/",))
+    for name in app.jinja_env.list_templates():
+        app.jinja_env.get_template(name)
+
+
+def test_language_free_paths_are_not_served_under_a_prefix():
+    """One resource, one URL: /fr/sitemap.xml redirects to /sitemap.xml."""
+    from flask import Flask
+
+    from src import i18n
+
+    app = Flask(__name__)
+    i18n.init_app(app, ("fr", "en"), ("/", "/docs"))
+
+    @app.route("/sitemap.xml")
+    def sitemap():
+        return "sitemap"
+
+    client = app.test_client()
+    assert client.get("/fr/sitemap.xml").headers["Location"] == "/sitemap.xml"
+    assert client.get("/sitemap.xml").data == b"sitemap"

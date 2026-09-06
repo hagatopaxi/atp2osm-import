@@ -15,16 +15,17 @@ logger = logging.getLogger(__name__)
 
 misc_bp = Blueprint("misc", __name__)
 
-# Public pages (outside the OSM OAuth authenticated area).
-# (endpoint, label, description) — single source for sitemap.xml and llms.txt.
-PUBLIC_PAGES = [
-    ("misc.home", "Accueil", "présentation et statistiques d'intégration."),
-    ("brands.brands", "Marques à intégrer", "enseignes ATP disponibles à l'intégration."),
-    ("history.history", "Historique des intégrations", "intégrations réalisées, dates et statuts."),
-    ("stats.stats", "Statistiques", "métriques et graphiques des intégrations réalisées."),
-    ("todo.todo", "Marques manquantes", "enseignes françaises absentes d'ATP."),
-    ("misc.docs", "Documentation", "fonctionnement et guide de contribution."),
-]
+# Public pages (outside the OSM OAuth authenticated area), in menu order —
+# the single source for sitemap.xml and llms.txt. Their labels live in
+# llms.txt, the only one of the two that writes them out.
+PUBLIC_PAGES = (
+    "misc.home",
+    "brands.brands",
+    "history.history",
+    "stats.stats",
+    "todo.todo",
+    "misc.docs",
+)
 
 
 @misc_bp.route("/")

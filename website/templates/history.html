@@ -2,9 +2,9 @@
 {% from '_export_menu.html' import export_menu %}
 {% from '_sort_th.html' import sort_th with context %}
 
-{% block meta_description %}Historique des intégrations AllThePlaces vers OpenStreetMap réalisées via atp2osm : marques intégrées, dates et statuts.{% endblock %}
-{% block page_title %}Historique des intégrations{% endblock %}
-{% block og_title %}Historique des intégrations — atp2osm{% endblock %}
+{% block meta_description %}{{ _('History of the AllThePlaces integrations into OpenStreetMap made through atp2osm: brands integrated, dates and statuses.') }}{% endblock %}
+{% block page_title %}{{ _('Integration history') }}{% endblock %}
+{% block og_title %}{{ _('Integration history') }} — atp2osm{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -12,8 +12,8 @@
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "{{ request.host_url }}" },
-    { "@type": "ListItem", "position": 2, "name": "Historique des intégrations" }
+    { "@type": "ListItem", "position": 1, "name": "{{ _('Home') }}", "item": "{{ request.host_url }}" },
+    { "@type": "ListItem", "position": 2, "name": "{{ _('Integration history') }}" }
   ]
 }
 </script>
@@ -24,31 +24,31 @@
 <script src="/static/js/infinite-scroll.js?v={{ app_version }}" defer></script>
 {% endblock %}
 
-{% block title %}Historique des intégrations{% endblock %}
-{% block subtitle %}Liste de toutes les intégrations effectuées ou signalées comme erronées.{% endblock %}
+{% block title %}{{ _('Integration history') }}{% endblock %}
+{% block subtitle %}{{ _('Every integration carried out or reported as faulty.') }}{% endblock %}
 
 {% block content %}
 {% set status_filters = [
-    ('success',   'Succès',  'btn-success'),
-    ('partial',   'Partiel', 'btn-warning'),
-    ('cancelled', 'Annulé',  'btn-info'),
-    ('error',     'Erreur',  'btn-error')
+    ('success',   _('Success'),   'btn-success'),
+    ('partial',   _('Partial'),   'btn-warning'),
+    ('cancelled', _('Cancelled'), 'btn-info'),
+    ('error',     _('Error'),     'btn-error')
 ] %}
 <form method="get" data-autosubmit class="flex flex-wrap items-end gap-3 mb-4">
     <input type="hidden" name="sort" value="{{ sort }}" />
     <input type="hidden" name="dir" value="{{ direction }}" />
     <fieldset class="fieldset">
-        <legend class="fieldset-legend">Marque</legend>
+        <legend class="fieldset-legend">{{ _('Brand') }}</legend>
         <label class="input input-sm w-56">
             <i class="iconoir-search opacity-50"></i>
-            <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="Nom ou code Wikidata"
+            <input type="search" name="q" value="{{ filters.q or '' }}" placeholder="{{ _('Name or Wikidata code') }}"
                 {{ 'autofocus' if filters.q }} />
         </label>
     </fieldset>
     <fieldset class="fieldset">
-        <legend class="fieldset-legend">Statut</legend>
+        <legend class="fieldset-legend">{{ _('Status') }}</legend>
         <div class="filter">
-            <input class="btn btn-sm filter-reset" type="radio" name="status" value="" aria-label="Tous" />
+            <input class="btn btn-sm filter-reset" type="radio" name="status" value="" aria-label="{{ _('All') }}" />
             {% for value, label, color in status_filters %}
             <input class="btn btn-sm {{ color }}" type="radio" name="status" value="{{ value }}" aria-label="{{ label }}"
                 {{ 'checked' if filters.status == value }} />
@@ -56,29 +56,29 @@
         </div>
     </fieldset>
     <fieldset class="fieldset">
-        <legend class="fieldset-legend">Utilisateur</legend>
+        <legend class="fieldset-legend">{{ _('User') }}</legend>
         <select name="user" class="select select-sm">
-            <option value="">Tous</option>
+            <option value="">{{ _('All') }}</option>
             {% for uid, name in filter_users %}
             <option value="{{ uid }}" {{ 'selected' if filters.user == uid }}>{{ name }}</option>
             {% endfor %}
         </select>
     </fieldset>
     <fieldset class="fieldset">
-        <legend class="fieldset-legend">Période</legend>
+        <legend class="fieldset-legend">{{ _('Period') }}</legend>
         <div class="join">
             <input type="date" name="from" value="{{ filters['from'] or '' }}"
-                class="input input-sm join-item" aria-label="Du" />
+                class="input input-sm join-item" aria-label="{{ _('From') }}" />
             <input type="date" name="to" value="{{ filters['to'] or '' }}"
-                class="input input-sm join-item" aria-label="Au" />
+                class="input input-sm join-item" aria-label="{{ _('To') }}" />
         </div>
     </fieldset>
     <fieldset class="fieldset">
         <legend class="fieldset-legend">&nbsp;</legend>
         <div class="join">
-            <button type="submit" class="btn btn-sm btn-primary join-item">Filtrer</button>
+            <button type="submit" class="btn btn-sm btn-primary join-item">{{ _('Filter') }}</button>
             {% if filters %}
-            <a href="{{ url_for('history.history') }}" class="btn btn-sm btn-soft join-item">Réinitialiser</a>
+            <a href="{{ url_for('history.history') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
             {% endif %}
         </div>
     </fieldset>
@@ -87,28 +87,27 @@
 
 <p class="text-sm text-base-content/60 mb-4">
     <a href="{{ url_for('stats.stats', q=filters.q, user=filters.user) }}" class="link link-primary">
-        <i class="iconoir-graph-up"></i> Voir les statistiques d'intégration
+        <i class="iconoir-graph-up"></i> {{ _('See the integration statistics') }}
     </a>
 </p>
 
 {% if entries|length == 0 %}
 <p class="text-base-content/60">
-    {% if filters %}Aucune intégration ne correspond à ces filtres.{% else %}Aucune intégration enregistrée pour le
-    moment.{% endif %}
+    {% if filters %}{{ _('No integration matches these filters.') }}{% else %}{{ _('No integration recorded yet.') }}{% endif %}
 </p>
 {% else %}
-<p class="text-sm text-base-content/60 mb-2">{{ total }} intégration{{ 's' if total > 1 }}</p>
+<p class="text-sm text-base-content/60 mb-2">{% trans count=total %}{{ count }} integration{% pluralize %}{{ count }} integrations{% endtrans %}</p>
 <div class="overflow-x-auto shrink-0">
 <table class="table table-compact bg-base-100 rounded-2">
     <thead>
         <tr>
-            {{ sort_th('history.history', 'date', 'Date') }}
-            {{ sort_th('history.history', 'brand', 'Marque (Wikidata)') }}
-            {{ sort_th('history.history', 'status', 'Statut') }}
-            {{ sort_th('history.history', 'user', 'Utilisateur OSM') }}
-            {{ sort_th('history.history', 'items', 'POIs intégrés') }}
-            {{ sort_th('history.history', 'subdivisions', 'Changesets') }}
-            <th>Action</th>
+            {{ sort_th('history.history', 'date', _('Date')) }}
+            {{ sort_th('history.history', 'brand', _('Brand (Wikidata)')) }}
+            {{ sort_th('history.history', 'status', _('Status')) }}
+            {{ sort_th('history.history', 'user', _('OSM user')) }}
+            {{ sort_th('history.history', 'items', _('POIs integrated')) }}
+            {{ sort_th('history.history', 'subdivisions', _('Changesets')) }}
+            <th>{{ _('Action') }}</th>
         </tr>
     </thead>
     <tbody>
@@ -128,10 +127,10 @@
                 {% endif %}
             </td>
             {% set status_labels = {
-                    "success":   "Succès",
-                    "partial":   "Partiel",
-                    "cancelled": "Annulé",
-                    "error":     "Erreur"
+                    "success":   _('Success'),
+                    "partial":   _('Partial'),
+                    "cancelled": _('Cancelled'),
+                    "error":     _('Error')
                 } %}
             {% set status_classes = {
                     "success":   "badge-success",
@@ -156,7 +155,7 @@
             <td>{{ entry.subdivisions_count if entry.subdivisions_count else '—' }}</td>
             <td>
                 <div class="row-actions">
-                    <a class="btn btn-sm btn-soft btn-primary rounded-md whitespace-nowrap" href="{{ url_for('history.history_detail', entry_id=entry.id, page=page, **filters) }}">Voir plus</a>
+                    <a class="btn btn-sm btn-soft btn-primary rounded-md whitespace-nowrap" href="{{ url_for('history.history_detail', entry_id=entry.id, page=page, **filters) }}">{{ _('See more') }}</a>
                 </div>
             </td>
         </tr>

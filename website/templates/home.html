@@ -1,8 +1,8 @@
 {% extends '_base.html' %}
 
-{% block meta_description %}atp2osm enrichit OpenStreetMap avec les données AllThePlaces pour la France : horaires d'ouverture, téléphone, site web, email. Intégration semi-automatique validée par les contributeurs OSM.{% endblock %}
-{% block og_title %}atp2osm — Enrichir OpenStreetMap avec les données AllThePlaces{% endblock %} 
-{% block og_description %}Outil d'intégration collaborative des points d'intérêt AllThePlaces dans OpenStreetMap pour la France.{% endblock %}
+{% block meta_description %}{{ _('atp2osm enriches OpenStreetMap with the AllThePlaces data: opening hours, phone, website, email. A semi-automatic integration reviewed by OSM contributors.') }}{% endblock %}
+{% block og_title %}{{ _('atp2osm — Enrich OpenStreetMap with the AllThePlaces data') }}{% endblock %}
+{% block og_description %}{{ _('A collaborative tool to integrate the AllThePlaces points of interest into OpenStreetMap.') }}{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -10,10 +10,10 @@
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "atp2osm",
-        "description": "Outil d'intégration semi-automatique des données AllThePlaces (ATP) dans OpenStreetMap pour les points d'intérêt français. Correspondance spatiale et validation collaborative des tags.",
+        "description": "{{ _('A semi-automatic tool to integrate the AllThePlaces (ATP) data into OpenStreetMap. Spatial matching and collaborative review of the tags.') }}",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "Any",
-        "inLanguage": "fr",
+        "inLanguage": "{{ get_locale() }}",
         "isAccessibleForFree": true,
         "license": "https://www.gnu.org/licenses/gpl-3.0.html",
         "url": "{{ request.host_url }}",
@@ -33,11 +33,11 @@
         "@context": "https://schema.org",
         "@type": "SoftwareSourceCode",
         "name": "atp2osm",
-        "description": "Outil d'intégration des données AllThePlaces dans OpenStreetMap pour les points d'intérêt français.",
+        "description": "{{ _('A tool to integrate the AllThePlaces data into OpenStreetMap.') }}",
         "codeRepository": "https://github.com/hagatopaxi/atp2osm-import",
         "programmingLanguage": "Python",
         "license": "https://www.gnu.org/licenses/gpl-3.0.html",
-        "inLanguage": "fr",
+        "inLanguage": "{{ get_locale() }}",
         "author": {
             "@type": "Person",
             "name": "Gwenaël Léger"
@@ -46,76 +46,50 @@
 </script>
 {% endblock %}
 
-{% block title %}Enrichir OpenStreetMap avec les données AllThePlaces{% endblock %} 
-{% block subtitle %}Intégrez automatiquement les données de points d'intérêt depuis AllThePlaces vers OpenStreetMap.{% endblock%}
+{% block title %}{{ _('Enrich OpenStreetMap with the AllThePlaces data') }}{% endblock %}
+{% block subtitle %}{{ _('Integrate the AllThePlaces points of interest into OpenStreetMap.') }}{% endblock %}
 
 {% block content %}
 <section class="max-w-3xl">
     <p class="text-base leading-relaxed mb-4">
-        <strong>atp2osm</strong> est un outil qui rapproche les points d'intérêt
-        (POI) de la base
-        <a
-            href="https://alltheplaces.xyz"
-            class="link link-primary"
-            target="_blank"
-            rel="noopener"
-            >All The Places</a
-        >
-        avec les objets existants dans
-        <a
-            href="https://www.openstreetmap.org"
-            class="link link-primary"
-            target="_blank"
-            rel="noopener"
-            >OpenStreetMap</a
-        >.
+        {% trans atp='https://alltheplaces.xyz', osm='https://www.openstreetmap.org' %}<strong>atp2osm</strong> matches the points of interest (POIs) of the <a href="{{ atp }}" class="link link-primary" target="_blank" rel="noopener">All The Places</a> database against the objects that already exist in <a href="{{ osm }}" class="link link-primary" target="_blank" rel="noopener">OpenStreetMap</a>.{% endtrans %}
     </p>
     <p class="text-base leading-relaxed mb-6">
-        Pour chaque marque, l'outil identifie les correspondances par proximité
-        géographique et par attributs (nom, marque, téléphone, email, site web),
-        puis propose les mises à jour de tags à valider avant intégration.
+        {{ _('For every brand, the tool finds the matches by geographic proximity and by attributes (name, brand, phone, email, website), then offers the tag updates for review before integration.') }}
     </p>
     <p>
-        Pour voir la progression des intégrations dans votre région vous pouvez aller
-        visualiser le résultat sur le site suivant :
-        <a
-            class="link link-primary"
-            href="https://nicofredo.github.io/osm_pois_completude_viewer/main.html"
-            target="_blank"
-            rel="noopener"
-            >https://nicofredo.github.io/osm_pois_completude_viewer/main.html</a
-        >
+        {% trans link='https://nicofredo.github.io/osm_pois_completude_viewer/main.html' %}To follow how the integrations progress in your area, the result can be browsed on this site: <a class="link link-primary" href="{{ link }}" target="_blank" rel="noopener">{{ link }}</a>{% endtrans %}
     </p>
 </section>
 
 <section class="mt-6 flex flex-wrap gap-3 items-center">
     {% if 'user' in session %}
     <a href="/brands" class="btn btn-primary rounded-full">
-        <i class="iconoir-double-check"></i> Commencer à intégrer !
+        <i class="iconoir-double-check"></i> {{ _('Start integrating!') }}
     </a>
     {% else %}
     <button onclick="login('/brands')" class="btn btn-primary rounded-full">
-        <i class="iconoir-log-in"></i> Se connecter à OSM pour démarrer
+        <i class="iconoir-log-in"></i> {{ _('Sign in to OSM to start') }}
     </button>
     {% endif %}
     <a href="/docs" class="btn btn-outline rounded-full">
-        <i class="iconoir-book"></i> Comment ça marche ?
+        <i class="iconoir-book"></i> {{ _('How does it work?') }}
     </a>
 </section>
 
 <h2 class="text-xl font-semibold mt-6 mb-3 flex items-center gap-3">
-    Statistiques
+    {{ _('Statistics') }}
     <a href="/stats" class="btn btn-xs btn-soft btn-primary rounded-full">
-        <i class="iconoir-graph-up"></i> Tout voir
+        <i class="iconoir-graph-up"></i> {{ _('See all') }}
     </a>
 </h2>
 
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-3xl">
     {% for icon, label, value in [
-        ("iconoir-database-check", "POIs intégrés",     stats["total_nodes_updated"]),
-        ("iconoir-label",      "Tags ajoutés",      stats["tags_added"]),
-        ("iconoir-shop",           "Marques intégrées", stats["brands_imported"]),
-        ("iconoir-community",      "Contributeurs",     stats["contributors"])
+        ("iconoir-database-check", _('POIs integrated'),  stats["total_nodes_updated"]),
+        ("iconoir-label",          _('Tags added'),      stats["tags_added"]),
+        ("iconoir-shop",           _('Brands integrated'), stats["brands_imported"]),
+        ("iconoir-community",      _('Contributors'),    stats["contributors"])
     ] %}
     <div class="card bg-base-100 shadow-sm">
         <div class="card-body items-center text-center">
@@ -128,7 +102,7 @@
 </div>
 
 <section class="mt-8 max-w-3xl">
-    <h2 class="text-lg font-semibold mb-3">État des données</h2>
+    <h2 class="text-lg font-semibold mb-3">{{ _('Data status') }}</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for type, label in [("osm", "OpenStreetMap"), ("atp", "All The
         Places"), ("nsi", "Name Suggestion Index")] %} {% set row =
@@ -137,29 +111,25 @@
             <div class="card-body">
                 <h3 class="card-title text-sm font-mono">{{ label }}</h3>
                 {% if row %} {% if row.status == "error" %}
-                <div class="badge badge-error badge-sm">Erreur</div>
+                <div class="badge badge-error badge-sm">{{ _('Error') }}</div>
                 {% elif row.status == "pending" %}
-                <div class="badge badge-warning badge-sm">Synchronisation</div>
+                <div class="badge badge-warning badge-sm">{{ _('Syncing') }}</div>
                 {% else %}
                 <div class="badge badge-success badge-sm">OK</div>
                 {% endif %}
                 <p class="text-sm mt-1">
-                    <span class="text-base-content/60">Source :</span>
+                    <span class="text-base-content/60">{{ _('Source:') }}</span>
                     {% if row.date %} {{ row.date | dateformat('short') }} {%
                     else %}
                     <span class="text-base-content/60">—</span>
                     {% endif %}
                 </p>
                 <p class="text-sm">
-                    <span class="text-base-content/60"
-                        >Dernière vérification :</span
-                    >
+                    <span class="text-base-content/60">{{ _('Last check:') }}</span>
                     {{ row.created_at | dateformat('short') }}
                 </p>
                 {% else %}
-                <p class="text-sm text-base-content/60">
-                    Aucune donnée intégrée
-                </p>
+                <p class="text-sm text-base-content/60">{{ _('No data integrated') }}</p>
                 {% endif %}
             </div>
         </div>
