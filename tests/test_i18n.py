@@ -135,13 +135,19 @@ def test_a_bad_language_or_timezone_refuses_to_start(monkeypatch):
 
 
 def test_every_message_is_translated():
-    """A marked string with no translation silently falls back to English."""
-    import re
+    """A missing or fuzzy translation silently falls back to the English msgid."""
     from pathlib import Path
+
+    from babel.messages.pofile import read_po
 
     from src.config import TRANSLATIONS_DIR
 
-    for po in Path(TRANSLATIONS_DIR).glob("*/LC_MESSAGES/messages.po"):
-        entries = re.findall(r'^msgid (".*")\nmsgstr (".*")$', po.read_text(), re.M)
-        untranslated = [msgid for msgid, msgstr in entries if msgid != '""' and msgstr == '""']
-        assert not untranslated, f"{po}: {untranslated}"
+    for path in Path(TRANSLATIONS_DIR).glob("*/LC_MESSAGES/messages.po"):
+        with path.open("rb") as f:
+            catalog = read_po(f)
+        for message in catalog:
+            if not message.id:
+                continue
+            strings = message.string if isinstance(message.string, tuple) else (message.string,)
+            assert all(strings), f"{path}: untranslated {message.id!r}"
+            assert not message.fuzzy, f"{path}: fuzzy {message.id!r}"

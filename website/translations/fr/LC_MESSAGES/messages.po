@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-06 17:05+0200\n"
+"POT-Creation-Date: 2026-09-06 17:08+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -22,11 +22,12 @@ msgstr ""
 msgid "Toggle the sidebar"
 msgstr "Basculer la barre latérale"
 
-#: website/templates/_aside.html:24
+#: website/templates/_aside.html:24 website/templates/brands.html:14
 msgid "Home"
 msgstr "Accueil"
 
-#: website/templates/_aside.html:25
+#: website/templates/_aside.html:25 website/templates/brands.html:5
+#: website/templates/brands.html:6 website/templates/brands.html:15
 msgid "Brands to integrate"
 msgstr "Marques à intégrer"
 
@@ -50,7 +51,7 @@ msgstr "Documentation"
 msgid "Language"
 msgstr "Langue"
 
-#: website/templates/_aside.html:53
+#: website/templates/_aside.html:53 website/templates/_export_menu.html:10
 msgid "About"
 msgstr "À propos"
 
@@ -72,6 +73,7 @@ msgid "Log out"
 msgstr "Déconnexion"
 
 #: website/templates/_aside.html:84 website/templates/_aside.html:86
+#: website/templates/brands.html:39
 msgid "Sign in with OSM"
 msgstr "Se connecter avec OSM"
 
@@ -94,4 +96,131 @@ msgstr "Intégrez les points d'intérêt AllThePlaces dans OpenStreetMap. Outil 
 #: website/templates/_base.html:56
 msgid "Open the sidebar"
 msgstr "Ouvrir la barre latérale"
+
+#: website/templates/_export_menu.html:4
+msgid "Export this data"
+msgstr "Exporter ces données"
+
+#: website/templates/_export_menu.html:5
+msgid "Export"
+msgstr "Exporter"
+
+#: website/templates/brands.html:4
+#, python-format
+msgid "The %(count)s brands available for integration into OpenStreetMap through atp2osm. Data from AllThePlaces, reviewed by OSM contributors."
+msgstr "Les %(count)s marques disponibles à l'intégration dans OpenStreetMap via atp2osm. Données issues d'AllThePlaces, relues par les contributeurs OSM."
+
+#: website/templates/brands.html:21
+msgid "Brands to integrate into OpenStreetMap"
+msgstr "Liste des marques à intégrer dans OpenStreetMap"
+
+#: website/templates/brands.html:22
+#, python-format
+msgid "%(count)s brand — data from the All The Places database."
+msgid_plural "%(count)s brands — data from the All The Places database."
+msgstr[0] "%(count)s marque — données issues de la base All The Places."
+msgstr[1] "%(count)s marques — données issues de la base All The Places."
+
+#: website/templates/brands.html:35
+msgid "Sign-in required"
+msgstr "Connexion requise"
+
+#: website/templates/brands.html:36
+msgid "Sign in with your OpenStreetMap account to start an integration."
+msgstr "Connectez-vous avec votre compte OpenStreetMap pour lancer une intégration."
+
+#: website/templates/brands.html:49
+msgid "Brand"
+msgstr "Marque"
+
+#: website/templates/brands.html:52
+msgid "Name or Wikidata code"
+msgstr "Nom ou code Wikidata"
+
+#: website/templates/brands.html:57 website/templates/brands.html:103
+msgid "Previous status"
+msgstr "Précédent statut"
+
+#: website/templates/brands.html:59
+msgid "All"
+msgstr "Tous"
+
+#: website/templates/brands.html:61
+msgid "Never integrated"
+msgstr "Jamais intégrée"
+
+#: website/templates/brands.html:62 website/templates/brands.html:126
+msgid "Success"
+msgstr "Succès"
+
+#: website/templates/brands.html:63 website/templates/brands.html:127
+msgid "Partial"
+msgstr "Partiel"
+
+#: website/templates/brands.html:64 website/templates/brands.html:128
+msgid "Cancelled"
+msgstr "Annulé"
+
+#: website/templates/brands.html:65 website/templates/brands.html:129
+msgid "Error"
+msgstr "Erreur"
+
+#: website/templates/brands.html:73 website/templates/brands.html:104
+msgid "Last integration"
+msgstr "Dernière intégration"
+
+#: website/templates/brands.html:76
+msgid "From"
+msgstr "Du"
+
+#: website/templates/brands.html:78
+msgid "To"
+msgstr "Au"
+
+#: website/templates/brands.html:84
+msgid "Filter"
+msgstr "Filtrer"
+
+#: website/templates/brands.html:85
+msgid "Reset"
+msgstr "Réinitialiser"
+
+#: website/templates/brands.html:88
+#, python-format
+msgid "%(count)s brand"
+msgid_plural "%(count)s brands"
+msgstr[0] "%(count)s marque"
+msgstr[1] "%(count)s marques"
+
+#: website/templates/brands.html:93
+msgid "No brand matches these filters."
+msgstr "Aucune marque ne correspond à ces filtres."
+
+#: website/templates/brands.html:100
+msgid "Wikidata code"
+msgstr "Code Wikidata"
+
+#: website/templates/brands.html:101
+msgid "Name"
+msgstr "Nom"
+
+#: website/templates/brands.html:102
+msgid "POIs to integrate"
+msgstr "POIs à intégrer"
+
+#: website/templates/brands.html:105
+msgid "Actions"
+msgstr "Actions"
+
+#: website/templates/brands.html:148
+msgid "Never"
+msgstr "Jamais"
+
+#: website/templates/brands.html:155
+msgid "You must sign in"
+msgstr "Vous devez vous connecter"
+
+#: website/templates/brands.html:162
+msgid "Integrate"
+msgstr "Intégrer"
 

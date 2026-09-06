@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-06 17:05+0200\n"
+"POT-Creation-Date: 2026-09-06 17:08+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,11 +21,12 @@ msgstr ""
 msgid "Toggle the sidebar"
 msgstr ""
 
-#: website/templates/_aside.html:24
+#: website/templates/_aside.html:24 website/templates/brands.html:14
 msgid "Home"
 msgstr ""
 
-#: website/templates/_aside.html:25
+#: website/templates/_aside.html:25 website/templates/brands.html:5
+#: website/templates/brands.html:6 website/templates/brands.html:15
 msgid "Brands to integrate"
 msgstr ""
 
@@ -49,7 +50,7 @@ msgstr ""
 msgid "Language"
 msgstr ""
 
-#: website/templates/_aside.html:53
+#: website/templates/_aside.html:53 website/templates/_export_menu.html:10
 msgid "About"
 msgstr ""
 
@@ -71,6 +72,7 @@ msgid "Log out"
 msgstr ""
 
 #: website/templates/_aside.html:84 website/templates/_aside.html:86
+#: website/templates/brands.html:39
 msgid "Sign in with OSM"
 msgstr ""
 
@@ -92,5 +94,132 @@ msgstr ""
 
 #: website/templates/_base.html:56
 msgid "Open the sidebar"
+msgstr ""
+
+#: website/templates/_export_menu.html:4
+msgid "Export this data"
+msgstr ""
+
+#: website/templates/_export_menu.html:5
+msgid "Export"
+msgstr ""
+
+#: website/templates/brands.html:4
+#, python-format
+msgid "The %(count)s brands available for integration into OpenStreetMap through atp2osm. Data from AllThePlaces, reviewed by OSM contributors."
+msgstr ""
+
+#: website/templates/brands.html:21
+msgid "Brands to integrate into OpenStreetMap"
+msgstr ""
+
+#: website/templates/brands.html:22
+#, python-format
+msgid "%(count)s brand — data from the All The Places database."
+msgid_plural "%(count)s brands — data from the All The Places database."
+msgstr[0] ""
+msgstr[1] ""
+
+#: website/templates/brands.html:35
+msgid "Sign-in required"
+msgstr ""
+
+#: website/templates/brands.html:36
+msgid "Sign in with your OpenStreetMap account to start an integration."
+msgstr ""
+
+#: website/templates/brands.html:49
+msgid "Brand"
+msgstr ""
+
+#: website/templates/brands.html:52
+msgid "Name or Wikidata code"
+msgstr ""
+
+#: website/templates/brands.html:57 website/templates/brands.html:103
+msgid "Previous status"
+msgstr ""
+
+#: website/templates/brands.html:59
+msgid "All"
+msgstr ""
+
+#: website/templates/brands.html:61
+msgid "Never integrated"
+msgstr ""
+
+#: website/templates/brands.html:62 website/templates/brands.html:126
+msgid "Success"
+msgstr ""
+
+#: website/templates/brands.html:63 website/templates/brands.html:127
+msgid "Partial"
+msgstr ""
+
+#: website/templates/brands.html:64 website/templates/brands.html:128
+msgid "Cancelled"
+msgstr ""
+
+#: website/templates/brands.html:65 website/templates/brands.html:129
+msgid "Error"
+msgstr ""
+
+#: website/templates/brands.html:73 website/templates/brands.html:104
+msgid "Last integration"
+msgstr ""
+
+#: website/templates/brands.html:76
+msgid "From"
+msgstr ""
+
+#: website/templates/brands.html:78
+msgid "To"
+msgstr ""
+
+#: website/templates/brands.html:84
+msgid "Filter"
+msgstr ""
+
+#: website/templates/brands.html:85
+msgid "Reset"
+msgstr ""
+
+#: website/templates/brands.html:88
+#, python-format
+msgid "%(count)s brand"
+msgid_plural "%(count)s brands"
+msgstr[0] ""
+msgstr[1] ""
+
+#: website/templates/brands.html:93
+msgid "No brand matches these filters."
+msgstr ""
+
+#: website/templates/brands.html:100
+msgid "Wikidata code"
+msgstr ""
+
+#: website/templates/brands.html:101
+msgid "Name"
+msgstr ""
+
+#: website/templates/brands.html:102
+msgid "POIs to integrate"
+msgstr ""
+
+#: website/templates/brands.html:105
+msgid "Actions"
+msgstr ""
+
+#: website/templates/brands.html:148
+msgid "Never"
+msgstr ""
+
+#: website/templates/brands.html:155
+msgid "You must sign in"
+msgstr ""
+
+#: website/templates/brands.html:162
+msgid "Integrate"
 msgstr ""
 
