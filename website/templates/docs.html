@@ -1,18 +1,18 @@
 {% extends '_base.html' %}
 {% from '_info_card.html' import info_card %}
 
-{% block page_title %}Documentation{% endblock %}
-{% block meta_description %}Documentation d'atp2osm : comment est structuré la base AllThePlaces, la correspondance spatiale avec les données d'OpenStreetMap et le processus d'intégration collaborative.{% endblock %}
-{% block og_title %}Documentation — atp2osm{% endblock %}
+{% block page_title %}{{ _('Documentation') }}{% endblock %}
+{% block meta_description %}{{ _('atp2osm documentation: how the AllThePlaces database is structured, how it is matched against the OpenStreetMap data, and how the collaborative integration works.') }}{% endblock %}
+{% block og_title %}{{ _('Documentation') }} — atp2osm{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "TechArticle",
-  "headline": "Documentation — atp2osm",
-  "description": "Comment fonctionne atp2osm : les marques dans AllThePlaces, la correspondance spatiale avec OpenStreetMap et processus d'intégration collaborative.",
-  "inLanguage": "fr",
+  "headline": "{{ _('Documentation') }} — atp2osm",
+  "description": "{{ _('How atp2osm works: the brands in AllThePlaces, the spatial matching against OpenStreetMap and the collaborative integration process.') }}",
+  "inLanguage": "{{ get_locale() }}",
   "url": "{{ request.host_url }}docs",
   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
   "author": { "@type": "Person", "name": "Gwenaël Léger" }
@@ -23,68 +23,56 @@
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "{{ request.host_url }}" },
-    { "@type": "ListItem", "position": 2, "name": "Documentation" }
+    { "@type": "ListItem", "position": 1, "name": "{{ _('Home') }}", "item": "{{ request.host_url }}" },
+    { "@type": "ListItem", "position": 2, "name": "{{ _('Documentation') }}" }
   ]
 }
 </script>
 {% endblock %}
 
-{% block title %}Documentation{% endblock %}
-{% block subtitle %}Comment fonctionne atp2osm et comment contribuer.{% endblock %}
+{% block title %}{{ _('Documentation') }}{% endblock %}
+{% block subtitle %}{{ _('How atp2osm works, and how to contribute.') }}{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl flex flex-col gap-8">
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">Qu'est-ce qu'une « marque » ?</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ _('What is a “brand”?') }}</h2>
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body gap-4">
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    La notion de <strong>marque</strong> vient directement d'<a href="https://alltheplaces.xyz"
-                        target="_blank" rel="noopener" class="link link-primary">All The Places</a> (ATP).
-                    ATP est une base de données collaborative structurée autour des <strong>enseignes nationales et
-                    internationales</strong> : chaînes de magasins, réseaux de restauration, banques, chaînes
-                    de pharmacies… Chaque enseigne y est identifiée par un code
-                     <a href="https://www.wikidata.org" target="_blank" rel="noopener" class="link link-primary">Wikidata</a>
-                     unique — par exemple <a href="https://www.wikidata.org/wiki/Q37158" target="_blank" rel="noopener" class="link font-mono text-xs">Q37158</a> pour Zara.
-                    <strong>Les commerces indépendants</strong> (boulangerie de quartier, restaurant local…)
-                    n'en font pas partie.
+                    {% trans atp='https://alltheplaces.xyz', wikidata='https://www.wikidata.org', zara='https://www.wikidata.org/wiki/Q37158' %}The notion of a <strong>brand</strong> comes straight from <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places</a> (ATP). ATP is a collaborative database built around <strong>national and international chains</strong>: retail chains, restaurant networks, banks, pharmacy chains… Every chain is identified there by a unique <a href="{{ wikidata }}" target="_blank" rel="noopener" class="link link-primary">Wikidata</a> code — for instance <a href="{{ zara }}" target="_blank" rel="noopener" class="link font-mono text-xs">Q37158</a> for Zara. <strong>Independent shops</strong> (the bakery around the corner, a local restaurant…) are not part of it.{% endtrans %}
                 </p>
 
                 <div class="flex flex-col gap-2">
-                    <p class="text-sm font-semibold">Quelques termes clés</p>
+                    <p class="text-sm font-semibold">{{ _('A few key terms') }}</p>
                     <dl class="flex flex-col gap-2 text-sm">
                         <div class="flex gap-3 items-start">
                             <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">spider</dt>
-                            <dd class="text-base-content/70">Programme dédié à une seule enseigne, qui collecte automatiquement ses données depuis son site officiel (horaires d'ouverture, téléphone, adresse…).</dd>
+                            <dd class="text-base-content/70">{{ _('A program dedicated to a single chain, which automatically collects its data from its official website (opening hours, phone, address…).') }}</dd>
                         </div>
                         <div class="flex gap-3 items-start">
                             <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">scraping</dt>
-                            <dd class="text-base-content/70">Technique d'extraction automatique d'informations depuis des pages web. C'est ce que fait chaque spider ATP pour récupérer les données d'une enseigne.</dd>
+                            <dd class="text-base-content/70">{{ _('The technique of automatically extracting information from web pages. It is what every ATP spider does to gather the data of a chain.') }}</dd>
                         </div>
                     </dl>
                 </div>
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    atp2osm reprend cette structure et intègre les données <strong>enseigne par enseigne</strong>,
-                    en suivant fidèlement les spiders ATP. Cela garantit que toutes les données d'une même enseigne
-                    proviennent d'une source unique et homogène — ce qui permet de valider la qualité d'un spider
-                    en contrôlant un échantillon aléatoire de 3 POIs par lot intégré,
-                    et d'étendre cette confiance à l'ensemble du jeu de données.
+                    {{ _('atp2osm follows that structure and integrates the data <strong>chain by chain</strong>, faithfully to the ATP spiders. This guarantees that all the data of one chain comes from a single, homogeneous source — which is what makes it possible to judge the quality of a spider by reviewing a random sample of 3 POIs per integrated batch, and to extend that confidence to the whole dataset.') }}
                 </p>
 
                 {% call info_card('info', 'p-3') %}
                 <div class="flex flex-col gap-2">
-                <p class="text-sm">Une enseigne est absente ? Son spider ATP n'existe peut-être pas encore.</p>
+                <p class="text-sm">{{ _('A chain is missing? Its ATP spider may not exist yet.') }}</p>
                 <div class="flex flex-wrap gap-2">
                     <a href="/todo" class="btn btn-xs btn-primary rounded-full">
-                        <i class="iconoir-list"></i> La signaler dans les marques manquantes
+                        <i class="iconoir-list"></i> {{ _('Report it in the missing brands') }}
                     </a>
                     <a href="https://github.com/alltheplaces/alltheplaces" target="_blank" rel="noopener"
                         class="btn btn-xs btn-outline rounded-full">
-                        <i class="iconoir-github"></i> Écrire un spider sur GitHub
+                        <i class="iconoir-github"></i> {{ _('Write a spider on GitHub') }}
                     </a>
                 </div>
                 </div>
@@ -95,27 +83,27 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">Résumé</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ _('Summary') }}</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-2">
-                    <h3 class="font-semibold text-success text-sm flex items-center gap-1"><i class="iconoir-check-circle"></i> Ce qui est fait</h3>
+                    <h3 class="font-semibold text-success text-sm flex items-center gap-1"><i class="iconoir-check-circle"></i> {{ _('What it does') }}</h3>
                     <ul class="text-sm text-base-content/80 flex flex-col gap-1">
-                        <li>Ajout des tags <span class="font-mono text-xs">opening_hours</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span>, <span class="font-mono text-xs">email</span> manquants</li>
-                        <li>Correspondance sur les nodes, ways et relations</li>
-                        <li>Regroupement des intégrations par département</li>
-                        <li>Traçabilité complète dans l'historique</li>
+                        <li>{% trans %}Add the missing <span class="font-mono text-xs">opening_hours</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span> and <span class="font-mono text-xs">email</span> tags{% endtrans %}</li>
+                        <li>{{ _('Match nodes, ways and relations') }}</li>
+                        <li>{{ _('Group the integrations by subdivision') }}</li>
+                        <li>{{ _('Keep a full trace in the history') }}</li>
                     </ul>
                 </div>
             </div>
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-2">
-                    <h3 class="font-semibold text-error text-sm flex items-center gap-1"><i class="iconoir-xmark-circle"></i> Ce qui n'est pas fait</h3>
+                    <h3 class="font-semibold text-error text-sm flex items-center gap-1"><i class="iconoir-xmark-circle"></i> {{ _('What it does not do') }}</h3>
                     <ul class="text-sm text-base-content/80 flex flex-col gap-1">
-                        <li>Création de nouveaux nœuds OSM</li>
-                        <li>Modification ou suppression de tags existants</li>
-                        <li>Modification de la géométrie</li>
-                        <li>Intégration sans validation humaine</li>
+                        <li>{{ _('Create new OSM nodes') }}</li>
+                        <li>{{ _('Change or delete existing tags') }}</li>
+                        <li>{{ _('Change the geometry') }}</li>
+                        <li>{{ _('Integrate without a human review') }}</li>
                     </ul>
                 </div>
             </div>
@@ -123,150 +111,118 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">Principe général</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ _('How it works') }}</h2>
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
-            <strong>atp2osm</strong> est un outil d'enrichissement d'OpenStreetMap à partir des données
-            <a href="https://alltheplaces.xyz" target="_blank" rel="noopener" class="link link-primary">All The Places</a>
-            (ATP). ATP collecte automatiquement les informations des points d'intérêt (horaires, téléphone, site web, email)
-            directement depuis les sites officiels des enseignes.
+            {% trans atp='https://alltheplaces.xyz' %}<strong>atp2osm</strong> enriches OpenStreetMap from the <a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places</a> (ATP) data. ATP automatically collects the information of points of interest (opening hours, phone, website, email) straight from the official websites of the chains.{% endtrans %}
         </p>
         <p class="text-sm text-base-content/80 leading-relaxed">
-            L'outil compare ces données avec les nœuds OSM existants, identifie les tags manquants,
-            et vous permet de valider puis d'intégrer ces données directement dans OSM via votre compte.
-            <strong>Aucun nœud n'est créé ou supprimé</strong> — seuls des tags manquants sont ajoutés.
+            {{ _('The tool compares that data against the existing OSM nodes, finds the missing tags, and lets you review then integrate them into OSM through your own account. <strong>No node is ever created or deleted</strong> — only missing tags are added.') }}
         </p>
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">Le processus en détail</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ _('The process in detail') }}</h2>
         <ul class="steps steps-vertical text-sm">
             <li class="step step-primary">
                 <div class="text-left ml-3">
-                    <p class="font-semibold">Collecte des données ATP</p>
-                    <p class="text-base-content/70">Chaque semaine, les dernières données ATP sont téléchargées depuis alltheplaces.xyz. Elles contiennent les POIs français avec leurs attributs extraits des sites officiels des enseignes.</p>
+                    <p class="font-semibold">{{ _('Collecting the ATP data') }}</p>
+                    <p class="text-base-content/70">{{ _('Every week, the latest ATP data is downloaded from alltheplaces.xyz. It holds the POIs with the attributes extracted from the official websites of the chains.') }}</p>
                 </div>
             </li>
             <li class="step step-primary">
                 <div class="text-left ml-3">
-                    <p class="font-semibold">Mise à jour des données OSM</p>
-                    <p class="text-base-content/70">En parallèle, les données OSM de France métropolitaine sont importées dans la base locale via osm2pgsql.</p>
+                    <p class="font-semibold">{{ _('Refreshing the OSM data') }}</p>
+                    <p class="text-base-content/70">{{ _('In parallel, the OSM data is imported into the local database through osm2pgsql.') }}</p>
                 </div>
             </li>
             <li class="step step-primary">
                 <div class="text-left ml-3">
-                    <p class="font-semibold">Correspondance spatiale et attributaire</p>
+                    <p class="font-semibold">{{ _('Spatial and attribute matching') }}</p>
                     <p class="text-base-content/70">
-                        Chaque POI ATP est mis en correspondance avec les nœuds OSM dans un rayon de <strong>500 m</strong>,
-                        en vérifiant au moins un attribut commun parmi :
-                        <span class="font-mono text-xs">brand:wikidata</span>,
-                        <span class="font-mono text-xs">brand</span>,
-                        <span class="font-mono text-xs">name</span>,
-                        <span class="font-mono text-xs">phone</span>,
-                        <span class="font-mono text-xs">website</span>,
-                        <span class="font-mono text-xs">email</span>.
-                        Les correspondances ambiguës (plusieurs nœuds OSM pour un même POI ATP) sont écartées.
+                        {% trans %}Every ATP POI is matched against the OSM nodes within <strong>500 m</strong>, checking that at least one attribute is shared among <span class="font-mono text-xs">brand:wikidata</span>, <span class="font-mono text-xs">brand</span>, <span class="font-mono text-xs">name</span>, <span class="font-mono text-xs">phone</span>, <span class="font-mono text-xs">website</span>, <span class="font-mono text-xs">email</span>. Ambiguous matches — several OSM nodes for one ATP POI — are dropped.{% endtrans %}
                     </p>
                 </div>
             </li>
             <li class="step step-primary">
                 <div class="text-left ml-3">
-                    <p class="font-semibold">Calcul des tags manquants</p>
-                    <p class="text-base-content/70">Pour chaque correspondance retenue, l'outil calcule quels tags sont présents dans ATP mais absents dans OSM. Seuls les tags manquants sont proposés — <strong>les tags existants ne sont jamais modifiés.</strong></p>
+                    <p class="font-semibold">{{ _('Computing the missing tags') }}</p>
+                    <p class="text-base-content/70">{{ _('For every match kept, the tool computes which tags exist in ATP but not in OSM. Only the missing ones are offered — <strong>an existing tag is never changed.</strong>') }}</p>
                 </div>
             </li>
             <li class="step">
                 <div class="text-left ml-3">
-                    <p class="font-semibold">Validation et intégration</p>
-                    <p class="text-base-content/70">Vous vérifiez les changements proposés pour une marque, puis vous déclenchez l'intégration automatique de l'ensemble du jeu de données. Les modifications sont envoyées à l'API OSM via votre compte, groupées par département.</p>
+                    <p class="font-semibold">{{ _('Review and integration') }}</p>
+                    <p class="text-base-content/70">{{ _('You check the changes offered for a brand, then you trigger the automatic integration of the whole dataset. The changes are sent to the OSM API through your account, grouped by subdivision.') }}</p>
                 </div>
             </li>
         </ul>
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">Comment contribuer</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ _('How to contribute') }}</h2>
         <ol class="flex flex-col gap-4 text-sm">
             <li class="flex gap-3">
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">1</span>
                 <div>
-                    <p class="font-semibold">Connectez-vous avec votre compte OSM</p>
-                    <p class="text-base-content/70">Utilisez le bouton de connexion en bas du menu. Vos intégrations seront enregistrées sous votre nom dans l'historique OSM des changesets.</p>
+                    <p class="font-semibold">{{ _('Sign in with your OSM account') }}</p>
+                    <p class="text-base-content/70">{{ _('Use the sign-in button at the bottom of the menu. Your integrations are recorded under your name in the OSM changeset history.') }}</p>
                 </div>
             </li>
             <li class="flex gap-3">
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">2</span>
                 <div>
-                    <p class="font-semibold">Choisissez une marque</p>
-                    <p class="text-base-content/70">La page <a href="/brands" class="link link-primary">Marques à intégrer</a> liste toutes les enseignes pour lesquelles des enrichissements sont disponibles, avec le nombre de nœuds concernés.</p>
+                    <p class="font-semibold">{{ _('Pick a brand') }}</p>
+                    <p class="text-base-content/70">{% trans link='/brands' %}The <a href="{{ link }}" class="link link-primary">Brands to integrate</a> page lists every chain for which enrichments are available, with the number of nodes concerned.{% endtrans %}</p>
                 </div>
             </li>
             <li class="flex gap-3">
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">3</span>
                 <div>
-                    <p class="font-semibold">Vérifiez les correspondances</p>
+                    <p class="font-semibold">{{ _('Check the matches') }}</p>
                     <p class="text-base-content/70">
-                        Pour chaque nœud, vérifiez que la correspondance ATP ↔ OSM est correcte : position géographique,
-                        nom de l'établissement, tags proposés. En cas de doute, consultez la source ATP ou la fiche OSM avant de valider.
+                        {{ _('For every node, check that the ATP ↔ OSM match is right: location, name of the place, tags offered. When in doubt, open the ATP source or the OSM object before accepting.') }}
                     </p>
                 </div>
             </li>
             <li class="flex gap-3">
                 <span class="badge badge-primary badge-sm mt-0.5 shrink-0">4</span>
                 <div>
-                    <p class="font-semibold">Intégrez</p>
-                    <p class="text-base-content/70">Si les données vous semblent correctes, lancez l'intégration. Les changesets sont créés automatiquement sur OSM, un par département. L'opération est irréversible : assurez-vous d'avoir vérifié les données.</p>
+                    <p class="font-semibold">{{ _('Integrate') }}</p>
+                    <p class="text-base-content/70">{{ _('If the data looks right, start the integration. The changesets are created automatically on OSM, one per subdivision. The operation cannot be undone: make sure you have checked the data.') }}</p>
                 </div>
             </li>
         </ol>
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">Validation des marques</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ _('Reviewing a brand') }}</h2>
         {% call info_card('warning', 'mb-4') %}
-        <p class="text-sm">Seuls <strong>3 éléments au minimum</strong> sont validés manuellement par lot, tirés au hasard parmi les établissements de ce lot.</p>
+        <p class="text-sm">{{ _('Only <strong>3 items at the very least</strong> are reviewed by hand per batch, drawn at random among the places of that batch.') }}</p>
         {% endcall %}
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
-            La validation se fait <strong>lot par lot</strong> : une marque est découpée en lots de départements entiers,
-            et avant d'intégrer un lot vous en contrôlez un échantillon tiré au hasard.
-            Si les données de cet échantillon sont correctes, la fiabilité est considérée comme acquise pour
-            l'ensemble des établissements du lot.
+            {{ _('The review goes <strong>batch by batch</strong>: a brand is cut into batches of whole subdivisions, and before integrating a batch you check a sample drawn at random from it. If that sample is right, the data is considered reliable for every place of the batch.') }}
         </p>
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
-            L'échantillon contient <strong>au moins un exemple de chaque tag modifié</strong> par le lot : si le lot
-            ajoute par exemple <code>phone</code>, <code>website</code>, <code>opening_hours</code> et
-            <code>email</code>, l'échantillon comprendra un POI portant chacun de ces tags. Chaque tag est donc vu au
-            moins une fois avant l'intégration, et l'échantillon est complété au hasard jusqu'à 3 éléments s'il en
-            compte moins. Selon les tags concernés, vous pouvez ainsi avoir <strong>4 POIs à vérifier</strong>, voire
-            davantage.
+            {% trans %}The sample holds <strong>at least one example of every tag the batch changes</strong>: if the batch adds, say, <code>phone</code>, <code>website</code>, <code>opening_hours</code> and <code>email</code>, the sample will hold a POI carrying each of them. Every tag is therefore seen at least once before the integration, and the sample is filled at random up to 3 items when it holds fewer. Depending on the tags involved, you may well have <strong>4 POIs to check</strong>, or more.{% endtrans %}
         </p>
         <p class="text-sm text-base-content/80 leading-relaxed mb-3">
-            Avant de valider, assurez-vous que les éléments vérifiés sont représentatifs : testez plusieurs établissements
-            dans des régions différentes, vérifiez les cas limites (horaires spéciaux, numéros de téléphone mal formatés,
-            URLs redirigées…). Si le moindre doute persiste sur la qualité du spider, signalez une erreur plutôt que de valider.
+            {{ _('Before accepting, make sure the items you checked are representative: try several places in different areas, look at the edge cases (unusual opening hours, badly formatted phone numbers, redirected URLs…). If the slightest doubt remains about the quality of the spider, report an error rather than accept.') }}
         </p>
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">Statuts des intégrations</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ _('Integration statuses') }}</h2>
         <p class="text-sm text-base-content/80 leading-relaxed mb-4">
-            Chaque intégration enregistrée dans l'<a
-                href="/history"
-                class="link link-primary"
-                >historique</a
-            >
-            se voit attribuer un statut reflétant son résultat.
+            {% trans link='/history' %}Every integration recorded in the <a href="{{ link }}" class="link link-primary">history</a> is given a status reflecting its outcome.{% endtrans %}
         </p>
         <div class="flex flex-col gap-3">
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body flex-row items-start gap-4 py-4">
-                    <span class="badge badge-success mt-0.5 shrink-0"
-                        >Succès</span
-                    >
+                    <span class="badge badge-success mt-0.5 shrink-0">{{ _('Success') }}</span>
                     <div class="flex flex-col gap-1">
-                        <p class="text-sm font-semibold">Intégration réussie</p>
+                        <p class="text-sm font-semibold">{{ _('Integration succeeded') }}</p>
                         <p class="text-sm text-base-content/70">
-                            Tous les changements ont été envoyés à OpenStreetMap
-                            et sont désormais visibles publiquement.
+                            {{ _('Every change has been sent to OpenStreetMap and is now publicly visible.') }}
                         </p>
                     </div>
                 </div>
@@ -274,19 +230,13 @@
 
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body flex-row items-start gap-4 py-4">
-                    <span class="badge badge-warning mt-0.5 shrink-0"
-                        >Partiel</span
-                    >
+                    <span class="badge badge-warning mt-0.5 shrink-0">{{ _('Partial') }}</span>
                     <div class="flex flex-col gap-1">
                         <p class="text-sm font-semibold">
-                            Intégration partiellement réussie
+                            {{ _('Integration partly succeeded') }}
                         </p>
                         <p class="text-sm text-base-content/70">
-                            Certains départements n'ont pas pu être intégrés
-                            suite à une erreur de l'API OpenStreetMap. Les
-                            changements envoyés sont néanmoins visibles sur OSM.
-                            Les données non intégrées resteront disponibles pour
-                            une prochaine intégration.
+                            {{ _('Some subdivisions could not be integrated because of an OpenStreetMap API error. The changes that were sent are visible on OSM all the same. The data left out stays available for a later integration.') }}
                         </p>
                     </div>
                 </div>
@@ -294,15 +244,13 @@
 
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body flex-row items-start gap-4 py-4">
-                    <span class="badge badge-info mt-0.5 shrink-0">Annulé</span>
+                    <span class="badge badge-info mt-0.5 shrink-0">{{ _('Cancelled') }}</span>
                     <div class="flex flex-col gap-1">
                         <p class="text-sm font-semibold">
-                            Intégration annulée — données signalées
+                            {{ _('Integration cancelled — data reported') }}
                         </p>
                         <p class="text-sm text-base-content/70">
-                            L'intégration a été interrompue suite à la détection
-                            d'erreurs par un contributeur dans les données ATP.
-                            Aucune modification n'a été envoyée à OpenStreetMap.
+                            {{ _('The integration was stopped after a contributor found errors in the ATP data. Nothing was sent to OpenStreetMap.') }}
                         </p>
                     </div>
                 </div>
@@ -310,19 +258,11 @@
 
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body flex-row items-start gap-4 py-4">
-                    <span class="badge badge-error mt-0.5 shrink-0"
-                        >Erreur</span
-                    >
+                    <span class="badge badge-error mt-0.5 shrink-0">{{ _('Error') }}</span>
                     <div class="flex flex-col gap-1">
-                        <p class="text-sm font-semibold">Erreur technique</p>
+                        <p class="text-sm font-semibold">{{ _('Technical error') }}</p>
                         <p class="text-sm text-base-content/70">
-                            Une erreur indépendante de votre action a empêché
-                            l'intégration de se terminer. Aucune modification n'a été
-                            envoyée à OpenStreetMap. Vous pouvez relancer
-                            l'intégration depuis la page de la marque concernée après
-                            4 semaines. Ce délai permet de laisser le temps de
-                            corriger les éventuels erreurs dans les jeux de
-                            données.
+                            {{ _('An error unrelated to what you did stopped the integration. Nothing was sent to OpenStreetMap. You can start the integration again from the page of the brand concerned after 4 weeks. That delay leaves time to fix the errors the datasets may hold.') }}
                         </p>
                     </div>
                 </div>
@@ -331,66 +271,55 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">Licences</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ _('Licences') }}</h2>
         <div class="flex flex-col gap-3 text-sm">
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-1 py-3">
                     <h3 class="font-semibold">OpenStreetMap</h3>
-                    <p class="text-base-content/70">Les données OSM sont publiées sous licence <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener" class="link link-primary">ODbL 1.0</a> (Open Database License). Toute contribution via cet outil est soumise aux <a href="https://osmfoundation.org/wiki/Licence/Contributor_Terms" target="_blank" rel="noopener" class="link link-primary">Contributor Terms</a> d'OpenStreetMap.</p>
+                    <p class="text-base-content/70">{% trans odbl='https://opendatacommons.org/licenses/odbl/', terms='https://osmfoundation.org/wiki/Licence/Contributor_Terms' %}The OSM data is published under the <a href="{{ odbl }}" target="_blank" rel="noopener" class="link link-primary">ODbL 1.0</a> (Open Database License). Every contribution made through this tool falls under the OpenStreetMap <a href="{{ terms }}" target="_blank" rel="noopener" class="link link-primary">Contributor Terms</a>.{% endtrans %}</p>
                 </div>
             </div>
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-1 py-3">
                     <h3 class="font-semibold">All The Places</h3>
-                    <p class="text-base-content/70">Les données ATP sont publiées sous licence <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener" class="link link-primary">CC0 1.0</a> (domaine public). Leur utilisation est libre sans restriction.</p>
+                    <p class="text-base-content/70">{% trans cc0='https://creativecommons.org/publicdomain/zero/1.0/' %}The ATP data is published under <a href="{{ cc0 }}" target="_blank" rel="noopener" class="link link-primary">CC0 1.0</a> (public domain). It can be used freely, without restriction.{% endtrans %}</p>
                 </div>
             </div>
             <div class="card bg-base-100 shadow-sm">
                 <div class="card-body gap-1 py-3">
                     <h3 class="font-semibold">atp2osm</h3>
-                    <p class="text-base-content/70">Le code source de cet outil est publié sous licence <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener" class="link link-primary">GPL-3.0</a>. Les contributions sont les bienvenues sur <a href="https://github.com/hagatopaxi/atp2osm-import" target="_blank" rel="noopener" class="link link-primary">GitHub</a>.</p>
+                    <p class="text-base-content/70">{% trans gpl='https://www.gnu.org/licenses/gpl-3.0.html', github='https://github.com/hagatopaxi/atp2osm-import' %}The source code of this tool is published under the <a href="{{ gpl }}" target="_blank" rel="noopener" class="link link-primary">GPL-3.0</a> licence. Contributions are welcome on <a href="{{ github }}" target="_blank" rel="noopener" class="link link-primary">GitHub</a>.{% endtrans %}</p>
                 </div>
             </div>
         </div>
     </section>
 
     <section id="export">
-        <h2 class="text-lg font-semibold mb-3">Exporter les données</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ _('Exporting the data') }}</h2>
         <div class="card bg-base-100 shadow-sm">
             <div class="card-body gap-4">
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    Les données <strong>produites par atp2osm</strong> sont librement exportables, en CSV ou en JSON,
-                    sans authentification. Il s'agit uniquement de la trace des intégrations et de la liste des
-                    marques manquantes : les données sources restent chez leurs producteurs respectifs
-                    (<a href="https://alltheplaces.xyz" target="_blank" rel="noopener" class="link link-primary">All The Places</a>
-                    et <a href="https://www.openstreetmap.org" target="_blank" rel="noopener" class="link link-primary">OpenStreetMap</a>).
+                    {% trans atp='https://alltheplaces.xyz', osm='https://www.openstreetmap.org' %}The data <strong>produced by atp2osm</strong> can be exported freely, as CSV or JSON, without signing in. It is only the trace of the integrations and the list of the missing brands: the source data stays with the projects that produce it (<a href="{{ atp }}" target="_blank" rel="noopener" class="link link-primary">All The Places</a> and <a href="{{ osm }}" target="_blank" rel="noopener" class="link link-primary">OpenStreetMap</a>).{% endtrans %}
                 </p>
 
                 <dl class="flex flex-col gap-2 text-sm">
                     <div class="flex gap-3 items-start">
                         <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/history.csv</dt>
-                        <dd class="text-base-content/70">Une ligne par intégration : marque, contributeur, date, statut, nombre d'objets et de tags.</dd>
+                        <dd class="text-base-content/70">{{ _('One row per integration: brand, contributor, date, status, number of objects and of tags.') }}</dd>
                     </div>
                     <div class="flex gap-3 items-start">
                         <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/subdivisions.csv</dt>
-                        <dd class="text-base-content/70">Le détail par changeset : subdivision administrative, nombre d'objets, identifiant du changeset OSM et statut.</dd>
+                        <dd class="text-base-content/70">{{ _('The detail per changeset: administrative subdivision, number of objects, OSM changeset identifier and status.') }}</dd>
                     </div>
                     <div class="flex gap-3 items-start">
                         <dt class="font-mono text-xs bg-base-200 px-2 py-0.5 rounded shrink-0 mt-0.5">/api/export/todo.csv</dt>
-                        <dd class="text-base-content/70">Les marques signalées comme absentes d'ATP. Celles qu'ATP connaît désormais sont exclues, sauf avec <code class="font-mono text-xs">?show_in_atp=1</code>.</dd>
+                        <dd class="text-base-content/70">{% trans %}The brands reported as missing from ATP. The ones ATP now knows are left out, unless <code class="font-mono text-xs">?show_in_atp=1</code> is passed.{% endtrans %}</dd>
                     </div>
                 </dl>
 
                 <p class="text-sm text-base-content/80 leading-relaxed">
-                    Remplacez <code class="font-mono text-xs">.csv</code> par <code class="font-mono text-xs">.json</code>
-                    pour obtenir le même contenu en JSON. Les exports
-                    <code class="font-mono text-xs">history</code> et <code class="font-mono text-xs">todo</code>
-                    acceptent les mêmes filtres que les pages correspondantes
-                    (<code class="font-mono text-xs">q</code>, <code class="font-mono text-xs">status</code>,
-                    <code class="font-mono text-xs">user</code>, <code class="font-mono text-xs">from</code>,
-                    <code class="font-mono text-xs">to</code>) — le bouton « Exporter » situé au-dessus de chaque
-                    tableau reprend d'ailleurs les filtres actifs.
+                    {% trans %}Replace <code class="font-mono text-xs">.csv</code> with <code class="font-mono text-xs">.json</code> for the same content as JSON. The <code class="font-mono text-xs">history</code> and <code class="font-mono text-xs">todo</code> exports take the same filters as their pages (<code class="font-mono text-xs">q</code>, <code class="font-mono text-xs">status</code>, <code class="font-mono text-xs">user</code>, <code class="font-mono text-xs">from</code>, <code class="font-mono text-xs">to</code>) — the “Export” button above each table carries the active filters over anyway.{% endtrans %}
                 </p>
 
             </div>
@@ -398,25 +327,25 @@
     </section>
 
     <section>
-        <h2 class="text-lg font-semibold mb-3">Ressources</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ _('Resources') }}</h2>
         <ul class="flex flex-col gap-2 text-sm">
             <li>
                 <a href="https://alltheplaces.xyz" target="_blank" rel="noopener" class="link link-primary">
                     <i class="iconoir-open-in-browser"></i> All The Places
                 </a>
-                — source des données POI
+                — {{ _('the source of the POI data') }}
             </li>
             <li>
                 <a href="https://wiki.openstreetmap.org/wiki/atp2osm" target="_blank" rel="noopener" class="link link-primary">
-                    <i class="icown-wikipedia"></i> Page wiki OSM
+                    <i class="icown-wikipedia"></i> {{ _('OSM wiki page') }}
                 </a>
-                — documentation des intégrations automatisées
+                — {{ _('documentation of the automated integrations') }}
             </li>
             <li>
                 <a href="https://github.com/hagatopaxi/atp2osm-import" target="_blank" rel="noopener" class="link link-primary">
-                    <i class="iconoir-github"></i> Code source
+                    <i class="iconoir-github"></i> {{ _('Source code') }}
                 </a>
-                — contributions bienvenues
+                — {{ _('contributions welcome') }}
             </li>
         </ul>
     </section>
