@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-06 19:26+0200\n"
+"POT-Creation-Date: 2026-09-06 19:36+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -105,7 +105,7 @@ msgstr "atp2osm — Enrichir OpenStreetMap avec AllThePlaces"
 msgid "Integrate AllThePlaces points of interest into OpenStreetMap. A collaborative contribution tool for OSM mappers."
 msgstr "Intégrez les points d'intérêt AllThePlaces dans OpenStreetMap. Outil de contribution collaboratif pour les cartographes OSM."
 
-#: website/templates/_base.html:56
+#: website/templates/_base.html:58
 msgid "Open the sidebar"
 msgstr "Ouvrir la barre latérale"
 
@@ -160,6 +160,58 @@ msgstr "Exporter ces données"
 #: website/templates/_export_menu.html:5
 msgid "Export"
 msgstr "Exporter"
+
+#: website/templates/_js_strings.html:11
+msgid "Your session has expired, please sign in again."
+msgstr "Session expirée, veuillez vous reconnecter."
+
+#: website/templates/_js_strings.html:12
+msgid "Something went wrong, please try again."
+msgstr "Une erreur est survenue, veuillez réessayer."
+
+#: website/templates/_js_strings.html:13
+#, python-brace-format
+msgid "Careful: this brand looks like it is already there — {names}"
+msgstr "Attention : cette marque semble déjà présente — {names}"
+
+#: website/templates/_js_strings.html:14
+msgid "Delete this entry?"
+msgstr "Supprimer cette entrée ?"
+
+#: website/templates/_js_strings.html:15
+msgid "You can only delete your own entries."
+msgstr "Vous ne pouvez supprimer que vos propres entrées."
+
+#: website/templates/_js_strings.html:16
+msgid "The deletion failed."
+msgstr "Erreur lors de la suppression."
+
+#: website/templates/_js_strings.html:17
+#, python-brace-format
+msgid "Sending failed: {error}"
+msgstr "Erreur lors de l'envoi : {error}"
+
+#: website/templates/_js_strings.html:18
+msgid "No rejection found."
+msgstr "Aucune invalidation trouvée."
+
+#: website/templates/_js_strings.html:19
+msgid "This data source is an API."
+msgstr "Cette source de données est une API."
+
+#: website/templates/_js_strings.html:20
+msgid "This data source is not an API."
+msgstr "Cette source de données n'est pas une API."
+
+#: website/templates/_js_strings.html:21
+#, python-brace-format
+msgid "The integration failed: {errors} — you can try again later."
+msgstr "Erreur lors de l'intégration : {errors} — vous pouvez réessayer ultérieurement."
+
+#: website/templates/_js_strings.html:22
+#, python-brace-format
+msgid "Partial integration: some subdivisions could not be integrated ({errors}). Redirecting in a few seconds…"
+msgstr "Intégration partielle : certains départements n'ont pas pu être intégrés ({errors}). Redirection dans quelques secondes…"
 
 #: website/templates/brands.html:4
 #, python-format

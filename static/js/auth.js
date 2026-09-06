@@ -2,7 +2,10 @@ if (new URLSearchParams(location.search).get('session_expired')) {
   history.replaceState(null, '', location.pathname);
   const c = document.createElement('div');
   c.className = 'toast toast-end toast-bottom z-50';
-  c.innerHTML = '<div class="alert alert-warning text-sm shadow-md">Session expirée, veuillez vous reconnecter.</div>';
+  const alert = document.createElement('div');
+  alert.className = 'alert alert-warning text-sm shadow-md';
+  alert.textContent = t('session_expired');
+  c.appendChild(alert);
   document.addEventListener('DOMContentLoaded', () => { document.body.appendChild(c); setTimeout(() => c.remove(), 5000); });
 }
 

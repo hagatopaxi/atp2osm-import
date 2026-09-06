@@ -9,6 +9,15 @@ function showToast(message, type = 'error') {
   setTimeout(() => container.remove(), 4000);
 }
 
+// The server sends a message of its own when it has one to send.
+async function errorMessage(res) {
+  try {
+    const data = await res.json();
+    if (data.error) return data.error;
+  } catch (_) {}
+  return t('generic_error');
+}
+
 async function checkDuplicate() {
   const wikidata = document.getElementById('input-wikidata').value.trim();
   const name = document.getElementById('input-name').value.trim();
@@ -29,7 +38,7 @@ async function checkDuplicate() {
 
   if (data.matches && data.matches.length > 0) {
     const names = data.matches.map(m => `${m.brand_name} (${m.brand_wikidata})`).join(', ');
-    warningText.textContent = `Attention : cette marque semble déjà présente — ${names}`;
+    warningText.textContent = t('duplicate_brand', { names });
     warning.classList.remove('hidden');
   } else {
     warning.classList.add('hidden');
@@ -62,22 +71,17 @@ async function addEntry(event) {
   } else {
     btn.disabled = false;
     btn.classList.remove('loading', 'loading-spinner');
-    let message = 'Une erreur est survenue, veuillez réessayer.';
-    try {
-      const data = await res.json();
-      if (data.error) message = data.error;
-    } catch (_) {}
-    showToast(message);
+    showToast(await errorMessage(res));
   }
 }
 
 async function deleteEntry(id) {
-  if (!confirm('Supprimer cette entrée ?')) return;
+  if (!confirm(t('confirm_delete'))) return;
   const res = await fetch(`/todo/${id}`, { method: 'DELETE' });
   if (res.ok) {
     window.location.reload();
   } else {
-    showToast(res.status === 403 ? 'Vous ne pouvez supprimer que vos propres entrées.' : 'Erreur lors de la suppression.');
+    showToast(res.status === 403 ? t('delete_forbidden') : t('delete_failed'));
   }
 }
 
@@ -113,11 +117,6 @@ async function saveEntry(event) {
   } else {
     btn.disabled = false;
     btn.classList.remove('loading', 'loading-spinner');
-    let message = 'Une erreur est survenue, veuillez réessayer.';
-    try {
-      const data = await res.json();
-      if (data.error) message = data.error;
-    } catch (_) {}
-    showToast(message);
+    showToast(await errorMessage(res));
   }
 }

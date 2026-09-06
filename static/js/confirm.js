@@ -24,7 +24,7 @@ async function confirm_import() {
     button_validate.removeAttribute("disabled");
     button_cancel.removeAttribute("disabled");
     warningIcon.className = "iconoir-warning-circle";
-    warningText.textContent = `Erreur lors de l'intégration : ${data.errors.join(", ")} — Vous pouvez réessayer ultérieurement.`;
+    warningText.textContent = t("integration_failed", { errors: data.errors.join(", ") });
     warning.classList.remove("alert-warning");
     warning.classList.add("alert-error");
     return;
@@ -32,7 +32,7 @@ async function confirm_import() {
 
   if (data.partial) {
     loading.classList.add("hidden");
-    warningText.textContent = `Intégration partielle : certains départements n'ont pas pu être intégrés (${data.errors.join(", ")}). Redirection dans quelques secondes…`;
+    warningText.textContent = t("integration_partial", { errors: data.errors.join(", ") });
     setTimeout(() => { window.location.href = `/history/${data.id}`; }, 4000);
     return;
   }

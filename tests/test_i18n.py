@@ -182,3 +182,27 @@ def test_language_free_paths_are_not_served_under_a_prefix():
     client = app.test_client()
     assert client.get("/fr/sitemap.xml").headers["Location"] == "/sitemap.xml"
     assert client.get("/sitemap.xml").data == b"sitemap"
+
+
+def test_every_key_the_scripts_ask_for_is_rendered():
+    """A key missing from the JSON block shows its own slug to the user."""
+    import json
+    import re
+    from pathlib import Path
+
+    from flask import Flask, render_template
+
+    from src import i18n
+    from src.config import PROJECT_ROOT, TEMPLATE_DIR
+
+    app = Flask(__name__, template_folder=TEMPLATE_DIR)
+    i18n.init_app(app, ("fr",), ("/",))
+    with app.test_request_context("/"):
+        rendered = render_template("_js_strings.html")
+    keys = set(json.loads(re.search(r">\s*(\{.*\})\s*<", rendered, re.S).group(1)))
+
+    asked = set()
+    for script in (Path(PROJECT_ROOT) / "static" / "js").glob("*.js"):
+        asked |= set(re.findall(r"""\bt\(\s*["'](\w+)["']""", script.read_text()))
+
+    assert asked <= keys, f"not rendered: {sorted(asked - keys)}"

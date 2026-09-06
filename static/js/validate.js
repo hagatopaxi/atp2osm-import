@@ -11,8 +11,8 @@ function markSourceChecked(itemId) {
   const warning = document.querySelector(`[data-source-warning="${itemId}"]`);
   if (warning) warning.remove();
 
-  // La première fois qu'une source est ouverte, on demande si c'est une API :
-  // on remplace le bouton par la question. Une fois répondu, on ne repose plus.
+  // The first time a source is opened, ask whether it is an API: the button
+  // is replaced by the question. Once answered, it is never asked again.
   if (apiAnswered) return;
   const sourceBtn = document.querySelector(`[data-source-btn="${itemId}"]`);
   if (sourceBtn) sourceBtn.classList.add("hidden");
@@ -20,21 +20,21 @@ function markSourceChecked(itemId) {
   if (question) question.classList.remove("hidden");
 }
 
-// Réponse à « est-ce une API ? » : on fige le message dans le bandeau et, si
-// oui, on débloque les points restants.
+// Answer to "is this an API?": the message is frozen in the card and, when it
+// is one, the remaining points are unlocked.
 function answerIsApi(btn, isApi) {
   apiAnswered = true;
   const question = btn.closest("[data-api-question]");
   question.querySelector("[data-api-msg]").textContent = isApi
-    ? "Cette source de données est une API."
-    : "Cette source de données n'est pas une API.";
+    ? t("source_is_api")
+    : t("source_is_not_api");
   question.querySelector("[data-api-choices]").remove();
   if (isApi) markBrandIsApi();
 }
 
-// La source est une API : elle n'est plus obligatoire, on débloque les points
-// restants, on retire les avertissements et on remplace les boutons « ouvrir
-// la source » restants par une simple mention.
+// The source is an API: it is no longer required, so the remaining points are
+// unlocked, the warnings are dropped and the remaining "open the source"
+// buttons are replaced by a plain mention.
 function markBrandIsApi() {
   document
     .querySelectorAll("[data-validate-btn][disabled]")
@@ -45,8 +45,8 @@ function markBrandIsApi() {
   document.querySelectorAll("[data-source-btn]:not(.hidden)").forEach((btn) => {
     const mention = document.createElement("div");
     mention.className = "alert alert-soft alert-info";
-    mention.innerHTML =
-      '<i class="iconoir-database"></i><span>Cette source de données est une API.</span>';
+    mention.innerHTML = '<i class="iconoir-database"></i><span></span>';
+    mention.querySelector("span").textContent = t("source_is_api");
     btn.replaceWith(mention);
   });
 }
