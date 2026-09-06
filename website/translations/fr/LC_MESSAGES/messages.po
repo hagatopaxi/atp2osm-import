@@ -1,22 +1,27 @@
 # French translations for atp2osm.
-# Copyright (C) 2026 ORGANIZATION
+# Copyright (C) 2026 the atp2osm contributors
 # This file is distributed under the same license as the atp2osm project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+# The atp2osm contributors, 2026.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
-"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-06 19:26+0200\n"
+"Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
+"POT-Creation-Date: 2026-09-06 20:10+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
-"Language-Team: fr <LL@li.org>\n"
+"Language-Team: fr <https://github.com/hagatopaxi/atp2osm-import>\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
+
+#: src/upload.py:89
+#, python-format
+msgid "ATP data integration (%(subdivision)s; %(brand)s)"
+msgstr "Intégration des données ATP (%(subdivision)s ; %(brand)s)"
 
 #: website/templates/_aside.html:8
 msgid "Toggle the sidebar"
@@ -105,7 +110,7 @@ msgstr "atp2osm — Enrichir OpenStreetMap avec AllThePlaces"
 msgid "Integrate AllThePlaces points of interest into OpenStreetMap. A collaborative contribution tool for OSM mappers."
 msgstr "Intégrez les points d'intérêt AllThePlaces dans OpenStreetMap. Outil de contribution collaboratif pour les cartographes OSM."
 
-#: website/templates/_base.html:56
+#: website/templates/_base.html:58
 msgid "Open the sidebar"
 msgstr "Ouvrir la barre latérale"
 
@@ -160,6 +165,58 @@ msgstr "Exporter ces données"
 #: website/templates/_export_menu.html:5
 msgid "Export"
 msgstr "Exporter"
+
+#: website/templates/_js_strings.html:11
+msgid "Your session has expired, please sign in again."
+msgstr "Session expirée, veuillez vous reconnecter."
+
+#: website/templates/_js_strings.html:12
+msgid "Something went wrong, please try again."
+msgstr "Une erreur est survenue, veuillez réessayer."
+
+#: website/templates/_js_strings.html:13
+#, python-brace-format
+msgid "Careful: this brand looks like it is already there — {names}"
+msgstr "Attention : cette marque semble déjà présente — {names}"
+
+#: website/templates/_js_strings.html:14
+msgid "Delete this entry?"
+msgstr "Supprimer cette entrée ?"
+
+#: website/templates/_js_strings.html:15
+msgid "You can only delete your own entries."
+msgstr "Vous ne pouvez supprimer que vos propres entrées."
+
+#: website/templates/_js_strings.html:16
+msgid "The deletion failed."
+msgstr "Erreur lors de la suppression."
+
+#: website/templates/_js_strings.html:17
+#, python-brace-format
+msgid "Sending failed: {error}"
+msgstr "Erreur lors de l'envoi : {error}"
+
+#: website/templates/_js_strings.html:18
+msgid "No rejection found."
+msgstr "Aucune invalidation trouvée."
+
+#: website/templates/_js_strings.html:19
+msgid "This data source is an API."
+msgstr "Cette source de données est une API."
+
+#: website/templates/_js_strings.html:20
+msgid "This data source is not an API."
+msgstr "Cette source de données n'est pas une API."
+
+#: website/templates/_js_strings.html:21
+#, python-brace-format
+msgid "The integration failed: {errors} — you can try again later."
+msgstr "Erreur lors de l'intégration : {errors} — vous pouvez réessayer ultérieurement."
+
+#: website/templates/_js_strings.html:22
+#, python-brace-format
+msgid "Partial integration: some subdivisions could not be integrated ({errors}). Redirecting in a few seconds…"
+msgstr "Intégration partielle : certains départements n'ont pas pu être intégrés ({errors}). Redirection dans quelques secondes…"
 
 #: website/templates/brands.html:4
 #, python-format

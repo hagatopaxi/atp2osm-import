@@ -1,5 +1,5 @@
 # Translations template for atp2osm.
-# Copyright (C) 2026 ORGANIZATION
+# Copyright (C) 2026 the atp2osm contributors
 # This file is distributed under the same license as the atp2osm project.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
@@ -7,8 +7,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
-"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-06 19:26+0200\n"
+"Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
+"POT-Creation-Date: 2026-09-06 20:10+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,6 +16,11 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
+
+#: src/upload.py:89
+#, python-format
+msgid "ATP data integration (%(subdivision)s; %(brand)s)"
+msgstr ""
 
 #: website/templates/_aside.html:8
 msgid "Toggle the sidebar"
@@ -104,7 +109,7 @@ msgstr ""
 msgid "Integrate AllThePlaces points of interest into OpenStreetMap. A collaborative contribution tool for OSM mappers."
 msgstr ""
 
-#: website/templates/_base.html:56
+#: website/templates/_base.html:58
 msgid "Open the sidebar"
 msgstr ""
 
@@ -158,6 +163,58 @@ msgstr ""
 
 #: website/templates/_export_menu.html:5
 msgid "Export"
+msgstr ""
+
+#: website/templates/_js_strings.html:11
+msgid "Your session has expired, please sign in again."
+msgstr ""
+
+#: website/templates/_js_strings.html:12
+msgid "Something went wrong, please try again."
+msgstr ""
+
+#: website/templates/_js_strings.html:13
+#, python-brace-format
+msgid "Careful: this brand looks like it is already there — {names}"
+msgstr ""
+
+#: website/templates/_js_strings.html:14
+msgid "Delete this entry?"
+msgstr ""
+
+#: website/templates/_js_strings.html:15
+msgid "You can only delete your own entries."
+msgstr ""
+
+#: website/templates/_js_strings.html:16
+msgid "The deletion failed."
+msgstr ""
+
+#: website/templates/_js_strings.html:17
+#, python-brace-format
+msgid "Sending failed: {error}"
+msgstr ""
+
+#: website/templates/_js_strings.html:18
+msgid "No rejection found."
+msgstr ""
+
+#: website/templates/_js_strings.html:19
+msgid "This data source is an API."
+msgstr ""
+
+#: website/templates/_js_strings.html:20
+msgid "This data source is not an API."
+msgstr ""
+
+#: website/templates/_js_strings.html:21
+#, python-brace-format
+msgid "The integration failed: {errors} — you can try again later."
+msgstr ""
+
+#: website/templates/_js_strings.html:22
+#, python-brace-format
+msgid "Partial integration: some subdivisions could not be integrated ({errors}). Redirecting in a few seconds…"
 msgstr ""
 
 #: website/templates/brands.html:4

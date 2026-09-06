@@ -8,8 +8,10 @@ function renderInvalidations() {
   const data = JSON.parse(sessionStorage.getItem("invalidations") || "[]");
 
   if (data.length === 0) {
-    container.innerHTML =
-      '<p class="text-base-content/60">Aucune invalidation trouvée.</p>';
+    const empty = document.createElement("p");
+    empty.className = "text-base-content/60";
+    empty.textContent = t("no_rejection_found");
+    container.replaceChildren(empty);
     return;
   }
 
@@ -62,7 +64,7 @@ async function confirmRejection() {
     sessionStorage.removeItem("brand_name");
     window.location.href = `/history/${data.id}`;
   } catch (err) {
-    alert("Erreur lors de l'envoi : " + err.message);
+    alert(t("send_failed", { error: err.message }));
     confirmBtn.removeAttribute("disabled");
     loading.classList.add("hidden");
   }
