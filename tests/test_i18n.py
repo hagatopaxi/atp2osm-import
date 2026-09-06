@@ -164,3 +164,21 @@ def test_every_template_compiles():
     i18n.init_app(app, ("fr",), ("/",))
     for name in app.jinja_env.list_templates():
         app.jinja_env.get_template(name)
+
+
+def test_language_free_paths_are_not_served_under_a_prefix():
+    """One resource, one URL: /fr/sitemap.xml redirects to /sitemap.xml."""
+    from flask import Flask
+
+    from src import i18n
+
+    app = Flask(__name__)
+    i18n.init_app(app, ("fr", "en"), ("/", "/docs"))
+
+    @app.route("/sitemap.xml")
+    def sitemap():
+        return "sitemap"
+
+    client = app.test_client()
+    assert client.get("/fr/sitemap.xml").headers["Location"] == "/sitemap.xml"
+    assert client.get("/sitemap.xml").data == b"sitemap"
