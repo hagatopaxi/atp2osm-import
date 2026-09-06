@@ -31,7 +31,9 @@ def todo():
     osmdb = get_osmdb()
     where, params, filters = build_filters(request.args, FILTERS)
     where = hide_brands_in_atp(where, request.args, filters)
-    sort = request.args.get("sort") if request.args.get("sort") in SORT_COLUMNS else "date"
+    # Biggest brands first by default: that is the work worth doing.
+    sort = request.args.get("sort")
+    sort = sort if sort in SORT_COLUMNS else "estimation"
     direction = "ASC" if request.args.get("dir") == "asc" else "DESC"
     with osmdb.cursor(row_factory=dict_row) as cursor:
         entries = cursor.execute(
