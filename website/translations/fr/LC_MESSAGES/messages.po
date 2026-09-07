@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: atp2osm VERSION\n"
 "Report-Msgid-Bugs-To: https://github.com/hagatopaxi/atp2osm-import/issues\n"
-"POT-Creation-Date: 2026-09-06 20:10+0200\n"
+"POT-Creation-Date: 2026-09-07 06:09+0200\n"
 "PO-Revision-Date: 2026-09-06 17:06+0200\n"
 "Last-Translator: the atp2osm contributors\n"
 "Language: fr\n"
@@ -16,7 +16,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 #: src/upload.py:89
 #, python-format
@@ -27,33 +27,33 @@ msgstr "Intégration des données ATP (%(subdivision)s ; %(brand)s)"
 msgid "Toggle the sidebar"
 msgstr "Basculer la barre latérale"
 
-#: website/templates/_aside.html:24 website/templates/brands.html:14
-#: website/templates/docs.html:26 website/templates/history.html:15
-#: website/templates/llms.txt:10 website/templates/stats.html:13
-#: website/templates/todo.html:16
+#: website/templates/_aside.html:24 website/templates/brands.html:15
+#: website/templates/docs.html:26 website/templates/history.html:16
+#: website/templates/llms.txt:10 website/templates/stats.html:15
+#: website/templates/todo.html:17
 msgid "Home"
 msgstr "Accueil"
 
-#: website/templates/_aside.html:25 website/templates/brands.html:5
-#: website/templates/brands.html:6 website/templates/brands.html:15
-#: website/templates/llms.txt:11 website/templates/todo.html:23
+#: website/templates/_aside.html:25 website/templates/brands.html:6
+#: website/templates/brands.html:7 website/templates/brands.html:16
+#: website/templates/llms.txt:11 website/templates/todo.html:24
 msgid "Brands to integrate"
 msgstr "Marques à intégrer"
 
-#: website/templates/_aside.html:26 website/templates/history.html:6
-#: website/templates/history.html:7 website/templates/history.html:16
-#: website/templates/history.html:27 website/templates/llms.txt:12
+#: website/templates/_aside.html:26 website/templates/history.html:7
+#: website/templates/history.html:8 website/templates/history.html:17
+#: website/templates/history.html:28 website/templates/llms.txt:12
 msgid "Integration history"
 msgstr "Historique des intégrations"
 
 #: website/templates/_aside.html:27 website/templates/home.html:81
-#: website/templates/llms.txt:13 website/templates/stats.html:4
-#: website/templates/stats.html:14 website/templates/stats.html:28
+#: website/templates/llms.txt:13 website/templates/stats.html:6
+#: website/templates/stats.html:16 website/templates/stats.html:30
 msgid "Statistics"
 msgstr "Statistiques"
 
 #: website/templates/_aside.html:28 website/templates/llms.txt:14
-#: website/templates/todo.html:7 website/templates/todo.html:17
+#: website/templates/todo.html:8 website/templates/todo.html:18
 msgid "Missing brands"
 msgstr "Marques manquantes"
 
@@ -90,7 +90,7 @@ msgid "Log out"
 msgstr "Déconnexion"
 
 #: website/templates/_aside.html:84 website/templates/_aside.html:86
-#: website/templates/brands.html:39
+#: website/templates/brands.html:40
 msgid "Sign in with OSM"
 msgstr "Se connecter avec OSM"
 
@@ -218,147 +218,165 @@ msgstr "Erreur lors de l'intégration : {errors} — vous pouvez réessayer ult�
 msgid "Partial integration: some subdivisions could not be integrated ({errors}). Redirecting in a few seconds…"
 msgstr "Intégration partielle : certains départements n'ont pas pu être intégrés ({errors}). Redirection dans quelques secondes…"
 
-#: website/templates/brands.html:4
+#: website/templates/_period_filter.html:11
+msgid "Period"
+msgstr "Période"
+
+#: website/templates/_period_filter.html:14
+msgid "7 days"
+msgstr "7 jours"
+
+#: website/templates/_period_filter.html:14
+msgid "8 weeks"
+msgstr "8 semaines"
+
+#: website/templates/_period_filter.html:14
+msgid "1 year"
+msgstr "1 an"
+
+#: website/templates/_period_filter.html:14
+msgid "All time"
+msgstr "Depuis le début"
+
+#: website/templates/_period_filter.html:20
+msgid "From"
+msgstr "Du"
+
+#: website/templates/_period_filter.html:22
+msgid "To"
+msgstr "Au"
+
+#: website/templates/brands.html:5
 #, python-format
 msgid "The %(count)s brands available for integration into OpenStreetMap through atp2osm. Data from AllThePlaces, reviewed by OSM contributors."
 msgstr "Les %(count)s marques disponibles à l'intégration dans OpenStreetMap via atp2osm. Données issues d'AllThePlaces, relues par les contributeurs OSM."
 
-#: website/templates/brands.html:21
+#: website/templates/brands.html:22
 msgid "Brands to integrate into OpenStreetMap"
 msgstr "Liste des marques à intégrer dans OpenStreetMap"
 
-#: website/templates/brands.html:22
+#: website/templates/brands.html:23
 #, python-format
 msgid "%(count)s brand — data from the All The Places database."
 msgid_plural "%(count)s brands — data from the All The Places database."
 msgstr[0] "%(count)s marque — données issues de la base All The Places."
 msgstr[1] "%(count)s marques — données issues de la base All The Places."
 
-#: website/templates/brands.html:35
+#: website/templates/brands.html:36
 msgid "Sign-in required"
 msgstr "Connexion requise"
 
-#: website/templates/brands.html:36
+#: website/templates/brands.html:37
 msgid "Sign in with your OpenStreetMap account to start an integration."
 msgstr "Connectez-vous avec votre compte OpenStreetMap pour lancer une intégration."
 
-#: website/templates/brands.html:49 website/templates/history.html:41
-#: website/templates/history_detail.html:69 website/templates/stats.html:71
-#: website/templates/todo.html:83
+#: website/templates/brands.html:50 website/templates/history.html:42
+#: website/templates/history_detail.html:69 website/templates/stats.html:73
+#: website/templates/todo.html:84
 msgid "Brand"
 msgstr "Marque"
 
-#: website/templates/brands.html:52 website/templates/history.html:44
-#: website/templates/stats.html:74 website/templates/todo.html:86
+#: website/templates/brands.html:53 website/templates/history.html:45
+#: website/templates/stats.html:76 website/templates/todo.html:87
 msgid "Name or Wikidata code"
 msgstr "Nom ou code Wikidata"
 
-#: website/templates/brands.html:57 website/templates/brands.html:103
+#: website/templates/brands.html:58 website/templates/brands.html:96
 msgid "Previous status"
 msgstr "Précédent statut"
 
-#: website/templates/brands.html:59 website/templates/history.html:51
-#: website/templates/history.html:61 website/templates/stats.html:81
-#: website/templates/todo.html:93
+#: website/templates/brands.html:60 website/templates/history.html:52
+#: website/templates/history.html:62 website/templates/stats.html:83
+#: website/templates/todo.html:94
 msgid "All"
 msgstr "Tous"
 
-#: website/templates/brands.html:61
+#: website/templates/brands.html:62
 msgid "Never integrated"
 msgstr "Jamais intégrée"
 
-#: website/templates/brands.html:62 website/templates/brands.html:126
+#: website/templates/brands.html:63 website/templates/brands.html:119
 #: website/templates/brands/:brand_wikidata/validate.html:61
-#: website/templates/docs.html:221 website/templates/history.html:32
-#: website/templates/history.html:130 website/templates/history_detail.html:83
+#: website/templates/docs.html:221 website/templates/history.html:33
+#: website/templates/history.html:123 website/templates/history_detail.html:83
 #: website/templates/history_detail.html:201
 msgid "Success"
 msgstr "Succès"
 
-#: website/templates/brands.html:63 website/templates/brands.html:127
+#: website/templates/brands.html:64 website/templates/brands.html:120
 #: website/templates/brands/:brand_wikidata/validate.html:61
-#: website/templates/docs.html:233 website/templates/history.html:33
-#: website/templates/history.html:131 website/templates/history_detail.html:84
+#: website/templates/docs.html:233 website/templates/history.html:34
+#: website/templates/history.html:124 website/templates/history_detail.html:84
 msgid "Partial"
 msgstr "Partiel"
 
-#: website/templates/brands.html:64 website/templates/brands.html:128
+#: website/templates/brands.html:65 website/templates/brands.html:121
 #: website/templates/brands/:brand_wikidata/validate.html:61
-#: website/templates/docs.html:247 website/templates/history.html:34
-#: website/templates/history.html:132 website/templates/history_detail.html:85
+#: website/templates/docs.html:247 website/templates/history.html:35
+#: website/templates/history.html:125 website/templates/history_detail.html:85
 msgid "Cancelled"
 msgstr "Annulé"
 
-#: website/templates/brands.html:65 website/templates/brands.html:129
+#: website/templates/brands.html:66 website/templates/brands.html:122
 #: website/templates/brands/:brand_wikidata/validate.html:61
-#: website/templates/docs.html:261 website/templates/history.html:35
-#: website/templates/history.html:133 website/templates/history_detail.html:86
+#: website/templates/docs.html:261 website/templates/history.html:36
+#: website/templates/history.html:126 website/templates/history_detail.html:86
 #: website/templates/history_detail.html:201 website/templates/home.html:114
 msgid "Error"
 msgstr "Erreur"
 
-#: website/templates/brands.html:73 website/templates/brands.html:104
+#: website/templates/brands.html:73 website/templates/brands.html:97
 msgid "Last integration"
 msgstr "Dernière intégration"
 
-#: website/templates/brands.html:76 website/templates/history.html:71
-#: website/templates/todo.html:103
-msgid "From"
-msgstr "Du"
-
-#: website/templates/brands.html:78 website/templates/history.html:73
-#: website/templates/todo.html:105
-msgid "To"
-msgstr "Au"
-
-#: website/templates/brands.html:84 website/templates/history.html:79
-#: website/templates/stats.html:100 website/templates/todo.html:119
+#: website/templates/brands.html:77 website/templates/history.html:72
+#: website/templates/stats.html:93 website/templates/todo.html:112
 msgid "Filter"
 msgstr "Filtrer"
 
-#: website/templates/brands.html:85 website/templates/history.html:81
-#: website/templates/stats.html:102 website/templates/todo.html:120
+#: website/templates/brands.html:78 website/templates/history.html:74
+#: website/templates/stats.html:95 website/templates/todo.html:113
 msgid "Reset"
 msgstr "Réinitialiser"
 
-#: website/templates/brands.html:88 website/templates/todo.html:129
+#: website/templates/brands.html:81 website/templates/todo.html:122
 #, python-format
 msgid "%(count)s brand"
 msgid_plural "%(count)s brands"
 msgstr[0] "%(count)s marque"
 msgstr[1] "%(count)s marques"
 
-#: website/templates/brands.html:93 website/templates/todo.html:127
+#: website/templates/brands.html:86 website/templates/todo.html:120
 msgid "No brand matches these filters."
 msgstr "Aucune marque ne correspond à ces filtres."
 
-#: website/templates/brands.html:100
+#: website/templates/brands.html:93
 #: website/templates/brands/:brand_wikidata/validate.html:137
-#: website/templates/todo.html:46 website/templates/todo.html:214
+#: website/templates/todo.html:47 website/templates/todo.html:207
 msgid "Wikidata code"
 msgstr "Code Wikidata"
 
-#: website/templates/brands.html:101 website/templates/todo.html:134
+#: website/templates/brands.html:94 website/templates/todo.html:127
 msgid "Name"
 msgstr "Nom"
 
-#: website/templates/brands.html:102
+#: website/templates/brands.html:95
 msgid "POIs to integrate"
 msgstr "POIs à intégrer"
 
-#: website/templates/brands.html:105
+#: website/templates/brands.html:98
 msgid "Actions"
 msgstr "Actions"
 
-#: website/templates/brands.html:148
+#: website/templates/brands.html:141
 msgid "Never"
 msgstr "Jamais"
 
-#: website/templates/brands.html:155
+#: website/templates/brands.html:148
 msgid "You must sign in"
 msgstr "Vous devez vous connecter"
 
-#: website/templates/brands.html:162 website/templates/docs.html:190
+#: website/templates/brands.html:155 website/templates/docs.html:190
 msgid "Integrate"
 msgstr "Intégrer"
 
@@ -674,74 +692,70 @@ msgstr "Code source"
 msgid "contributions welcome"
 msgstr "contributions bienvenues"
 
-#: website/templates/history.html:5
+#: website/templates/history.html:6
 msgid "History of the AllThePlaces integrations into OpenStreetMap made through atp2osm: brands integrated, dates and statuses."
 msgstr "Historique des intégrations AllThePlaces vers OpenStreetMap réalisées via atp2osm : marques intégrées, dates et statuts."
 
-#: website/templates/history.html:28
+#: website/templates/history.html:29
 msgid "Every integration carried out or reported as faulty."
 msgstr "Liste de toutes les intégrations effectuées ou signalées comme erronées."
 
-#: website/templates/history.html:49 website/templates/history.html:106
+#: website/templates/history.html:50 website/templates/history.html:99
 #: website/templates/history_detail.html:94
 #: website/templates/history_detail.html:190
 msgid "Status"
 msgstr "Statut"
 
-#: website/templates/history.html:59 website/templates/stats.html:79
+#: website/templates/history.html:60 website/templates/stats.html:81
 msgid "User"
 msgstr "Utilisateur"
 
-#: website/templates/history.html:68 website/templates/stats.html:88
-msgid "Period"
-msgstr "Période"
-
-#: website/templates/history.html:90
+#: website/templates/history.html:83
 msgid "See the integration statistics"
 msgstr "Voir les statistiques d'intégration"
 
-#: website/templates/history.html:96
+#: website/templates/history.html:89
 msgid "No integration matches these filters."
 msgstr "Aucune intégration ne correspond à ces filtres."
 
-#: website/templates/history.html:96
+#: website/templates/history.html:89
 msgid "No integration recorded yet."
 msgstr "Aucune intégration enregistrée pour le moment."
 
-#: website/templates/history.html:99 website/templates/stats.html:150
+#: website/templates/history.html:92 website/templates/stats.html:143
 #, python-format
 msgid "%(count)s integration"
 msgid_plural "%(count)s integrations"
 msgstr[0] "%(count)s intégration"
 msgstr[1] "%(count)s intégrations"
 
-#: website/templates/history.html:104 website/templates/history_detail.html:79
-#: website/templates/todo.html:138
+#: website/templates/history.html:97 website/templates/history_detail.html:79
+#: website/templates/todo.html:131
 msgid "Date"
 msgstr "Date"
 
-#: website/templates/history.html:105
+#: website/templates/history.html:98
 msgid "Brand (Wikidata)"
 msgstr "Marque (Wikidata)"
 
-#: website/templates/history.html:107 website/templates/history_detail.html:114
+#: website/templates/history.html:100 website/templates/history_detail.html:114
 msgid "OSM user"
 msgstr "Utilisateur OSM"
 
-#: website/templates/history.html:108 website/templates/history_detail.html:124
-#: website/templates/home.html:89 website/templates/stats.html:110
+#: website/templates/history.html:101 website/templates/history_detail.html:124
+#: website/templates/home.html:89 website/templates/stats.html:103
 msgid "POIs integrated"
 msgstr "POIs intégrés"
 
-#: website/templates/history.html:109 website/templates/history_detail.html:182
+#: website/templates/history.html:102 website/templates/history_detail.html:182
 msgid "Changesets"
 msgstr "Changesets"
 
-#: website/templates/history.html:110
+#: website/templates/history.html:103
 msgid "Action"
 msgstr "Action"
 
-#: website/templates/history.html:158
+#: website/templates/history.html:151
 msgid "See more"
 msgstr "Voir plus"
 
@@ -912,15 +926,15 @@ msgstr "Comment ça marche ?"
 msgid "See all"
 msgstr "Tout voir"
 
-#: website/templates/home.html:90 website/templates/stats.html:111
+#: website/templates/home.html:90 website/templates/stats.html:104
 msgid "Tags added"
 msgstr "Tags ajoutés"
 
-#: website/templates/home.html:91 website/templates/stats.html:203
+#: website/templates/home.html:91 website/templates/stats.html:196
 msgid "Brands integrated"
 msgstr "Marques intégrées"
 
-#: website/templates/home.html:92 website/templates/stats.html:114
+#: website/templates/home.html:92 website/templates/stats.html:107
 msgid "Contributors"
 msgstr "Contributeurs"
 
@@ -980,240 +994,228 @@ msgstr "enseignes absentes d'ATP."
 msgid "how it works and how to contribute."
 msgstr "fonctionnement et guide de contribution."
 
-#: website/templates/stats.html:3
+#: website/templates/stats.html:5
 msgid "Statistics of the AllThePlaces integrations into OpenStreetMap: POI volume, tags enriched, spider reliability, brands and contributors."
 msgstr "Statistiques des intégrations AllThePlaces vers OpenStreetMap : volume de POIs, tags enrichis, fiabilité des spiders, marques et contributeurs."
 
-#: website/templates/stats.html:5
+#: website/templates/stats.html:7
 msgid "Integration statistics"
 msgstr "Statistiques des intégrations"
 
-#: website/templates/stats.html:29
+#: website/templates/stats.html:31
 msgid "What the integrations brought to OpenStreetMap: volumes, tags enriched, reliability of the spiders and of the changesets."
 msgstr "Ce que les intégrations ont apporté à OpenStreetMap : volumes, tags enrichis, fiabilité des spiders et des changesets."
 
-#: website/templates/stats.html:35
+#: website/templates/stats.html:37
 msgid "No data over this period."
 msgstr "Aucune donnée sur cette période."
 
-#: website/templates/stats.html:90
-msgid "7 days"
-msgstr "7 jours"
-
-#: website/templates/stats.html:90
-msgid "8 weeks"
-msgstr "8 semaines"
-
-#: website/templates/stats.html:90
-msgid "All time"
-msgstr "Total"
-
-#: website/templates/stats.html:112 website/templates/stats.html:178
+#: website/templates/stats.html:105 website/templates/stats.html:171
 msgid "Integrations"
 msgstr "Intégrations"
 
-#: website/templates/stats.html:113
+#: website/templates/stats.html:106
 msgid "Brands"
 msgstr "Marques"
 
-#: website/templates/stats.html:115
+#: website/templates/stats.html:108
 msgid "Spider reliability"
 msgstr "Fiabilité spiders"
 
-#: website/templates/stats.html:129
+#: website/templates/stats.html:122
 msgid "day"
 msgstr "jour"
 
-#: website/templates/stats.html:129
+#: website/templates/stats.html:122
 msgid "week"
 msgstr "semaine"
 
-#: website/templates/stats.html:129
+#: website/templates/stats.html:122
 msgid "month"
 msgstr "mois"
 
-#: website/templates/stats.html:131
+#: website/templates/stats.html:124
 msgid "Pace and progress"
 msgstr "Rythme et progression"
 
-#: website/templates/stats.html:133
+#: website/templates/stats.html:126
 #, python-format
 msgid "What each %(unit)s brought to OpenStreetMap, and what it all adds up to. Both series share one scale: the height of a bar reads directly as the share of that period in the total."
 msgstr "Ce que chaque %(unit)s a apporté à OpenStreetMap, et ce que l'ensemble totalise. Les deux séries partagent la même échelle : la hauteur d'une barre se lit directement comme la part de cette période dans le total."
 
-#: website/templates/stats.html:136
+#: website/templates/stats.html:129
 #, python-format
 msgid "POIs integrated per %(unit)s"
 msgstr "POIs intégrés par %(unit)s"
 
-#: website/templates/stats.html:137
+#: website/templates/stats.html:130
 msgid "Running total"
 msgstr "Total cumulé"
 
-#: website/templates/stats.html:145
+#: website/templates/stats.html:138
 #, python-format
 msgid "%(period)s: %(pois)s POIs, running total %(cumulative)s. "
 msgstr "%(period)s : %(pois)s POIs, cumul %(cumulative)s. "
 
-#: website/templates/stats.html:150
+#: website/templates/stats.html:143
 #, python-format
 msgid "running total %(cumulative)s"
 msgstr "cumul %(cumulative)s"
 
-#: website/templates/stats.html:174
+#: website/templates/stats.html:167
 msgid "Integrations per contributor"
 msgstr "Intégrations par contributeur"
 
-#: website/templates/stats.html:175
+#: website/templates/stats.html:168
 msgid "OSM contributors ranked by integration volume."
 msgstr "Classement des contributeurs OSM par volume d'intégration."
 
-#: website/templates/stats.html:185
+#: website/templates/stats.html:178
 msgid "Missing brands added"
 msgstr "Marques manquantes ajoutées"
 
-#: website/templates/stats.html:186
+#: website/templates/stats.html:179
 msgid "OSM contributors ranked by the number of brands missing from ATP they added."
 msgstr "Classement des contributeurs OSM par nombre de marques absentes d'ATP ajoutées."
 
-#: website/templates/stats.html:192
+#: website/templates/stats.html:185
 msgid "Tags enriched"
 msgstr "Tags enrichis"
 
-#: website/templates/stats.html:196
+#: website/templates/stats.html:189
 msgid "Most integrated brands"
 msgstr "Marques les plus intégrées"
 
-#: website/templates/stats.html:200
+#: website/templates/stats.html:193
 msgid "Reliability of the ATP data"
 msgstr "Fiabilité des données ATP"
 
-#: website/templates/stats.html:201
+#: website/templates/stats.html:194
 #, python-format
 msgid "Share of the brands whose integration was accepted, per %(unit)s. A brand counts once, whatever the volume behind it; a period without data is empty."
 msgstr "Part des marques dont l'intégration a été validée, par %(unit)s. Une marque compte une fois, quel que soit le volume derrière ; une période sans données est vide."
 
-#: website/templates/stats.html:204
+#: website/templates/stats.html:197
 msgid "Brands rejected"
 msgstr "Marques rejetées"
 
-#: website/templates/stats.html:210
+#: website/templates/stats.html:203
 #, python-format
 msgid "%(period)s: %(rate)s %% reliability. "
 msgstr "%(period)s : %(rate)s %% de fiabilité. "
 
-#: website/templates/stats.html:214
+#: website/templates/stats.html:207
 #, python-format
 msgid "%(count)s brand integrated"
 msgid_plural "%(count)s brands integrated"
 msgstr[0] "%(count)s marque intégrée"
 msgstr[1] "%(count)s marques intégrées"
 
-#: website/templates/stats.html:214
+#: website/templates/stats.html:207
 #, python-format
 msgid "%(count)s rejected"
 msgid_plural "%(count)s rejected"
 msgstr[0] "%(count)s rejetée"
 msgstr[1] "%(count)s rejetées"
 
-#: website/templates/stats.html:229
+#: website/templates/stats.html:222
 msgid "No review over this period."
 msgstr "Aucune relecture sur cette période."
 
-#: website/templates/stats.html:232
+#: website/templates/stats.html:225
 msgid "Reliability of the OSM data"
 msgstr "Fiabilité des données OSM"
 
-#: website/templates/stats.html:232
+#: website/templates/stats.html:225
 msgid "A changeset is almost always refused because the local copy of OpenStreetMap has aged: one of the POIs no longer carries the same version in OSM and in the atp2osm database. The API then rejects the changeset as a whole."
 msgstr "Un changeset refusé l'est presque toujours parce que la copie locale d'OpenStreetMap a vieilli : l'un des POI n'a plus la même version entre OSM et la base atp2osm. L'API rejette le changeset dans son intégralité à ce moment."
 
-#: website/templates/stats.html:234
+#: website/templates/stats.html:227
 msgid "Accepted"
 msgstr "Acceptés"
 
-#: website/templates/stats.html:235
+#: website/templates/stats.html:228
 msgid "Refused"
 msgstr "Refusés"
 
-#: website/templates/stats.html:243
+#: website/templates/stats.html:236
 #, python-format
 msgid "%(period)s: %(rate)s %% of changesets accepted. "
 msgstr "%(period)s : %(rate)s %% de changesets acceptés. "
 
-#: website/templates/stats.html:248
+#: website/templates/stats.html:241
 #, python-format
 msgid "%(count)s accepted"
 msgid_plural "%(count)s accepted"
 msgstr[0] "%(count)s accepté"
 msgstr[1] "%(count)s acceptés"
 
-#: website/templates/stats.html:248
+#: website/templates/stats.html:241
 #, python-format
 msgid "%(count)s refused"
 msgid_plural "%(count)s refused"
 msgstr[0] "%(count)s refusé"
 msgstr[1] "%(count)s refusés"
 
-#: website/templates/stats.html:263
+#: website/templates/stats.html:256
 msgid "No changeset over this period."
 msgstr "Aucun changeset sur cette période."
 
-#: website/templates/todo.html:6
+#: website/templates/todo.html:7
 msgid "The brands missing from AllThePlaces. Report the ones absent to help enrich OpenStreetMap."
 msgstr "Liste des marques absentes d'AllThePlaces. Contribuez en signalant les enseignes manquantes pour enrichir OpenStreetMap."
 
-#: website/templates/todo.html:8
+#: website/templates/todo.html:9
 msgid "Brands missing from AllThePlaces"
 msgstr "Marques manquantes dans AllThePlaces"
 
-#: website/templates/todo.html:24
+#: website/templates/todo.html:25
 msgid "The brands identified for which no AllThePlaces spider exists. This list gives the AllThePlaces contributors a view of what is missing."
 msgstr "Liste des marques identifiées pour lesquelles aucun spider AllThePlaces n'existe. Cette liste permet aux contributeurs d'AllThePlaces d'avoir une vision des marques manquantes."
 
-#: website/templates/todo.html:37
+#: website/templates/todo.html:38
 msgid "Add a brand"
 msgstr "Ajouter une marque"
 
 #: website/templates/brands/:brand_wikidata/validate.html:135
-#: website/templates/todo.html:41 website/templates/todo.html:210
+#: website/templates/todo.html:42 website/templates/todo.html:203
 msgid "Brand name"
 msgstr "Nom de la marque"
 
-#: website/templates/todo.html:42
+#: website/templates/todo.html:43
 msgid "e.g. Carrefour"
 msgstr "ex : Carrefour"
 
-#: website/templates/todo.html:46 website/templates/todo.html:51
-#: website/templates/todo.html:214 website/templates/todo.html:218
+#: website/templates/todo.html:47 website/templates/todo.html:52
+#: website/templates/todo.html:207 website/templates/todo.html:211
 msgid "(optional)"
 msgstr "(optionnel)"
 
-#: website/templates/todo.html:47
+#: website/templates/todo.html:48
 msgid "e.g. Q123456"
 msgstr "ex : Q123456"
 
-#: website/templates/todo.html:51 website/templates/todo.html:218
+#: website/templates/todo.html:52 website/templates/todo.html:211
 msgid "Estimated POI count"
 msgstr "Estimation nb. POIs"
 
-#: website/templates/todo.html:52
+#: website/templates/todo.html:53
 msgid "e.g. 200"
 msgstr "ex : 200"
 
-#: website/templates/todo.html:62 website/templates/todo.html:67
+#: website/templates/todo.html:63 website/templates/todo.html:68
 msgid "Add"
 msgstr "Ajouter"
 
-#: website/templates/todo.html:65
+#: website/templates/todo.html:66
 msgid "You must sign in to add a brand"
 msgstr "Vous devez vous connecter pour ajouter une marque"
 
-#: website/templates/todo.html:77
+#: website/templates/todo.html:78
 msgid "No brand in the list yet."
 msgstr "Aucune marque dans la liste pour le moment."
 
-#: website/templates/todo.html:91 website/templates/todo.html:137
+#: website/templates/todo.html:92 website/templates/todo.html:130
 msgid "Added by"
 msgstr "Ajouté par"
 
@@ -1221,56 +1223,56 @@ msgstr "Ajouté par"
 msgid "Date added"
 msgstr "Date d'ajout"
 
-#: website/templates/todo.html:109
+#: website/templates/todo.html:102
 msgid "Presence in ATP"
 msgstr "Présence dans ATP"
 
-#: website/templates/todo.html:113
+#: website/templates/todo.html:106
 msgid "Show the ones already in ATP"
 msgstr "Afficher celles déjà dans ATP"
 
-#: website/templates/todo.html:135
+#: website/templates/todo.html:128
 msgid "Wikidata"
 msgstr "Wikidata"
 
-#: website/templates/todo.html:136
+#: website/templates/todo.html:129
 msgid "Estimate"
 msgstr "Estimation"
 
-#: website/templates/todo.html:139
+#: website/templates/todo.html:132
 msgid "Edited by"
 msgstr "Modifié par"
 
 #: website/templates/brands/:brand_wikidata/validate.html:69
-#: website/templates/todo.html:175
+#: website/templates/todo.html:168
 #, python-format
 msgid "on %(date)s"
 msgstr "le %(date)s"
 
-#: website/templates/todo.html:183
+#: website/templates/todo.html:176
 msgid "Edit"
 msgstr "Modifier"
 
-#: website/templates/todo.html:189
+#: website/templates/todo.html:182
 msgid "Delete"
 msgstr "Supprimer"
 
-#: website/templates/todo.html:206
+#: website/templates/todo.html:199
 msgid "Edit the brand"
 msgstr "Modifier la marque"
 
 #: website/templates/brands/:brand_wikidata/confirm.html:70
 #: website/templates/brands/:brand_wikidata/rejected.html:23
 #: website/templates/brands/:brand_wikidata/validate.html:233
-#: website/templates/todo.html:223
+#: website/templates/todo.html:216
 msgid "Cancel"
 msgstr "Annuler"
 
-#: website/templates/todo.html:224
+#: website/templates/todo.html:217
 msgid "Save"
 msgstr "Enregistrer"
 
-#: website/templates/todo.html:228
+#: website/templates/todo.html:221
 msgid "Close"
 msgstr "Fermer"
 

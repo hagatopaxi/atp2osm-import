@@ -1,5 +1,7 @@
 {% extends '_base.html' %}
 
+{% from '_period_filter.html' import period_filter with context %}
+
 {% block meta_description %}{{ _('Statistics of the AllThePlaces integrations into OpenStreetMap: POI volume, tags enriched, spider reliability, brands and contributors.') }}{% endblock %}
 {% block page_title %}{{ _('Statistics') }}{% endblock %}
 {% block og_title %}{{ _('Integration statistics') }} — atp2osm{% endblock %}
@@ -84,22 +86,13 @@
             {% endfor %}
         </select>
     </fieldset>
-    <fieldset class="fieldset">
-        <legend class="fieldset-legend">{{ _('Period') }}</legend>
-        <div class="join">
-            {% set range_labels = {'7days': _('7 days'), '8weeks': _('8 weeks'), 'all': _('All time')} %}
-            {% for value in ranges %}
-            <input class="btn btn-sm join-item" type="radio" name="range" value="{{ value }}"
-                aria-label="{{ range_labels.get(value, value) }}" {{ 'checked' if range_key == value }} />
-            {% endfor %}
-        </div>
-    </fieldset>
+    {{ period_filter(filters) }}
     <fieldset class="fieldset">
         <legend class="fieldset-legend">&nbsp;</legend>
         <div class="join">
             <button type="submit" class="btn btn-sm btn-primary join-item">{{ _('Filter') }}</button>
             {% if is_filtered %}
-            <a href="{{ url_for('stats.stats', range=default_range) }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
+            <a href="{{ url_for('stats.stats') }}" class="btn btn-sm btn-soft join-item">{{ _('Reset') }}</a>
             {% endif %}
         </div>
     </fieldset>

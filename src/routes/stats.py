@@ -1,6 +1,7 @@
 import logging
+from datetime import date
 
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, render_template, request
 from psycopg.rows import dict_row
 
 from src.db import get_osmdb
@@ -10,21 +11,11 @@ logger = logging.getLogger(__name__)
 
 stats_bp = Blueprint("stats", __name__)
 
-# The time filter is not declared here: this page uses quick ranges, built below.
 FILTERS = {
     "q": ("brand_name", "brand_wikidata"),
     "user": "osm_user_id",
+    "date": "import_date",
 }
-
-# Quick time ranges: (bar granularity, first period shown). The granularity
-# follows from the range, so the charts always hold 5 to 8 bars. The labels
-# belong to the template, which is where a translated string can be resolved.
-RANGES = {
-    "7days": ("day", "date_trunc('day', NOW()) - INTERVAL '6 days'"),
-    "8weeks": ("week", "date_trunc('week', NOW()) - INTERVAL '7 weeks'"),
-    "all": ("month", "date_trunc('month', (SELECT MIN(import_date) FROM import_history))"),
-}
-DEFAULT_RANGE = "8weeks"
 
 TOP_N = 15
 
@@ -36,12 +27,12 @@ KPI_SQL = """
 """
 
 # generate_series keeps the periods without any integration in the result.
-# {unit} and {start} come from RANGES, never from the request.
+# {unit}, {start} and {end} are built by _period(), never taken from the request.
 SERIES_SQL = """
     WITH periods AS (
         SELECT generate_series(
             {start},
-            date_trunc('{unit}', NOW()),
+            {end},
             '1 {unit}'
         )::date AS period
     )
@@ -107,7 +98,7 @@ SPIDER_SERIES_SQL = """
     WITH periods AS (
         SELECT generate_series(
             {start},
-            date_trunc('{unit}', NOW()),
+            {end},
             '1 {unit}'
         )::date AS period
     ),
@@ -145,7 +136,7 @@ CHANGESETS_SQL = """
     WITH periods AS (
         SELECT generate_series(
             {start},
-            date_trunc('{unit}', NOW()),
+            {end},
             '1 {unit}'
         )::date AS period
     )
@@ -165,19 +156,9 @@ CHANGESETS_SQL = """
 @stats_bp.route("/stats")
 def stats():
     osmdb = get_osmdb()
-    # Defaults included, every filter lives in the URL so a view can be shared.
-    if not request.args:
-        return redirect(url_for("stats.stats", range=DEFAULT_RANGE))
-
     where, params, filters = build_filters(request.args, FILTERS)
 
-    range_key = request.args.get("range", DEFAULT_RANGE)
-    if range_key not in RANGES:
-        range_key = DEFAULT_RANGE
-    unit, start = RANGES[range_key]
-    if range_key != "all":
-        where = f"{where} AND import_date >= {start}" if where else f"WHERE import_date >= {start}"
-    filters["range"] = range_key
+    unit, start, end = _period(filters.get("from"), filters.get("to"))
 
     # Queries that name import_history explicitly need the qualified clause.
     aliased = _alias(where)
@@ -186,7 +167,7 @@ def stats():
         kpi = cursor.execute(KPI_SQL.format(where=where), params).fetchone()
         series = cursor.execute(
             SERIES_SQL.format(
-                unit=unit, start=start, extra=aliased.replace("WHERE ", "AND ", 1)
+                unit=unit, start=start, end=end, extra=aliased.replace("WHERE ", "AND ", 1)
             ),
             params,
         ).fetchall()
@@ -196,11 +177,11 @@ def stats():
         users = cursor.execute(USERS_SQL.format(where=where), params * 2).fetchall()
         spiders = cursor.execute(SPIDERS_SQL.format(where=where), params).fetchall()
         spider_series = cursor.execute(
-            SPIDER_SERIES_SQL.format(unit=unit, start=start, where=aliased), params
+            SPIDER_SERIES_SQL.format(unit=unit, start=start, end=end, where=aliased), params
         ).fetchall()
         changesets = cursor.execute(
             CHANGESETS_SQL.format(
-                unit=unit, start=start, extra=aliased.replace("WHERE ", "AND ", 1)
+                unit=unit, start=start, end=end, extra=aliased.replace("WHERE ", "AND ", 1)
             ),
             params,
         ).fetchall()
@@ -266,12 +247,8 @@ def stats():
         spiders_reliability=reliability,
         changesets=changesets,
         changesets_max=max((c["ok"] + c["ko"] for c in changesets), default=0),
-        ranges=RANGES,
-        range_key=range_key,
         filters=filters,
-        default_range=DEFAULT_RANGE,
-        # The URL always spells the defaults out, so it cannot serve as the test.
-        is_filtered=bool(filters.get("q") or filters.get("user")) or range_key != DEFAULT_RANGE,
+        is_filtered=bool(filters),
         filter_users=sorted(
             ((uid, names.get(uid, str(uid))) for uid in all_user_ids),
             key=lambda u: u[1].lower(),
@@ -284,3 +261,38 @@ def _alias(where, alias="h"):
     for column in ("brand_name", "brand_wikidata", "osm_user_id", "import_date"):
         where = where.replace(column, f"{alias}.{column}")
     return where
+
+
+
+def _period(date_from, date_to):
+    """Bar granularity and bounds of the series, from the filtered period.
+
+    The granularity follows from how long the period is, so the charts hold a
+    readable number of bars whatever the dates asked for. Both bounds are
+    parsed dates, never request text, so they can be inlined in the SQL.
+    """
+    start = _parse(date_from)
+    stop = _parse(date_to) or date.today()
+    span = (stop - start).days if start else None
+
+    if span is not None and span <= 15:
+        unit = "day"
+    elif span is not None and span <= 120:
+        unit = "week"
+    else:
+        unit = "month"
+
+    first = (
+        f"date_trunc('{unit}', DATE '{start}')"
+        if start
+        # No lower bound: the series starts at the first integration ever.
+        else f"date_trunc('{unit}', (SELECT MIN(import_date) FROM import_history))"
+    )
+    return unit, first, f"date_trunc('{unit}', DATE '{stop}')"
+
+
+def _parse(value):
+    try:
+        return date.fromisoformat(value) if value else None
+    except ValueError:
+        return None
