@@ -1,5 +1,6 @@
 {% extends '_base.html' %}
 {% from '_sort_th.html' import sort_th with context %}
+{% from '_period_filter.html' import period_filter with context %}
 
 {% block meta_description %}{% trans count=total_brands %}The {{ count }} brands available for integration into OpenStreetMap through atp2osm. Data from AllThePlaces, reviewed by OSM contributors.{% endtrans %}{% endblock %}
 {% block page_title %}{{ _('Brands to integrate') }}{% endblock %}
@@ -69,15 +70,7 @@
                 {% endfor %}
             </div>
         </fieldset>
-        <fieldset class="fieldset">
-            <legend class="fieldset-legend">{{ _('Last integration') }}</legend>
-            <div class="join">
-                <input type="date" name="from" value="{{ filters['from'] or '' }}" class="input input-sm join-item"
-                    aria-label="{{ _('From') }}" />
-                <input type="date" name="to" value="{{ filters['to'] or '' }}" class="input input-sm join-item"
-                    aria-label="{{ _('To') }}" />
-            </div>
-        </fieldset>
+        {{ period_filter(filters, _('Last integration')) }}
         <fieldset class="fieldset">
             <legend class="fieldset-legend">&nbsp;</legend>
             <div class="join">

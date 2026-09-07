@@ -2,6 +2,7 @@
 {% from '_info_card.html' import info_card %}
 {% from '_export_menu.html' import export_menu %}
 {% from '_sort_th.html' import sort_th with context %}
+{% from '_period_filter.html' import period_filter with context %}
 
 {% block meta_description %}{{ _('The brands missing from AllThePlaces. Report the ones absent to help enrich OpenStreetMap.') }}{% endblock %}
 {% block page_title %}{{ _('Missing brands') }}{% endblock %}
@@ -96,15 +97,7 @@
         {% endfor %}
       </select>
     </fieldset>
-    <fieldset class="fieldset">
-      <legend class="fieldset-legend">{{ _('Date added') }}</legend>
-      <div class="join">
-        <input type="date" name="from" value="{{ filters['from'] or '' }}" class="input input-sm join-item"
-          aria-label="{{ _('From') }}" />
-        <input type="date" name="to" value="{{ filters['to'] or '' }}" class="input input-sm join-item"
-          aria-label="{{ _('To') }}" />
-      </div>
-    </fieldset>
+    {{ period_filter(filters, _('Date added')) }}
     <fieldset class="fieldset">
       <legend class="fieldset-legend">{{ _('Presence in ATP') }}</legend>
       <label class="label cursor-pointer gap-2 h-8">

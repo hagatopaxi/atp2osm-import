@@ -1,6 +1,7 @@
 {% extends '_base.html' %}
 {% from '_export_menu.html' import export_menu %}
 {% from '_sort_th.html' import sort_th with context %}
+{% from '_period_filter.html' import period_filter with context %}
 
 {% block meta_description %}{{ _('History of the AllThePlaces integrations into OpenStreetMap made through atp2osm: brands integrated, dates and statuses.') }}{% endblock %}
 {% block page_title %}{{ _('Integration history') }}{% endblock %}
@@ -64,15 +65,7 @@
             {% endfor %}
         </select>
     </fieldset>
-    <fieldset class="fieldset">
-        <legend class="fieldset-legend">{{ _('Period') }}</legend>
-        <div class="join">
-            <input type="date" name="from" value="{{ filters['from'] or '' }}"
-                class="input input-sm join-item" aria-label="{{ _('From') }}" />
-            <input type="date" name="to" value="{{ filters['to'] or '' }}"
-                class="input input-sm join-item" aria-label="{{ _('To') }}" />
-        </div>
-    </fieldset>
+    {{ period_filter(filters) }}
     <fieldset class="fieldset">
         <legend class="fieldset-legend">&nbsp;</legend>
         <div class="join">
